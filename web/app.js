@@ -33,17 +33,18 @@ const VOICES = [
 
 const DEFAULT_VOICE = "Kore";
 
-const textInput    = document.getElementById('text-input');
-const modelSelect  = document.getElementById('model-select');
-const genderFilter = document.getElementById('gender-filter');
-const voiceSelect  = document.getElementById('voice-select');
-const speakBtn     = document.getElementById('speak-btn');
-const speakLabel   = document.getElementById('speak-label');
-const downloadBtn  = document.getElementById('download-btn');
-const playingBar   = document.getElementById('playing-bar');
-const statusText   = document.getElementById('status-text');
-const feed         = document.getElementById('feed');
-const feedEmpty    = document.getElementById('feed-empty');
+const textInput      = document.getElementById('text-input');
+const modelSelect    = document.getElementById('model-select');
+const genderFilter   = document.getElementById('gender-filter');
+const voiceSelect    = document.getElementById('voice-select');
+const synthesizeBtn  = document.getElementById('synthesize-btn');
+const synthesizeLabel = document.getElementById('synthesize-label');
+const speakBtn       = document.getElementById('speak-btn');
+const downloadBtn    = document.getElementById('download-btn');
+const playingBar     = document.getElementById('playing-bar');
+const statusText     = document.getElementById('status-text');
+const feed           = document.getElementById('feed');
+const feedEmpty      = document.getElementById('feed-empty');
 
 let lastWavBlob = null;
 let processing  = false;
@@ -99,18 +100,29 @@ genderFilter.addEventListener('change', () => {
 
 // --- Events ---
 
-speakBtn.addEventListener('click', async () => {
+synthesizeBtn.addEventListener('click', async () => {
   const text = textInput.value.trim();
   if (!text || processing) return;
-  await speakText(text);
+  await synthesizeText(text);
+});
+
+speakBtn.addEventListener('click', async () => {
+  if (!lastWavBlob || processing) return;
+  await playAudio();
 });
 
 textInput.addEventListener('keydown', async (e) => {
   if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
     e.preventDefault();
     const text = textInput.value.trim();
-    if (text && !processing) await speakText(text);
+    if (text && !processing) await synthesizeText(text);
   }
+});
+
+textInput.addEventListener('input', () => {
+  lastWavBlob = null;
+  speakBtn.disabled = true;
+  downloadBtn.disabled = true;
 });
 
 downloadBtn.addEventListener('click', () => {
@@ -118,20 +130,22 @@ downloadBtn.addEventListener('click', () => {
   const url = URL.createObjectURL(lastWavBlob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `vocalize-${Date.now()}.wav`;
+  a.download = `vocalize-${Date.now()}.opus`;
   a.click();
   URL.revokeObjectURL(url);
-  addFeed('ok', 'Downloaded', 'WAV file saved to your downloads folder');
+  addFeed('ok', 'Downloaded', 'Opus file saved to your downloads folder');
 });
 
 // --- Core ---
 
-async function speakText(text) {
+async function synthesizeText(text) {
   const voice = voiceSelect.value;
   const model = modelSelect.value;
   setProcessing(true);
   setStatus('Synthesizing…', '');
 
+  const startTime = performance.now();
+  const wordCount = text.trim().split(/\s+/).length;
   const item = addFeed('info', `"${truncate(text, 60)}"`, `${model} · ${voice} · synthesizing…`);
 
   try {
@@ -146,26 +160,46 @@ async function speakText(text) {
       throw new Error(body.error || res.statusText);
     }
 
-    const { wav } = await res.json();
-    const wavBytes = Uint8Array.from(atob(wav), c => c.charCodeAt(0));
-    lastWavBlob = new Blob([wavBytes], { type: 'audio/wav' });
+    const { opus } = await res.json();
+    const opusBytes = Uint8Array.from(atob(opus), c => c.charCodeAt(0));
+    lastWavBlob = new Blob([opusBytes], { type: 'audio/opus' });
     downloadBtn.disabled = false;
+    speakBtn.disabled = false;
 
-    updateFeedItem(item, 'ok', `"${truncate(text, 60)}"`, `${model} · ${voice} · playing…`);
-    setStatus('Playing…', '');
-    setPlaying(true);
-
-    await playWAV(wav);
-
-    setPlaying(false);
+    const duration = ((performance.now() - startTime) / 1000).toFixed(1);
     setStatus('', '');
-    updateFeedItem(item, 'ok', `"${truncate(text, 60)}"`, `${model} · ${voice} · ${(wavBytes.length / 1024).toFixed(1)} KB`);
+    updateFeedItem(item, 'ok', `"${truncate(text, 60)}"`, `${wordCount} words · ${duration}s · ${model} · ${voice} · ${(opusBytes.length / 1024).toFixed(1)} KB`);
   } catch (err) {
-    setPlaying(false);
     setStatus(err.message, 'error');
     updateFeedItem(item, 'fail', `"${truncate(text, 60)}"`, err.message);
   } finally {
     setProcessing(false);
+  }
+}
+
+async function playAudio() {
+  if (!lastWavBlob) return;
+
+  setStatus('Playing…', '');
+  setPlaying(true);
+
+  try {
+    const base64Wav = await new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const arr = reader.result.split(',')[1] || reader.result;
+        resolve(arr);
+      };
+      reader.readAsDataURL(lastWavBlob);
+    });
+
+    await playWAV(base64Wav);
+
+    setStatus('', '');
+  } catch (err) {
+    setStatus(err.message, 'error');
+  } finally {
+    setPlaying(false);
   }
 }
 
@@ -204,20 +238,13 @@ function updateFeedItem(item, kind, label, meta) {
 
 function setProcessing(val) {
   processing = val;
-  textInput.disabled    = val;
-  modelSelect.disabled  = val;
-  genderFilter.disabled = val;
-  voiceSelect.disabled  = val;
-  speakBtn.disabled     = val;
-  speakLabel.textContent = val ? 'Synthesizing…' : 'Speak';
-  const existing = speakBtn.querySelector('.btn-spinner');
-  if (val && !existing) {
-    const s = document.createElement('div');
-    s.className = 'btn-spinner';
-    speakBtn.prepend(s);
-  } else if (!val && existing) {
-    existing.remove();
-  }
+  textInput.disabled      = val;
+  modelSelect.disabled    = val;
+  genderFilter.disabled   = val;
+  voiceSelect.disabled    = val;
+  synthesizeBtn.disabled  = val;
+  speakBtn.disabled       = val || !lastWavBlob;
+  downloadBtn.disabled    = val || !lastWavBlob;
   if (!val) textInput.focus();
 }
 

@@ -1,0 +1,15 @@
+.git
+.gitignore
+.env.example
+.claude
+.DS_Store
+README.md
+LICENSE
+TODO.md
+*.md
+node_modules
+.vscode
+.idea
+*.wav
+hello.wav
+vocalize

@@ -17,7 +17,7 @@ type speakRequest struct {
 }
 
 type speakResponse struct {
-	WAV string `json:"wav"`
+	Opus string `json:"opus"`
 }
 
 type voicesResponse struct {
@@ -80,9 +80,14 @@ func handleSpeak(g *gemini.Client, cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
-		wavBytes := audio.EncodePCMToWAV(pcm, 24000)
+		opusBytes, err := audio.EncodePCMToOpus(pcm, 24000)
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, errResponse{err.Error()})
+			return
+		}
+
 		writeJSON(w, http.StatusOK, speakResponse{
-			WAV: base64.StdEncoding.EncodeToString(wavBytes),
+			Opus: base64.StdEncoding.EncodeToString(opusBytes),
 		})
 	}
 }

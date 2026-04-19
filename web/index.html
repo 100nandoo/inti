@@ -55,22 +55,28 @@
             <select id="voice-select" title="Select voice"></select>
           </div>
 
-          <!-- Speak button -->
-          <button id="speak-btn" class="btn-primary">
+          <!-- Synthesize button -->
+          <button id="synthesize-btn" class="btn-primary">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
               <path d="M8 5v14l11-7z"/>
             </svg>
-            <span id="speak-label">Speak</span>
+            <span id="synthesize-label">Synthesize</span>
+          </button>
+
+          <!-- Speak button -->
+          <button id="speak-btn" class="btn-secondary" disabled title="Play synthesized audio">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M8 5v14l11-7z"/>
+            </svg>
+            <span>Speak</span>
           </button>
 
           <!-- Download button -->
-          <button id="download-btn" class="btn-secondary" disabled title="Download last audio as WAV">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-              <polyline points="7 10 12 15 17 10"/>
-              <line x1="12" y1="15" x2="12" y2="3"/>
+          <button id="download-btn" class="btn-secondary" disabled title="Download last audio">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
             </svg>
-            WAV
+            Download
           </button>
 
           <!-- Playing indicator -->
