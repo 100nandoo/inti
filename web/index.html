@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vocalize — Gemini TTS</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div class="app">
+
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <div class="logo-icon">🔊</div>
+        <span class="logo-name">Vocalize</span>
+        <span class="logo-badge">Gemini TTS</span>
+      </div>
+      <span class="pill">24 kHz · PCM-16</span>
+    </header>
+
+    <!-- Content -->
+    <main>
+
+      <!-- Input card -->
+      <div class="card">
+        <div class="info-row">
+          <span class="pill">Model</span>
+          <div class="select-wrap select-wrap-sm">
+            <select id="model-select" title="Select TTS model"></select>
+          </div>
+        </div>
+
+        <div class="textarea-wrap">
+          <textarea
+            id="text-input"
+            placeholder="Enter text to synthesize…"
+            rows="4"
+          ></textarea>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+          <!-- Gender filter -->
+          <div class="select-wrap">
+            <select id="gender-filter" title="Filter by gender">
+              <option value="All">All voices</option>
+              <option value="Female">Female</option>
+              <option value="Male">Male</option>
+            </select>
+          </div>
+
+          <!-- Voice dropdown (populated by app.js) -->
+          <div class="select-wrap">
+            <select id="voice-select" title="Select voice"></select>
+          </div>
+
+          <!-- Speak button -->
+          <button id="speak-btn" class="btn-primary">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M8 5v14l11-7z"/>
+            </svg>
+            <span id="speak-label">Speak</span>
+          </button>
+
+          <!-- Download button -->
+          <button id="download-btn" class="btn-secondary" disabled title="Download last audio as WAV">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            WAV
+          </button>
+
+          <!-- Playing indicator -->
+          <div class="playing-bar" id="playing-bar">
+            <div class="bar"></div>
+            <div class="bar"></div>
+            <div class="bar"></div>
+            <div class="bar"></div>
+            <div class="bar"></div>
+          </div>
+
+          <!-- Status text -->
+          <span class="status-text" id="status-text"></span>
+        </div>
+      </div>
+
+      <!-- Activity feed -->
+      <div class="card">
+        <p class="feed-header">Activity</p>
+        <div class="feed" id="feed">
+          <p class="feed-empty" id="feed-empty">No activity yet — hit Speak to get started.</p>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
