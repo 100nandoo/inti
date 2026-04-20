@@ -33,6 +33,7 @@ func init() {
 	cobra.OnInitialize(initConfig)
 	rootCmd.AddCommand(speakCmd)
 	rootCmd.AddCommand(serveCmd)
+	rootCmd.AddCommand(pdfCmd)
 }
 
 func initConfig() {

@@ -41,7 +41,7 @@ func (m model) renderHeader() string {
 func (m model) renderBottom() string {
 	switch m.state {
 	case stateProcessing:
-		return promptStyle.Render("CMD: ") + m.spinner.View() + dimStyle.Render(" synthesizing...")
+		return promptStyle.Render("CMD: ") + m.spinner.View() + dimStyle.Render(" processing...")
 	case stateMenu:
 		return m.cmdList.View()
 	default:

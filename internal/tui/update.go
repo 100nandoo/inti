@@ -3,12 +3,14 @@ package tui
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/100nandoo/vocalize/internal/audio"
 	"github.com/100nandoo/vocalize/internal/config"
 	"github.com/100nandoo/vocalize/internal/gemini"
+	"github.com/100nandoo/vocalize/internal/pdf"
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -57,6 +59,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case exportDoneMsg:
 		m = m.appendLog(kindSuccess, fmt.Sprintf("saved to %s", msg.path))
+		m.state = stateMenu
+		m.viewport.Height = m.viewportHeight(stateMenu)
+		return m, nil
+
+	case pdfDoneMsg:
+		m = m.appendLog(kindSuccess, fmt.Sprintf("converted %d pages → %s/", msg.pages, msg.outputDir))
+		m.state = stateMenu
+		m.viewport.Height = m.viewportHeight(stateMenu)
+		return m, nil
+
+	case pdfErrMsg:
+		m = m.appendLog(kindError, fmt.Sprintf("pdf error: %v", msg.err))
 		m.state = stateMenu
 		m.viewport.Height = m.viewportHeight(stateMenu)
 		return m, nil
@@ -212,6 +226,26 @@ func (m model) handleCommand(raw string) (tea.Model, tea.Cmd) {
 		}
 		return m, exportCmd(m.lastPCM, path)
 
+	case "pdf":
+		if args == "" {
+			m = m.appendLog(kindError, "usage: pdf <file.pdf> [output-dir]")
+			m.state = stateMenu
+			m.viewport.Height = m.viewportHeight(stateMenu)
+			return m, nil
+		}
+		pdfParts := strings.Fields(args)
+		inputPath := pdfParts[0]
+		outputDir := ""
+		if len(pdfParts) > 1 {
+			outputDir = pdfParts[1]
+		} else {
+			base := filepath.Base(inputPath)
+			outputDir = strings.TrimSuffix(base, filepath.Ext(base))
+		}
+		m.state = stateProcessing
+		m = m.appendLog(kindSystem, fmt.Sprintf("converting %s → %s/", inputPath, outputDir))
+		return m, pdfConvertCmd(inputPath, outputDir)
+
 	case "status":
 		m = m.appendLog(kindSystem, fmt.Sprintf("model:   %s", m.currentModel))
 		m = m.appendLog(kindSystem, fmt.Sprintf("voice:   %s", m.currentVoice))
@@ -234,6 +268,7 @@ func (m model) handleCommand(raw string) (tea.Model, tea.Cmd) {
 		m = m.appendLog(kindSystem, "speak <text>      — synthesize and play")
 		m = m.appendLog(kindSystem, "voice <name>      — set voice")
 		m = m.appendLog(kindSystem, "export [path]     — save last audio as WAV")
+		m = m.appendLog(kindSystem, "pdf <file> [dir]  — convert PDF pages to images")
 		m = m.appendLog(kindSystem, "status            — show configuration")
 		m = m.appendLog(kindSystem, "clear             — clear history")
 		m = m.appendLog(kindSystem, "help              — show this message")
@@ -271,6 +306,16 @@ func playAudioCmd(pcm []byte) tea.Cmd {
 			return speechErrMsg{err: err}
 		}
 		return playbackDoneMsg{}
+	}
+}
+
+func pdfConvertCmd(inputPath, outputDir string) tea.Cmd {
+	return func() tea.Msg {
+		n, err := pdf.Convert(inputPath, outputDir)
+		if err != nil {
+			return pdfErrMsg{err: err}
+		}
+		return pdfDoneMsg{outputDir: outputDir, pages: n}
 	}
 }
 

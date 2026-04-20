@@ -8,6 +8,7 @@ Text-to-speech powered by Google Gemini, with a modern web UI and an interactive
 - **Synthesis metadata** — activity feed shows word count and how long each synthesis took
 - **Interactive TUI** — Bubble Tea terminal UI with scrollable history and a command menu
 - **One-shot CLI** — pipe-friendly `speak` subcommand for scripts and automation
+- **PDF converter** — convert PDF pages to numbered PNG images with `pdf` subcommand
 - **Single binary** — web assets embedded via `go:embed`, no separate file serving
 - **Rate limit handling** — quota errors surface as a friendly message instead of a raw API error
 
@@ -72,6 +73,16 @@ Press **Enter** on an empty prompt to open the command menu. Navigate with **↑
 ./vocalize speak --export hello.opus --play "Hello, world!"
 ```
 
+### PDF to Images
+
+```sh
+# Convert each page to a PNG, output to ./report/ (named by page number)
+./vocalize pdf report.pdf
+
+# Specify output directory
+./vocalize pdf report.pdf --output /tmp/pages
+```
+
 ## Models
 
 | Model                          | Notes            |
@@ -123,6 +134,7 @@ Press **Enter** on an empty prompt to open the command menu. Navigate with **↑
 │   ├── gemini/                # Gemini TTS client + rate-limit detection
 │   ├── audio/                 # Opus encoder (Ogg container), platform audio player
 │   ├── tui/                   # Bubble Tea TUI (model, view, update)
+│   ├── pdf/                   # PDF-to-image converter (go-fitz/MuPDF)
 │   └── server/                # HTTP server + REST handlers
 └── web/                       # Embedded frontend (HTML/CSS/JS)
 ```
@@ -146,6 +158,7 @@ GET /api/models
 
 - Go 1.22+
 - `libopus` and `libopusfile` (for building): `brew install opus opusfile` / `apt install libopus-dev libopusfile-dev`
+- `mupdf` (for PDF conversion): `brew install mupdf` / `apt install libmupdf-dev`
 - An Opus-capable audio player for the CLI/TUI `speak` and `export` commands: `mpv`, `ffplay`, or `vlc`
   - macOS: `brew install mpv`
   - Linux: `apt install mpv` or `apt install ffmpeg`

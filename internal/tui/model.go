@@ -98,6 +98,7 @@ func newModel(cfg *config.Config, g *gemini.Client) model {
 		commandItem{"voice", "voice <name>   — change voice"},
 		commandItem{"model", "model <name>   — change TTS model"},
 		commandItem{"export", "export [path]  — save last audio as WAV"},
+		commandItem{"pdf", "pdf <file>     — convert PDF pages to images"},
 		commandItem{"status", "status         — show configuration"},
 		commandItem{"clear", "clear          — clear history"},
 		commandItem{"help", "help           — show help"},

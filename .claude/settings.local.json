@@ -3,7 +3,8 @@
     "allow": [
       "Bash(go build *)",
       "Bash(go mod *)",
-      "Bash(go doc *)"
+      "Bash(go doc *)",
+      "Bash(go get *)"
     ]
   }
 }

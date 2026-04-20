@@ -31,7 +31,7 @@ var validModels = []string{
 	"gemini-3.1-flash-tts-preview",
 }
 
-const DefaultModelName = "gemini-2.5-flash-preview-tts"
+const DefaultModelName = "gemini-3.1-flash-tts-preview"
 
 func ValidVoices() []string { return validVoices }
 
