@@ -9,23 +9,29 @@ import (
 
 const sampleRate = 24000
 
-// Play writes PCM to a temp WAV file and plays it via the platform audio player.
+// Play writes PCM to a temp Opus file and plays it via the platform audio player.
 func Play(pcm []byte) error {
 	player, args, err := platformPlayer()
 	if err != nil {
 		return err
 	}
 
-	tmp, err := os.CreateTemp("", "vocalize-*.wav")
+	tmp, err := os.CreateTemp("", "vocalize-*.opus")
 	if err != nil {
 		return fmt.Errorf("create temp file: %w", err)
 	}
 	tmpPath := tmp.Name()
 
-	if _, err := tmp.Write(EncodePCMToWAV(pcm, sampleRate)); err != nil {
+	opusData, err := EncodePCMToOpus(pcm, sampleRate)
+	if err != nil {
 		tmp.Close()
 		os.Remove(tmpPath)
-		return fmt.Errorf("write wav: %w", err)
+		return fmt.Errorf("encode opus: %w", err)
+	}
+	if _, err := tmp.Write(opusData); err != nil {
+		tmp.Close()
+		os.Remove(tmpPath)
+		return fmt.Errorf("write opus: %w", err)
 	}
 	tmp.Close()
 
@@ -40,20 +46,24 @@ func Play(pcm []byte) error {
 }
 
 func platformPlayer() (string, []string, error) {
+	// Prefer players with native Opus support
+	for _, p := range []string{"mpv", "ffplay", "cvlc"} {
+		if _, err := exec.LookPath(p); err == nil {
+			if p == "ffplay" {
+				return p, []string{"-nodisp", "-autoexit"}, nil
+			}
+			if p == "cvlc" {
+				return p, []string{"--play-and-exit"}, nil
+			}
+			return p, nil, nil
+		}
+	}
 	switch runtime.GOOS {
 	case "darwin":
-		return "afplay", nil, nil
+		return "", nil, fmt.Errorf("no Opus-capable player found (install mpv: brew install mpv)")
 	case "linux":
-		for _, p := range []string{"aplay", "paplay", "mplayer"} {
-			if _, err := exec.LookPath(p); err == nil {
-				return p, nil, nil
-			}
-		}
-		return "", nil, fmt.Errorf("no audio player found (install aplay, paplay, or mplayer)")
+		return "", nil, fmt.Errorf("no Opus-capable player found (install mpv, ffplay, or vlc)")
 	default:
-		if _, err := exec.LookPath("mplayer"); err == nil {
-			return "mplayer", nil, nil
-		}
-		return "", nil, fmt.Errorf("unsupported platform: %s", runtime.GOOS)
+		return "", nil, fmt.Errorf("no Opus-capable player found (install mpv or ffplay)")
 	}
 }

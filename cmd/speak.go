@@ -47,8 +47,8 @@ var speakCmd = &cobra.Command{
 		}
 
 		if exportPath != "" {
-			if err := audio.WriteWAVFile(exportPath, pcm, 24000); err != nil {
-				return fmt.Errorf("write wav: %w", err)
+			if err := audio.WriteOpusFile(exportPath, pcm, 24000); err != nil {
+				return fmt.Errorf("write opus: %w", err)
 			}
 			fmt.Printf("saved to %s\n", exportPath)
 		}
@@ -67,7 +67,7 @@ var speakCmd = &cobra.Command{
 func init() {
 	speakCmd.Flags().String("voice", "", "voice name (default from config)")
 	speakCmd.Flags().String("model", "", fmt.Sprintf("TTS model (default: %s)", config.DefaultModelName))
-	speakCmd.Flags().String("export", "", "save audio to this .wav file path")
+	speakCmd.Flags().String("export", "", "save audio to this .opus file path")
 	speakCmd.Flags().Bool("play", false, "play audio even when --export is set")
 }
 

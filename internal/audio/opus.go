@@ -3,6 +3,7 @@ package audio
 import (
 	"bytes"
 	"encoding/binary"
+	"os"
 
 	"github.com/hraban/opus"
 )
@@ -121,4 +122,12 @@ func EncodePCMToOpus(pcm []byte, sampleRate int) ([]byte, error) {
 	}
 
 	return out.Bytes(), nil
+}
+
+func WriteOpusFile(path string, pcm []byte, sampleRate int) error {
+	data, err := EncodePCMToOpus(pcm, sampleRate)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path, data, 0644)
 }

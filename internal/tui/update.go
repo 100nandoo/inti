@@ -276,7 +276,7 @@ func playAudioCmd(pcm []byte) tea.Cmd {
 
 func exportCmd(pcm []byte, path string) tea.Cmd {
 	return func() tea.Msg {
-		if err := audio.WriteWAVFile(path, pcm, 24000); err != nil {
+		if err := audio.WriteOpusFile(path, pcm, 24000); err != nil {
 			return speechErrMsg{err: err}
 		}
 		return exportDoneMsg{path: path}

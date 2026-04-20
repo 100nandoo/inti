@@ -4,7 +4,8 @@ Text-to-speech powered by Google Gemini, with a modern web UI and an interactive
 
 ## Features
 
-- **Web UI** — dark interface with model & voice dropdowns, gender filter, waveform indicator, and WAV download
+- **Web UI** — dark interface with model & voice dropdowns, gender filter, waveform indicator, and Opus download
+- **Synthesis metadata** — activity feed shows word count and how long each synthesis took
 - **Interactive TUI** — Bubble Tea terminal UI with scrollable history and a command menu
 - **One-shot CLI** — pipe-friendly `speak` subcommand for scripts and automation
 - **Single binary** — web assets embedded via `go:embed`, no separate file serving
@@ -30,7 +31,7 @@ go build -o vocalize .
 # Open http://localhost:8080
 ```
 
-Choose a **model** and **voice** from the dropdowns, type your text, and hit **Speak**. Download the result with the **WAV** button.
+Choose a **model** and **voice** from the dropdowns, type your text, and hit **Synthesize**. Download the result with the **Download** button. The activity feed shows the word count and time taken for each synthesis.
 
 Flags: `--port 3000`, `--host 0.0.0.0`
 
@@ -47,7 +48,7 @@ Press **Enter** on an empty prompt to open the command menu. Navigate with **↑
 | `speak <text>`   | Synthesize and play      |
 | `voice <name>`   | Switch voice             |
 | `model <name>`   | Switch TTS model         |
-| `export [path]`  | Save last audio as WAV   |
+| `export [path]`  | Save last audio as Opus  |
 | `status`         | Show current config      |
 | `clear`          | Clear the history        |
 | `help`           | List commands            |
@@ -65,10 +66,10 @@ Press **Enter** on an empty prompt to open the command menu. Navigate with **↑
 ./vocalize speak --model gemini-2.5-pro-preview-tts "Hello, world!"
 
 # Save to file (no playback)
-./vocalize speak --export hello.wav "Hello, world!"
+./vocalize speak --export hello.opus "Hello, world!"
 
 # Save and play
-./vocalize speak --export hello.wav --play "Hello, world!"
+./vocalize speak --export hello.opus --play "Hello, world!"
 ```
 
 ## Models
@@ -120,7 +121,7 @@ Press **Enter** on an empty prompt to open the command menu. Navigate with **↑
 ├── internal/
 │   ├── config/                # Env/config loading and validation
 │   ├── gemini/                # Gemini TTS client + rate-limit detection
-│   ├── audio/                 # WAV encoder, platform audio player
+│   ├── audio/                 # Opus encoder (Ogg container), platform audio player
 │   ├── tui/                   # Bubble Tea TUI (model, view, update)
 │   └── server/                # HTTP server + REST handlers
 └── web/                       # Embedded frontend (HTML/CSS/JS)
@@ -131,7 +132,7 @@ Press **Enter** on an empty prompt to open the command menu. Navigate with **↑
 ```
 POST /api/speak
   Body:     { "text": "...", "voice": "Kore", "model": "gemini-2.5-flash-preview-tts" }
-  Response: { "wav": "<base64 WAV>" }
+  Response: { "opus": "<base64 Ogg Opus>" }
   Errors:   429 on rate limit, 400 on invalid voice/model
 
 GET /api/voices
@@ -144,5 +145,7 @@ GET /api/models
 ## Requirements
 
 - Go 1.22+
-- macOS: `afplay` (pre-installed)
-- Linux: `aplay`, `paplay`, or `mplayer`
+- `libopus` and `libopusfile` (for building): `brew install opus opusfile` / `apt install libopus-dev libopusfile-dev`
+- An Opus-capable audio player for the CLI/TUI `speak` and `export` commands: `mpv`, `ffplay`, or `vlc`
+  - macOS: `brew install mpv`
+  - Linux: `apt install mpv` or `apt install ffmpeg`
