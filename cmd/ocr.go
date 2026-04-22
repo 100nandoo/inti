@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/100nandoo/vocalize/internal/audio"
 	"github.com/100nandoo/vocalize/internal/config"
@@ -12,26 +13,43 @@ import (
 )
 
 var ocrCmd = &cobra.Command{
-	Use:   "ocr <image-path>",
-	Short: "Extract text from an image and optionally synthesize it",
-	Args:  cobra.ExactArgs(1),
+	Use:   "ocr <image-path> [image-path...]",
+	Short: "Extract text from one or more images and optionally synthesize it",
+	Args:  cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		imageBytes, err := os.ReadFile(args[0])
-		if err != nil {
-			return fmt.Errorf("read image: %w", err)
+		var parts []string
+		for i, path := range args {
+			if len(args) > 1 {
+				fmt.Printf("[%d/%d] extracting text from %s...\n", i+1, len(args), path)
+			} else {
+				fmt.Println("extracting text from image...")
+			}
+
+			imageBytes, err := os.ReadFile(path)
+			if err != nil {
+				return fmt.Errorf("read %s: %w", path, err)
+			}
+
+			text, err := ocr.ExtractText(imageBytes)
+			if err != nil {
+				return fmt.Errorf("ocr %s: %w", path, err)
+			}
+			parts = append(parts, text)
 		}
 
-		fmt.Println("extracting text from image...")
-		text, err := ocr.ExtractText(imageBytes)
-		if err != nil {
-			return fmt.Errorf("ocr: %w", err)
+		var combined []string
+		for _, t := range parts {
+			if t != "" {
+				combined = append(combined, t)
+			}
 		}
 
-		if text == "" {
-			fmt.Println("no text found in image")
+		if len(combined) == 0 {
+			fmt.Println("no text found in any image")
 			return nil
 		}
 
+		text := strings.Join(combined, "\n\n")
 		fmt.Println(text)
 
 		speak, _ := cmd.Flags().GetBool("speak")

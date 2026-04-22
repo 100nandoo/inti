@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/100nandoo/vocalize/internal/audio"
 	"github.com/100nandoo/vocalize/internal/config"
@@ -123,31 +124,45 @@ func handleOCR() http.HandlerFunc {
 			return
 		}
 
-		if err := r.ParseMultipartForm(10 << 20); err != nil {
+		if err := r.ParseMultipartForm(50 << 20); err != nil {
 			writeJSON(w, http.StatusBadRequest, errResponse{"invalid multipart form"})
 			return
 		}
 
-		file, _, err := r.FormFile("file")
-		if err != nil {
-			writeJSON(w, http.StatusBadRequest, errResponse{"file is required"})
-			return
+		// Accept "files" (multi-upload) with "file" as a fallback for single-file requests.
+		fileHeaders := r.MultipartForm.File["files"]
+		if len(fileHeaders) == 0 {
+			fileHeaders = r.MultipartForm.File["file"]
 		}
-		defer file.Close()
-
-		imageBytes, err := io.ReadAll(file)
-		if err != nil {
-			writeJSON(w, http.StatusInternalServerError, errResponse{"read file: " + err.Error()})
+		if len(fileHeaders) == 0 {
+			writeJSON(w, http.StatusBadRequest, errResponse{"at least one file is required"})
 			return
 		}
 
-		text, err := ocr.ExtractText(imageBytes)
-		if err != nil {
-			writeJSON(w, http.StatusInternalServerError, errResponse{err.Error()})
-			return
+		var parts []string
+		for _, fh := range fileHeaders {
+			f, err := fh.Open()
+			if err != nil {
+				writeJSON(w, http.StatusInternalServerError, errResponse{"open file: " + err.Error()})
+				return
+			}
+			imageBytes, err := io.ReadAll(f)
+			f.Close()
+			if err != nil {
+				writeJSON(w, http.StatusInternalServerError, errResponse{"read file: " + err.Error()})
+				return
+			}
+			text, err := ocr.ExtractText(imageBytes)
+			if err != nil {
+				writeJSON(w, http.StatusInternalServerError, errResponse{err.Error()})
+				return
+			}
+			if text != "" {
+				parts = append(parts, text)
+			}
 		}
 
-		writeJSON(w, http.StatusOK, ocrResponse{Text: text})
+		writeJSON(w, http.StatusOK, ocrResponse{Text: strings.Join(parts, "\n\n")})
 	}
 }
 

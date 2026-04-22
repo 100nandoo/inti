@@ -35,9 +35,24 @@
             <circle cx="8.5" cy="8.5" r="1.5"/>
             <polyline points="21 15 16 10 5 21"/>
           </svg>
-          <p>Drop an image here, or <label for="file-input" class="file-label">browse</label></p>
-          <span class="drop-hint" id="drop-hint">PNG, JPEG, WebP, TIFF supported</span>
-          <input type="file" id="file-input" accept="image/*" hidden />
+          <p>Drop images here, or <label for="file-input" class="file-label">browse</label></p>
+          <span class="drop-hint" id="drop-hint">PNG, JPEG, WebP, TIFF · select multiple</span>
+          <input type="file" id="file-input" accept="image/*" multiple hidden />
+        </div>
+
+        <div id="file-staging" hidden>
+          <ul id="file-list"></ul>
+          <div class="staging-actions">
+            <button id="clear-files-btn" class="btn-secondary">Clear</button>
+            <button id="run-ocr-btn" class="btn-primary">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                <circle cx="8.5" cy="8.5" r="1.5"/>
+                <polyline points="21 15 16 10 5 21"/>
+              </svg>
+              Extract Text
+            </button>
+          </div>
         </div>
 
         <div id="ocr-result" hidden>
@@ -139,6 +154,15 @@
       </div>
 
     </main>
+  </div>
+
+  <!-- Image preview modal -->
+  <div id="img-preview-modal" hidden>
+    <div id="img-preview-backdrop"></div>
+    <div id="img-preview-box">
+      <img id="img-preview-img" src="" alt="Preview" />
+      <button id="img-preview-close" title="Close">×</button>
+    </div>
   </div>
 
   <script src="/app.js"></script>

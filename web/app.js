@@ -33,8 +33,32 @@ const VOICES = [
 
 const DEFAULT_VOICE = "Kore";
 
+const imgModal       = document.getElementById('img-preview-modal');
+const imgModalImg    = document.getElementById('img-preview-img');
+const imgModalClose  = document.getElementById('img-preview-close');
+const imgModalBack   = document.getElementById('img-preview-backdrop');
+
+function openImgPreview(src) {
+  imgModalImg.src = src;
+  imgModal.hidden = false;
+  document.addEventListener('keydown', onModalKey);
+}
+function closeImgPreview() {
+  imgModal.hidden = true;
+  imgModalImg.src = '';
+  document.removeEventListener('keydown', onModalKey);
+}
+function onModalKey(e) { if (e.key === 'Escape') closeImgPreview(); }
+
+imgModalClose.addEventListener('click', closeImgPreview);
+imgModalBack.addEventListener('click', closeImgPreview);
+
 const dropZone       = document.getElementById('drop-zone');
 const fileInput      = document.getElementById('file-input');
+const fileStaging    = document.getElementById('file-staging');
+const fileList       = document.getElementById('file-list');
+const clearFilesBtn  = document.getElementById('clear-files-btn');
+const runOcrBtn      = document.getElementById('run-ocr-btn');
 const ocrResult      = document.getElementById('ocr-result');
 const ocrText        = document.getElementById('ocr-text');
 const ocrCopyBtn     = document.getElementById('ocr-copy-btn');
@@ -54,8 +78,10 @@ const statusText     = document.getElementById('status-text');
 const feed           = document.getElementById('feed');
 const feedEmpty      = document.getElementById('feed-empty');
 
-let lastWavBlob = null;
-let processing  = false;
+let lastWavBlob  = null;
+let processing   = false;
+let stagedFiles  = [];
+let dragSrcIndex = null;
 
 // --- OCR drop zone ---
 
@@ -71,24 +97,101 @@ dropZone.addEventListener('dragleave', () => {
 dropZone.addEventListener('drop', (e) => {
   e.preventDefault();
   dropZone.classList.remove('drag-active');
-  const file = e.dataTransfer.files[0];
-  if (file && file.type.startsWith('image/')) uploadImageForOCR(file);
+  const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+  if (files.length) addStagedFiles(files);
 });
 
 fileInput.addEventListener('change', () => {
-  const file = fileInput.files[0];
-  if (file) uploadImageForOCR(file);
+  const files = Array.from(fileInput.files);
+  if (files.length) addStagedFiles(files);
   fileInput.value = '';
 });
 
-async function uploadImageForOCR(file) {
+function addStagedFiles(files) {
+  stagedFiles.push(...files);
+  renderFileList();
+}
+
+function renderFileList() {
+  fileList.innerHTML = '';
+
+  stagedFiles.forEach((file, i) => {
+    const item = document.createElement('li');
+    item.className = 'file-item';
+    item.draggable = true;
+    item.dataset.index = i;
+
+    const url = URL.createObjectURL(file);
+    item.innerHTML = `
+      <span class="drag-handle" title="Drag to reorder">⠿</span>
+      <img class="file-thumb" src="${url}" alt="" />
+      <span class="file-name" title="${escHtml(file.name)}">${escHtml(file.name)}</span>
+      <button class="file-remove" data-index="${i}" title="Remove">×</button>`;
+
+    const thumb = item.querySelector('img');
+    thumb.addEventListener('load', () => URL.revokeObjectURL(url));
+    thumb.addEventListener('click', () => {
+      const previewUrl = URL.createObjectURL(file);
+      openImgPreview(previewUrl);
+      imgModalImg.addEventListener('load', () => URL.revokeObjectURL(previewUrl), { once: true });
+    });
+
+    item.addEventListener('dragstart', (e) => {
+      dragSrcIndex = i;
+      e.dataTransfer.effectAllowed = 'move';
+      requestAnimationFrame(() => item.classList.add('dragging'));
+    });
+    item.addEventListener('dragend', () => {
+      item.classList.remove('dragging');
+      fileList.querySelectorAll('.file-item').forEach(el => el.classList.remove('drag-over'));
+    });
+    item.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      fileList.querySelectorAll('.file-item').forEach(el => el.classList.remove('drag-over'));
+      item.classList.add('drag-over');
+    });
+    item.addEventListener('drop', (e) => {
+      e.preventDefault();
+      item.classList.remove('drag-over');
+      if (dragSrcIndex !== null && dragSrcIndex !== i) {
+        const [moved] = stagedFiles.splice(dragSrcIndex, 1);
+        stagedFiles.splice(i, 0, moved);
+        renderFileList();
+      }
+    });
+
+    fileList.appendChild(item);
+  });
+
+  fileStaging.hidden = stagedFiles.length === 0;
+}
+
+fileList.addEventListener('click', (e) => {
+  const btn = e.target.closest('.file-remove');
+  if (!btn) return;
+  stagedFiles.splice(parseInt(btn.dataset.index), 1);
+  renderFileList();
+});
+
+clearFilesBtn.addEventListener('click', () => {
+  stagedFiles = [];
+  renderFileList();
+});
+
+runOcrBtn.addEventListener('click', () => {
+  if (stagedFiles.length && !processing) uploadImagesForOCR([...stagedFiles]);
+});
+
+async function uploadImagesForOCR(files) {
+  const label = files.length === 1 ? files[0].name : `${files.length} images`;
   dropZone.classList.add('ocr-loading');
-  document.getElementById('drop-hint').textContent = `Processing ${file.name}…`;
-  const item = addFeed('info', `OCR: ${file.name}`, 'extracting text…');
+  runOcrBtn.disabled = true;
+  const item = addFeed('info', `OCR: ${label}`, 'extracting text…');
 
   try {
     const formData = new FormData();
-    formData.append('file', file);
+    files.forEach(f => formData.append('files', f));
 
     const res = await fetch('/api/ocr', { method: 'POST', body: formData });
     if (!res.ok) {
@@ -99,15 +202,16 @@ async function uploadImageForOCR(file) {
     const { text } = await res.json();
     ocrText.value = text || '';
     ocrResult.hidden = false;
+    stagedFiles = [];
+    renderFileList();
 
     const wordCount = text ? text.trim().split(/\s+/).filter(Boolean).length : 0;
-    document.getElementById('drop-hint').textContent = 'PNG, JPEG, WebP, TIFF supported';
-    updateFeedItem(item, 'ok', `OCR: ${file.name}`, `${wordCount} word${wordCount !== 1 ? 's' : ''} extracted`);
+    updateFeedItem(item, 'ok', `OCR: ${label}`, `${wordCount} word${wordCount !== 1 ? 's' : ''} extracted`);
   } catch (err) {
-    document.getElementById('drop-hint').textContent = 'PNG, JPEG, WebP, TIFF supported';
-    updateFeedItem(item, 'fail', `OCR: ${file.name}`, err.message);
+    updateFeedItem(item, 'fail', `OCR: ${label}`, err.message);
   } finally {
     dropZone.classList.remove('ocr-loading');
+    runOcrBtn.disabled = false;
   }
 }
 
