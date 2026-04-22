@@ -17,6 +17,9 @@ var rootCmd = &cobra.Command{
 	Short: "Text-to-speech powered by Gemini",
 	Long:  "Vocalize converts text to speech using Google Gemini. Run without subcommands for interactive TUI.",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if cfg.GeminiAPIKey == "" {
+			return fmt.Errorf("GEMINI_API_KEY is required for TTS — set it in your environment or .env file")
+		}
 		g, err := gemini.New(cfg.GeminiAPIKey)
 		if err != nil {
 			return fmt.Errorf("init gemini: %w", err)
@@ -35,6 +38,7 @@ func init() {
 	rootCmd.AddCommand(serveCmd)
 	rootCmd.AddCommand(pdfCmd)
 	rootCmd.AddCommand(ocrCmd)
+	rootCmd.AddCommand(summarizeCmd)
 }
 
 func initConfig() {

@@ -11,6 +11,7 @@ import (
 	"github.com/100nandoo/vocalize/internal/config"
 	"github.com/100nandoo/vocalize/internal/gemini"
 	"github.com/100nandoo/vocalize/internal/ocr"
+	"github.com/100nandoo/vocalize/internal/summarizer"
 )
 
 type speakRequest struct {
@@ -37,8 +38,30 @@ type errResponse struct {
 	Error string `json:"error"`
 }
 
+type summarizeRequest struct {
+	Text        string `json:"text"`
+	Instruction string `json:"instruction"`
+	Provider    string `json:"provider"` // optional: override server-configured provider
+	APIKey      string `json:"apiKey"`   // optional: key supplied from web UI
+}
+
+type summarizerConfigResponse struct {
+	Provider string `json:"provider"`
+	Model    string `json:"model"`
+}
+
+type summarizeResponse struct {
+	Summary  string `json:"summary"`
+	Provider string `json:"provider"`
+	Model    string `json:"model"`
+}
+
 func handleSpeak(g *gemini.Client, cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		if g == nil {
+			writeJSON(w, http.StatusServiceUnavailable, errResponse{"TTS unavailable — GEMINI_API_KEY not configured"})
+			return
+		}
 		if r.Method != http.MethodPost {
 			writeJSON(w, http.StatusMethodNotAllowed, errResponse{"method not allowed"})
 			return
@@ -163,6 +186,82 @@ func handleOCR() http.HandlerFunc {
 		}
 
 		writeJSON(w, http.StatusOK, ocrResponse{Text: strings.Join(parts, "\n\n")})
+	}
+}
+
+func handleSummarize(serverSum summarizer.Summarizer, cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			writeJSON(w, http.StatusMethodNotAllowed, errResponse{"method not allowed"})
+			return
+		}
+
+		var req summarizeRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeJSON(w, http.StatusBadRequest, errResponse{"invalid request body"})
+			return
+		}
+
+		if req.Text == "" {
+			writeJSON(w, http.StatusBadRequest, errResponse{"text is required"})
+			return
+		}
+
+		s := serverSum
+		usedProvider := cfg.SummarizerProvider
+		if req.Provider != "" || req.APIKey != "" {
+			var err error
+			s, err = summarizer.NewFromRequest(req.Provider, req.APIKey, cfg)
+			if err != nil {
+				writeJSON(w, http.StatusBadRequest, errResponse{err.Error()})
+				return
+			}
+			if req.Provider != "" {
+				usedProvider = req.Provider
+			}
+		}
+		if s == nil {
+			writeJSON(w, http.StatusServiceUnavailable, errResponse{"no summarizer configured — set a provider and API key"})
+			return
+		}
+
+		summary, err := s.Summarize(r.Context(), req.Text, req.Instruction)
+		if err != nil {
+			if gemini.IsRateLimit(err) || strings.Contains(err.Error(), "rate limited") {
+				writeJSON(w, http.StatusTooManyRequests, errResponse{"rate limited — wait a moment and try again"})
+			} else {
+				writeJSON(w, http.StatusInternalServerError, errResponse{err.Error()})
+			}
+			return
+		}
+
+		writeJSON(w, http.StatusOK, summarizeResponse{
+			Summary:  summary,
+			Provider: usedProvider,
+			Model:    modelForProvider(usedProvider, cfg),
+		})
+	}
+}
+
+func handleSummarizerConfig(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, http.StatusOK, summarizerConfigResponse{
+			Provider: cfg.SummarizerProvider,
+			Model:    modelForProvider(cfg.SummarizerProvider, cfg),
+		})
+	}
+}
+
+func modelForProvider(provider string, cfg *config.Config) string {
+	switch provider {
+	case "gemini":
+		return "gemini-2.0-flash"
+	case "groq":
+		return cfg.GroqModel
+	case "openrouter":
+		return cfg.OpenRouterModel
+	default:
+		return ""
 	}
 }
 

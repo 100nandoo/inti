@@ -6,7 +6,10 @@
       "Bash(go doc *)",
       "Bash(go get *)",
       "Bash(brew list *)",
-      "Bash(brew install *)"
+      "Bash(brew install *)",
+      "Bash(./vocalize serve *)",
+      "Bash(curl -X POST http://localhost:8080/api/summarize -H \"Content-Type: application/json\" -d '{\"text\":\"The quick brown fox jumps over the lazy dog. This is a test sentence. Summarization is a useful feature for condensing long text into shorter summaries that maintain the key points and information.\"}')",
+      "mcp__Claude_Preview__preview_start"
     ]
   }
 }

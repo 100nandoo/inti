@@ -1,7 +1,6 @@
 package config
 
 import (
-	"errors"
 	"os"
 	"strconv"
 
@@ -14,6 +13,12 @@ type Config struct {
 	DefaultModel string
 	Port         int
 	Host         string
+
+	SummarizerProvider string // "gemini" | "groq" | "openrouter"
+	GroqAPIKey         string
+	GroqModel          string
+	OpenRouterAPIKey   string
+	OpenRouterModel    string
 }
 
 var validVoices = []string{
@@ -59,9 +64,6 @@ func Load() (*Config, error) {
 	_ = godotenv.Load()
 
 	key := os.Getenv("GEMINI_API_KEY")
-	if key == "" {
-		return nil, errors.New("GEMINI_API_KEY is not set")
-	}
 
 	port := 8080
 	if p := os.Getenv("PORT"); p != "" {
@@ -85,11 +87,39 @@ func Load() (*Config, error) {
 		model = m
 	}
 
+	// Auto-detect summarizer provider if not explicitly set.
+	summarizerProvider := os.Getenv("SUMMARIZER_PROVIDER")
+	if summarizerProvider == "" {
+		switch {
+		case key != "":
+			summarizerProvider = "gemini"
+		case os.Getenv("GROQ_API_KEY") != "":
+			summarizerProvider = "groq"
+		case os.Getenv("OPENROUTER_API_KEY") != "":
+			summarizerProvider = "openrouter"
+		}
+	}
+
+	groqModel := "llama-3.3-70b-versatile"
+	if m := os.Getenv("GROQ_MODEL"); m != "" {
+		groqModel = m
+	}
+
+	openRouterModel := "google/gemma-3-27b-it:free"
+	if m := os.Getenv("OPENROUTER_MODEL"); m != "" {
+		openRouterModel = m
+	}
+
 	return &Config{
-		GeminiAPIKey: key,
-		DefaultVoice: voice,
-		DefaultModel: model,
-		Port:         port,
-		Host:         host,
+		GeminiAPIKey:       key,
+		DefaultVoice:       voice,
+		DefaultModel:       model,
+		Port:               port,
+		Host:               host,
+		SummarizerProvider: summarizerProvider,
+		GroqAPIKey:         os.Getenv("GROQ_API_KEY"),
+		GroqModel:          groqModel,
+		OpenRouterAPIKey:   os.Getenv("OPENROUTER_API_KEY"),
+		OpenRouterModel:    openRouterModel,
 	}, nil
 }

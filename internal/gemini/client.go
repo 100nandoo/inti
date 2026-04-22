@@ -119,6 +119,37 @@ func (c *Client) generateChunk(ctx context.Context, text, voice, model string) (
 	return resp.Candidates[0].Content.Parts[0].InlineData.Data, nil
 }
 
+// Summarize returns summarized text using the provided instruction.
+func (c *Client) Summarize(ctx context.Context, text, instruction string) (string, error) {
+	if instruction == "" {
+		instruction = "Please summarize the selection using precise and concise language. Use headers and bulleted lists in the summary, to make it scannable. Maintain the meaning and factual accuracy."
+	}
+
+	contents := []*genai.Content{
+		{Parts: []*genai.Part{
+			{Text: instruction + "\n\n" + text},
+		}},
+	}
+
+	cfg := &genai.GenerateContentConfig{}
+
+	resp, err := c.inner.Models.GenerateContent(ctx, "gemini-2.0-flash", contents, cfg)
+	if err != nil {
+		if IsRateLimit(err) {
+			return "", fmt.Errorf("rate limited: %w", err)
+		}
+		return "", fmt.Errorf("generate content: %w", err)
+	}
+
+	if len(resp.Candidates) == 0 ||
+		resp.Candidates[0].Content == nil ||
+		len(resp.Candidates[0].Content.Parts) == 0 {
+		return "", fmt.Errorf("no text data in response")
+	}
+
+	return resp.Candidates[0].Content.Parts[0].Text, nil
+}
+
 // IsRateLimit reports whether err is a quota / rate-limit error from the API.
 func IsRateLimit(err error) bool {
 	if err == nil {

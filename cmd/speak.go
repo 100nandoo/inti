@@ -32,6 +32,9 @@ var speakCmd = &cobra.Command{
 
 		exportPath, _ := cmd.Flags().GetString("export")
 
+		if cfg.GeminiAPIKey == "" {
+			return fmt.Errorf("GEMINI_API_KEY is required for TTS — set it in your environment or .env file")
+		}
 		g, err := gemini.New(cfg.GeminiAPIKey)
 		if err != nil {
 			return fmt.Errorf("init gemini: %w", err)

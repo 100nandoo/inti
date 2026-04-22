@@ -75,8 +75,16 @@ const speakBtn       = document.getElementById('speak-btn');
 const downloadBtn    = document.getElementById('download-btn');
 const playingBar     = document.getElementById('playing-bar');
 const statusText     = document.getElementById('status-text');
+const summarizeBtn     = document.getElementById('summarize-btn');
+const summarizeSpeakBtn = document.getElementById('summarize-speak-btn');
+const summaryResult    = document.getElementById('summary-result');
+const summaryText      = document.getElementById('summary-text');
+const summaryCopyBtn   = document.getElementById('summary-copy-btn');
+const summaryCopyLabel = document.getElementById('summary-copy-label');
+const summarySpeakBtn  = document.getElementById('summary-speak-btn');
 const feed           = document.getElementById('feed');
 const feedEmpty      = document.getElementById('feed-empty');
+
 
 let lastWavBlob  = null;
 let processing   = false;
@@ -202,6 +210,8 @@ async function uploadImagesForOCR(files) {
     const { text } = await res.json();
     ocrText.value = text || '';
     ocrResult.hidden = false;
+    summaryResult.hidden = true;
+    summaryText.value = '';
     stagedFiles = [];
     renderFileList();
 
@@ -261,6 +271,21 @@ async function loadModels() {
 
 loadModels();
 
+// --- Summarizer settings (stored in localStorage by settings.html) ---
+
+const STORAGE_KEY = 'vocalize:summarizer';
+
+function getSummarizerOverride() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    const provider = saved.provider || '';
+    const apiKey = provider && saved.keys ? (saved.keys[provider] || '') : '';
+    return { provider, apiKey };
+  } catch {
+    return { provider: '', apiKey: '' };
+  }
+}
+
 // --- Voice dropdown ---
 
 function populateVoices(genderFilter = 'All', keepSelection = false) {
@@ -313,6 +338,42 @@ textInput.addEventListener('input', () => {
   lastWavBlob = null;
   speakBtn.disabled = true;
   downloadBtn.disabled = true;
+  synthesizeBtn.disabled = !textInput.value.trim() || processing;
+});
+
+summarizeBtn.addEventListener('click', async () => {
+  const text = ocrText.value.trim();
+  if (!text || processing) return;
+  await summarizeText(text, false);
+});
+
+summarizeSpeakBtn.addEventListener('click', async () => {
+  const text = ocrText.value.trim();
+  if (!text || processing) return;
+  await summarizeText(text, true);
+});
+
+summaryCopyBtn.addEventListener('click', async () => {
+  const text = summaryText.innerText;
+  if (!text) return;
+  try {
+    await navigator.clipboard.writeText(text);
+    summaryCopyLabel.textContent = 'Copied!';
+    setTimeout(() => { summaryCopyLabel.textContent = 'Copy'; }, 1500);
+  } catch {
+    summaryCopyLabel.textContent = 'Copied!';
+    setTimeout(() => { summaryCopyLabel.textContent = 'Copy'; }, 1500);
+  }
+});
+
+summarySpeakBtn.addEventListener('click', async () => {
+  const text = summaryText.innerText.trim();
+  if (!text || processing) return;
+  textInput.value = text;
+  lastWavBlob = null;
+  speakBtn.disabled = true;
+  downloadBtn.disabled = true;
+  await synthesizeText(text);
 });
 
 downloadBtn.addEventListener('click', () => {
@@ -404,6 +465,48 @@ async function playWAV(base64Wav) {
   return new Promise(resolve => { src.onended = () => { ctx.close(); resolve(); }; });
 }
 
+async function summarizeText(text, shouldSpeak) {
+  setProcessing(true);
+  setStatus('Summarizing…', '');
+
+  const startTime = performance.now();
+  const wordCount = text.trim().split(/\s+/).length;
+  const item = addFeed('info', `"${truncate(text, 60)}"`, 'summarizing…');
+
+  try {
+    const { provider: reqProvider, apiKey } = getSummarizerOverride();
+    const res = await fetch('/api/summarize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, instruction: '', provider: reqProvider, apiKey }),
+    });
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({ error: res.statusText }));
+      throw new Error(body.error || res.statusText);
+    }
+
+    const { summary, provider, model } = await res.json();
+    summaryText.innerHTML = renderMarkdown(summary || '');
+    summaryResult.hidden = false;
+
+    const duration = ((performance.now() - startTime) / 1000).toFixed(1);
+    const modelTag = model ? ` · ${model}` : (provider ? ` · ${provider}` : '');
+    setStatus('', '');
+    updateFeedItem(item, 'ok', `"${truncate(text, 60)}"`, `${wordCount} words → summary · ${duration}s${modelTag}`);
+
+    if (shouldSpeak) {
+      textInput.value = summary;
+      await synthesizeText(summary);
+    }
+  } catch (err) {
+    setStatus(err.message, 'error');
+    updateFeedItem(item, 'fail', `"${truncate(text, 60)}"`, err.message);
+  } finally {
+    setProcessing(false);
+  }
+}
+
 // --- UI helpers ---
 
 function addFeed(kind, label, meta) {
@@ -432,7 +535,7 @@ function setProcessing(val) {
   modelSelect.disabled    = val;
   genderFilter.disabled   = val;
   voiceSelect.disabled    = val;
-  synthesizeBtn.disabled  = val;
+  synthesizeBtn.disabled  = val || !textInput.value.trim();
   speakBtn.disabled       = val || !lastWavBlob;
   downloadBtn.disabled    = val || !lastWavBlob;
   if (!val) textInput.focus();
@@ -453,4 +556,43 @@ function truncate(str, n) {
 
 function escHtml(str) {
   return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function renderMarkdown(md) {
+  const lines = md.split('\n');
+  let html = '';
+  let inList = false;
+
+  for (const raw of lines) {
+    const line = raw.trimEnd();
+
+    const heading = line.match(/^(#{1,3})\s+(.+)/);
+    if (heading) {
+      if (inList) { html += '</ul>'; inList = false; }
+      const lvl = heading[1].length;
+      html += `<h${lvl}>${inlineMarkdown(heading[2])}</h${lvl}>`;
+      continue;
+    }
+
+    const listItem = line.match(/^[-*]\s+(.+)/);
+    if (listItem) {
+      if (!inList) { html += '<ul>'; inList = true; }
+      html += `<li>${inlineMarkdown(listItem[1])}</li>`;
+      continue;
+    }
+
+    if (inList) { html += '</ul>'; inList = false; }
+    if (line === '') continue;
+    html += `<p>${inlineMarkdown(line)}</p>`;
+  }
+
+  if (inList) html += '</ul>';
+  return html;
+}
+
+function inlineMarkdown(text) {
+  return escHtml(text)
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,     '<em>$1</em>')
+    .replace(/`(.+?)`/g,       '<code>$1</code>');
 }

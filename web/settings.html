@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vocalize — Settings</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div class="app">
+
+    <header class="header">
+      <div class="logo">
+        <div class="logo-icon">🔊</div>
+        <span class="logo-name">Vocalize</span>
+        <span class="logo-badge">Settings</span>
+      </div>
+      <a href="/" class="header-settings-link" title="Back to app">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+        Back
+      </a>
+    </header>
+
+    <main>
+
+      <!-- Active provider -->
+      <div class="card">
+        <div class="info-row">
+          <span class="pill">Summarizer</span>
+          <span class="ocr-hint">Choose which AI provider to use for summarization</span>
+        </div>
+        <div class="settings-form">
+          <div class="settings-field">
+            <label class="settings-label" for="sum-provider-select">Active provider</label>
+            <div class="select-wrap">
+              <select id="sum-provider-select" title="Active summarizer provider">
+                <option value="">Server default</option>
+                <option value="gemini">Gemini</option>
+                <option value="groq">Groq</option>
+                <option value="openrouter">OpenRouter</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gemini -->
+      <div class="card">
+        <div class="info-row">
+          <span class="pill">Gemini</span>
+          <span class="ocr-hint">Free tier · 1,500 req/day</span>
+        </div>
+        <div class="settings-form">
+          <div class="settings-field">
+            <label class="settings-label" for="key-gemini">API Key</label>
+            <input type="password" id="key-gemini" class="settings-key-input" placeholder="AIza…" autocomplete="off" />
+            <p class="settings-hint">
+              Get your key at
+              <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" class="settings-link">aistudio.google.com</a>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Groq -->
+      <div class="card">
+        <div class="info-row">
+          <span class="pill">Groq</span>
+          <span class="ocr-hint">Free tier · 30 req/min · no billing required</span>
+        </div>
+        <div class="settings-form">
+          <div class="settings-field">
+            <label class="settings-label" for="key-groq">API Key</label>
+            <input type="password" id="key-groq" class="settings-key-input" placeholder="gsk_…" autocomplete="off" />
+            <p class="settings-hint">
+              Get your key at
+              <a href="https://console.groq.com/keys" target="_blank" rel="noopener" class="settings-link">console.groq.com</a>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- OpenRouter -->
+      <div class="card">
+        <div class="info-row">
+          <span class="pill">OpenRouter</span>
+          <span class="ocr-hint">Free models available · no credits consumed</span>
+        </div>
+        <div class="settings-form">
+          <div class="settings-field">
+            <label class="settings-label" for="key-openrouter">API Key</label>
+            <input type="password" id="key-openrouter" class="settings-key-input" placeholder="sk-or-…" autocomplete="off" />
+            <p class="settings-hint">
+              Get your key at
+              <a href="https://openrouter.ai/keys" target="_blank" rel="noopener" class="settings-link">openrouter.ai/keys</a>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="settings-actions-row" style="padding-bottom: 32px">
+        <button id="sum-save-btn" class="btn-primary">Save</button>
+        <button id="sum-clear-btn" class="btn-secondary">Clear all</button>
+        <span id="sum-save-status" class="status-text"></span>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="/settings.js"></script>
+</body>
+</html>
