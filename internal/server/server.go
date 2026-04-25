@@ -112,6 +112,7 @@ func Start(cfg *config.Config, webFS embed.FS) error {
 	}
 
 	asc := loadActiveConfig(cfg)
+	ks := loadAPIKeyStore()
 
 	mux := http.NewServeMux()
 
@@ -123,6 +124,11 @@ func Start(cfg *config.Config, webFS embed.FS) error {
 	mux.HandleFunc("/api/summarize", handleSummarize(sum, asc, cfg))
 	mux.HandleFunc("/api/summarizer-config", handleSummarizerConfig(asc, cfg))
 
+	// API key management routes
+	mux.HandleFunc("GET /api/admin/keys", handleAdminListKeys(ks))
+	mux.HandleFunc("POST /api/admin/keys", handleAdminCreateKey(ks))
+	mux.HandleFunc("DELETE /api/admin/keys/{id}", handleAdminDeleteKey(ks))
+
 	// Static files — strip the "web/" prefix from the embedded FS
 	webRoot, err := fs.Sub(webFS, "web")
 	if err != nil {
@@ -131,5 +137,5 @@ func Start(cfg *config.Config, webFS embed.FS) error {
 	mux.Handle("/", http.FileServer(http.FS(webRoot)))
 
 	addr := fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)
-	return http.ListenAndServe(addr, mux)
+	return http.ListenAndServe(addr, requireAPIKey(cfg.MasterKey, ks, mux))
 }

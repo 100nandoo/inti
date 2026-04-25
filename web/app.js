@@ -204,7 +204,7 @@ async function uploadImagesForOCR(files) {
     const formData = new FormData();
     files.forEach(f => formData.append('files', f));
 
-    const res = await fetch('/api/ocr', { method: 'POST', body: formData });
+    const res = await fetch('/api/ocr', { method: 'POST', headers: withAPIKey(), body: formData });
     if (!res.ok) {
       const body = await res.json().catch(() => ({ error: res.statusText }));
       throw new Error(body.error || res.statusText);
@@ -256,7 +256,7 @@ ocrSynthBtn.addEventListener('click', () => {
 
 async function loadModels() {
   try {
-    const res = await fetch('/api/models');
+    const res = await fetch('/api/models', { headers: withAPIKey() });
     if (!res.ok) return;
     const { models, default: defaultModel } = await res.json();
     modelSelect.innerHTML = '';
@@ -277,6 +277,12 @@ loadModels();
 // --- Summarizer settings (stored in localStorage by settings.html) ---
 
 const STORAGE_KEY = 'vocalize:summarizer';
+const API_KEY_STORAGE = 'vocalize:apiKey';
+
+function withAPIKey(headers = {}) {
+  const k = localStorage.getItem(API_KEY_STORAGE) || '';
+  return k ? { ...headers, 'X-API-Key': k } : headers;
+}
 
 function getSummarizerOverride() {
   try {
@@ -384,7 +390,7 @@ function populateProviderSelect(serverProvider = '') {
 (async () => {
   let serverProvider = '';
   try {
-    const res = await fetch('/api/summarizer-config');
+    const res = await fetch('/api/summarizer-config', { headers: withAPIKey() });
     if (res.ok) {
       const data = await res.json();
       serverProvider = data.provider || '';
@@ -513,7 +519,7 @@ async function synthesizeText(text) {
   try {
     const res = await fetch('/api/speak', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: withAPIKey({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ text, voice, model }),
     });
 
@@ -590,7 +596,7 @@ async function summarizeText(text, shouldSpeak) {
     const apiKey = reqProvider && saved.keys ? (saved.keys[reqProvider] || '') : '';
     const res = await fetch('/api/summarize', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: withAPIKey({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ text, instruction: '', provider: reqProvider, apiKey, model: sumModelSelect.value }),
     });
 

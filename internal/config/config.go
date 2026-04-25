@@ -13,6 +13,7 @@ type Config struct {
 	DefaultModel string
 	Port         int
 	Host         string
+	MasterKey    string
 
 	SummarizerProvider string // "gemini" | "groq" | "openrouter"
 	GroqAPIKey         string
@@ -116,6 +117,7 @@ func Load() (*Config, error) {
 		DefaultModel:       model,
 		Port:               port,
 		Host:               host,
+		MasterKey:          os.Getenv("VOCALIZE_MASTER_KEY"),
 		SummarizerProvider: summarizerProvider,
 		GroqAPIKey:         os.Getenv("GROQ_API_KEY"),
 		GroqModel:          groqModel,

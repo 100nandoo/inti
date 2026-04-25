@@ -702,3 +702,90 @@ button:disabled { opacity: .45; cursor: not-allowed; }
   color: var(--muted);
   margin-top: 2px;
 }
+
+/* ── API Keys page ─────────────────────────────────────────── */
+.keys-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-top: 16px;
+}
+.keys-table th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  padding: 0 12px 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+.keys-table td {
+  padding: 10px 12px 10px 0;
+  border-bottom: 1px solid var(--border);
+  color: var(--text2);
+  vertical-align: middle;
+}
+.keys-table tr:last-child td { border-bottom: none; }
+.keys-table td:last-child { text-align: right; padding-right: 0; }
+.key-prefix {
+  font-family: 'SF Mono', 'Fira Code', ui-monospace, monospace;
+  color: var(--accent);
+  font-size: 12px;
+  background: var(--surface);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* one-time key reveal modal */
+#key-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#key-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,.72);
+  backdrop-filter: blur(4px);
+}
+#key-modal-box {
+  position: relative;
+  z-index: 1;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px;
+  max-width: 540px;
+  width: 90vw;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+#key-modal-box h3 { margin: 0; font-size: 16px; }
+#key-modal-box p  { margin: 0; font-size: 13px; color: var(--text2); }
+.key-display {
+  display: block;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 6px);
+  padding: 12px 16px;
+  font-family: 'SF Mono', 'Fira Code', ui-monospace, monospace;
+  font-size: 13px;
+  color: var(--accent);
+  word-break: break-all;
+  user-select: all;
+  cursor: text;
+}
+.key-warning {
+  font-size: 12px;
+  color: var(--error);
+  background: color-mix(in srgb, var(--error) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--error) 30%, transparent);
+  border-radius: var(--radius-sm, 6px);
+  padding: 8px 12px;
+}
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; }

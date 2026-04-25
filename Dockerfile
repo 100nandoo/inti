@@ -34,6 +34,8 @@ RUN apt-get update && apt-get install -y \
     libopus0 \
     libopusfile0 \
     wget \
+    tesseract-ocr \
+    tesseract-ocr-eng \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy binary from builder

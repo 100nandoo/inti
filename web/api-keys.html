@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vocalize — API Keys</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div class="app">
+
+    <header class="header">
+      <div class="logo">
+        <div class="logo-icon">🔊</div>
+        <span class="logo-name">Vocalize</span>
+        <span class="logo-badge">API Keys</span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <a href="/settings.html" class="header-settings-link" title="Settings">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+          Settings
+        </a>
+        <a href="/" class="header-settings-link" title="Back to app">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+          Back
+        </a>
+      </div>
+    </header>
+
+    <main>
+
+      <!-- Your stored key (for making admin API calls) -->
+      <div class="card">
+        <div class="info-row">
+          <span class="pill">Your Access Key</span>
+          <span class="ocr-hint">Paste your API key here — stored in this browser only</span>
+        </div>
+        <div class="settings-form">
+          <div class="settings-field">
+            <label class="settings-label" for="stored-key-input">API Key</label>
+            <input type="password" id="stored-key-input" class="settings-key-input" placeholder="voc_…" autocomplete="off" />
+          </div>
+        </div>
+        <div class="settings-actions-row">
+          <button id="save-key-btn" class="btn-primary">Save</button>
+          <button id="clear-key-btn" class="btn-secondary">Clear</button>
+          <span id="key-save-status" class="status-text"></span>
+        </div>
+      </div>
+
+      <!-- Manage keys -->
+      <div class="card">
+        <div class="info-row">
+          <span class="pill">Manage Keys</span>
+          <span class="ocr-hint">Keys are stored server-side. Any valid key can authenticate all API requests.</span>
+        </div>
+
+        <div class="settings-actions-row" style="margin-top:4px;">
+          <input type="text" id="new-key-name" class="settings-key-input" placeholder="Key name (optional)" style="flex:1;max-width:260px;" />
+          <button id="create-key-btn" class="btn-primary">+ Create Key</button>
+          <span id="create-status" class="status-text"></span>
+        </div>
+
+        <div id="setup-banner" class="settings-hint" style="display:none;color:var(--accent);margin-top:12px;">
+          No keys yet. If <code>VOCALIZE_MASTER_KEY</code> is set in your <code>.env</code>, paste it in "Your Access Key" above, then create keys here to share with others. Without a master key, the API is currently open to everyone.
+        </div>
+
+        <table class="keys-table" id="keys-table" style="display:none;">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Key prefix</th>
+              <th>Created</th>
+              <th>Last used</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="keys-body"></tbody>
+        </table>
+
+        <p id="keys-empty" style="display:none;font-size:13px;color:var(--muted);margin:16px 0 0;">
+          No keys yet. Create one above to enable authentication.
+        </p>
+
+        <p id="keys-error" style="display:none;font-size:13px;color:var(--error);margin:16px 0 0;"></p>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- One-time key reveal modal -->
+  <div id="key-modal" style="display:none;">
+    <div id="key-modal-backdrop"></div>
+    <div id="key-modal-box">
+      <h3>API Key Created</h3>
+      <p class="key-warning">Copy this key now — it won't be shown again.</p>
+      <code id="key-modal-value" class="key-display"></code>
+      <div class="modal-actions">
+        <button id="key-modal-copy" class="btn-secondary">Copy</button>
+        <button id="key-modal-save" class="btn-primary">Save &amp; Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/api-keys.js"></script>
+</body>
+</html>

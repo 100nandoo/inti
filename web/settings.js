@@ -1,4 +1,10 @@
 const STORAGE_KEY = 'vocalize:summarizer';
+const API_KEY_STORAGE = 'vocalize:apiKey';
+
+function withAPIKey(headers = {}) {
+  const k = localStorage.getItem(API_KEY_STORAGE) || '';
+  return k ? { ...headers, 'X-API-Key': k } : headers;
+}
 
 const sumProviderSelect = document.getElementById('sum-provider-select');
 const keyGemini         = document.getElementById('key-gemini');
@@ -31,7 +37,7 @@ async function save() {
   try {
     await fetch('/api/summarizer-config', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: withAPIKey({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ provider, apiKey, model: '' }),
     });
   } catch {}
