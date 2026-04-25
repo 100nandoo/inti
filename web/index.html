@@ -70,7 +70,6 @@
         </div>
 
         <div id="ocr-result" hidden>
-          <textarea id="ocr-text" readonly rows="6" placeholder="Extracted text will appear here…"></textarea>
           <div class="ocr-actions">
             <div class="select-wrap">
               <select id="provider-select" title="Summarizer provider">
@@ -80,18 +79,6 @@
             <div class="select-wrap" id="sum-model-wrap" hidden>
               <select id="sum-model-select" title="Summarizer model"></select>
             </div>
-            <button id="ocr-copy-btn" class="btn-secondary">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M16 1H4C2.9 1 2 1.9 2 3v14h2V3h12V1zm3 4H8C6.9 5 6 5.9 6 7v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
-              </svg>
-              <span id="ocr-copy-label">Copy</span>
-            </button>
-            <button id="ocr-synthesize-btn" class="btn-primary">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M8 5v14l11-7z"/>
-              </svg>
-              Synthesize
-            </button>
             <button id="summarize-btn" class="btn-secondary" title="Summarize extracted text">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/>
@@ -161,29 +148,14 @@
             <select id="voice-select" title="Select voice"></select>
           </div>
 
-          <!-- Synthesize button -->
-          <button id="synthesize-btn" class="btn-primary">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M8 5v14l11-7z"/>
-            </svg>
-            <span id="synthesize-label">Synthesize</span>
-          </button>
-
-          <!-- Speak button -->
-          <button id="speak-btn" class="btn-secondary" disabled title="Play synthesized audio">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M8 5v14l11-7z"/>
-            </svg>
-            <span>Speak</span>
-          </button>
-
-          <!-- Download button -->
-          <button id="download-btn" class="btn-secondary" disabled title="Download last audio">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
-            </svg>
-            Download
-          </button>
+          <!-- Action checkboxes + submit -->
+          <div class="action-checkboxes">
+            <label class="action-check"><input type="checkbox" id="action-synthesize" checked> Synthesize</label>
+            <label class="action-check"><input type="checkbox" id="action-speak"> Speak</label>
+            <label class="action-check"><input type="checkbox" id="action-download"> Download</label>
+            <label class="action-check"><input type="checkbox" id="action-summarize"> Summarize</label>
+          </div>
+          <button id="submit-btn" class="btn-primary">Submit</button>
 
           <!-- Playing indicator -->
           <div class="playing-bar" id="playing-bar">

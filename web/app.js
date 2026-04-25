@@ -60,20 +60,17 @@ const fileList       = document.getElementById('file-list');
 const clearFilesBtn  = document.getElementById('clear-files-btn');
 const runOcrBtn      = document.getElementById('run-ocr-btn');
 const ocrResult      = document.getElementById('ocr-result');
-const ocrText        = document.getElementById('ocr-text');
-const ocrCopyBtn     = document.getElementById('ocr-copy-btn');
-const ocrCopyLabel   = document.getElementById('ocr-copy-label');
-const ocrSynthBtn    = document.getElementById('ocr-synthesize-btn');
 
-const textInput      = document.getElementById('text-input');
-const modelSelect    = document.getElementById('model-select');
-const genderFilter   = document.getElementById('gender-filter');
-const voiceSelect    = document.getElementById('voice-select');
-const synthesizeBtn  = document.getElementById('synthesize-btn');
-const synthesizeLabel = document.getElementById('synthesize-label');
-const speakBtn       = document.getElementById('speak-btn');
-const downloadBtn    = document.getElementById('download-btn');
-const playingBar     = document.getElementById('playing-bar');
+const textInput        = document.getElementById('text-input');
+const modelSelect      = document.getElementById('model-select');
+const genderFilter     = document.getElementById('gender-filter');
+const voiceSelect      = document.getElementById('voice-select');
+const actionSynthesize = document.getElementById('action-synthesize');
+const actionSpeak      = document.getElementById('action-speak');
+const actionDownload   = document.getElementById('action-download');
+const actionSummarize  = document.getElementById('action-summarize');
+const submitBtn        = document.getElementById('submit-btn');
+const playingBar       = document.getElementById('playing-bar');
 const statusText     = document.getElementById('status-text');
 const providerSelect   = document.getElementById('provider-select');
 const sumModelWrap     = document.getElementById('sum-model-wrap');
@@ -211,10 +208,10 @@ async function uploadImagesForOCR(files) {
     }
 
     const { text } = await res.json();
-    ocrText.value = text || '';
+    textInput.value = text || '';
     ocrResult.hidden = false;
     summaryResult.hidden = true;
-    summaryText.value = '';
+    summaryText.innerHTML = '';
     stagedFiles = [];
     renderFileList();
 
@@ -227,30 +224,6 @@ async function uploadImagesForOCR(files) {
     runOcrBtn.disabled = false;
   }
 }
-
-ocrCopyBtn.addEventListener('click', async () => {
-  if (!ocrText.value) return;
-  try {
-    await navigator.clipboard.writeText(ocrText.value);
-    ocrCopyLabel.textContent = 'Copied!';
-    setTimeout(() => { ocrCopyLabel.textContent = 'Copy'; }, 1500);
-  } catch {
-    ocrText.select();
-    document.execCommand('copy');
-    ocrCopyLabel.textContent = 'Copied!';
-    setTimeout(() => { ocrCopyLabel.textContent = 'Copy'; }, 1500);
-  }
-});
-
-ocrSynthBtn.addEventListener('click', () => {
-  const text = ocrText.value.trim();
-  if (!text || processing) return;
-  textInput.value = text;
-  lastWavBlob = null;
-  speakBtn.disabled = true;
-  downloadBtn.disabled = true;
-  synthesizeText(text);
-});
 
 // --- Model dropdown ---
 
@@ -432,40 +405,49 @@ genderFilter.addEventListener('change', () => {
 
 // --- Events ---
 
-synthesizeBtn.addEventListener('click', async () => {
+submitBtn.addEventListener('click', async () => {
   const text = textInput.value.trim();
   if (!text || processing) return;
-  await synthesizeText(text);
+
+  const doSummarize  = actionSummarize.checked;
+  const doSynthesize = actionSynthesize.checked || actionSpeak.checked || actionDownload.checked;
+  const doSpeak      = actionSpeak.checked;
+  const doDownload   = actionDownload.checked;
+
+  if (doSummarize) await summarizeText(text, false);
+  if (doSynthesize) await synthesizeText(text);
+  if (doSpeak && lastWavBlob) await playAudio();
+  if (doDownload && lastWavBlob) {
+    const url = URL.createObjectURL(lastWavBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `vocalize-${Date.now()}.opus`;
+    a.click();
+    URL.revokeObjectURL(url);
+    addFeed('ok', 'Downloaded', 'Opus file saved to your downloads folder');
+  }
 });
 
-speakBtn.addEventListener('click', async () => {
-  if (!lastWavBlob || processing) return;
-  await playAudio();
-});
-
-textInput.addEventListener('keydown', async (e) => {
+textInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
     e.preventDefault();
-    const text = textInput.value.trim();
-    if (text && !processing) await synthesizeText(text);
+    submitBtn.click();
   }
 });
 
 textInput.addEventListener('input', () => {
   lastWavBlob = null;
-  speakBtn.disabled = true;
-  downloadBtn.disabled = true;
-  synthesizeBtn.disabled = !textInput.value.trim() || processing;
+  submitBtn.disabled = !textInput.value.trim() || processing;
 });
 
 summarizeBtn.addEventListener('click', async () => {
-  const text = ocrText.value.trim();
+  const text = textInput.value.trim();
   if (!text || processing) return;
   await summarizeText(text, false);
 });
 
 summarizeSpeakBtn.addEventListener('click', async () => {
-  const text = ocrText.value.trim();
+  const text = textInput.value.trim();
   if (!text || processing) return;
   await summarizeText(text, true);
 });
@@ -488,20 +470,7 @@ summarySpeakBtn.addEventListener('click', async () => {
   if (!text || processing) return;
   textInput.value = text;
   lastWavBlob = null;
-  speakBtn.disabled = true;
-  downloadBtn.disabled = true;
   await synthesizeText(text);
-});
-
-downloadBtn.addEventListener('click', () => {
-  if (!lastWavBlob) return;
-  const url = URL.createObjectURL(lastWavBlob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `vocalize-${Date.now()}.opus`;
-  a.click();
-  URL.revokeObjectURL(url);
-  addFeed('ok', 'Downloaded', 'Opus file saved to your downloads folder');
 });
 
 // --- Core ---
@@ -531,8 +500,6 @@ async function synthesizeText(text) {
     const { opus } = await res.json();
     const opusBytes = Uint8Array.from(atob(opus), c => c.charCodeAt(0));
     lastWavBlob = new Blob([opusBytes], { type: 'audio/opus' });
-    downloadBtn.disabled = false;
-    speakBtn.disabled = false;
 
     const duration = ((performance.now() - startTime) / 1000).toFixed(1);
     setStatus('', '');
@@ -663,15 +630,17 @@ function updateFeedItem(item, kind, label, meta) {
 
 function setProcessing(val) {
   processing = val;
-  textInput.disabled      = val;
-  modelSelect.disabled    = val;
-  genderFilter.disabled   = val;
-  voiceSelect.disabled    = val;
-  providerSelect.disabled = val;
-  sumModelSelect.disabled = val;
-  synthesizeBtn.disabled  = val || !textInput.value.trim();
-  speakBtn.disabled       = val || !lastWavBlob;
-  downloadBtn.disabled    = val || !lastWavBlob;
+  textInput.disabled          = val;
+  modelSelect.disabled        = val;
+  genderFilter.disabled       = val;
+  voiceSelect.disabled        = val;
+  providerSelect.disabled     = val;
+  sumModelSelect.disabled     = val;
+  submitBtn.disabled          = val || !textInput.value.trim();
+  actionSynthesize.disabled   = val;
+  actionSpeak.disabled        = val;
+  actionDownload.disabled     = val;
+  actionSummarize.disabled    = val;
   if (!val) textInput.focus();
 }
 

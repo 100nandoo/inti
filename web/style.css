@@ -369,27 +369,35 @@ button:disabled { opacity: .45; cursor: not-allowed; }
   flex-direction: column;
   gap: 10px;
 }
-#ocr-text {
-  width: 100%;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  color: var(--text);
-  font-family: 'SF Mono', 'Fira Code', monospace;
-  font-size: 12px;
-  line-height: 1.6;
-  padding: 12px;
-  resize: vertical;
-  outline: none;
-  transition: border-color 0.15s;
-}
-#ocr-text:focus { border-color: var(--border2); }
 
 .ocr-actions {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.action-checkboxes {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.action-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text2);
+  cursor: pointer;
+  user-select: none;
+}
+.action-check input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--accent);
+  cursor: pointer;
 }
 
 .ocr-actions .select-wrap select {
