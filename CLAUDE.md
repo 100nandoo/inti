@@ -12,7 +12,7 @@ brew install opus opusfile mpv
 go build -o vocalize .
 
 # Run web server
-./vocalize serve                # http://localhost:8080
+./vocalize serve                # http://localhost:8282
 ./vocalize serve --port 3000
 
 # Run interactive TUI

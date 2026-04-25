@@ -53,7 +53,7 @@ go build -o vocalize .
 
 ```sh
 ./vocalize serve
-# Open http://localhost:8080
+# Open http://localhost:8282
 ```
 
 Choose a **model** and **voice** from the dropdowns, type your text, and hit **Synthesize**. Download the result with the **Download** button.
@@ -160,7 +160,7 @@ See [docs/api.md](docs/api.md) for the full reference with curl examples.
 | `GEMINI_API_KEY`       | —                              | Required for TTS and Gemini summarization                      |
 | `DEFAULT_VOICE`        | `Kore`                         | Default voice name                                             |
 | `DEFAULT_MODEL`        | `gemini-3.1-flash-tts-preview` | Default TTS model                                              |
-| `PORT`                 | `8080`                         | Web server port                                                |
+| `PORT`                 | `8282`                         | Web server port                                                |
 | `HOST`                 | `127.0.0.1`                    | Web server bind address                                        |
 | `SUMMARIZER_PROVIDER`  | auto-detected                  | Summarizer provider: `gemini`, `groq`, or `openrouter`         |
 | `GROQ_API_KEY`         | —                              | Required when provider is `groq`                               |

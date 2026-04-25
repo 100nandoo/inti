@@ -65,7 +65,7 @@ func Load() (*Config, error) {
 
 	key := os.Getenv("GEMINI_API_KEY")
 
-	port := 8080
+	port := 8282
 	if p := os.Getenv("PORT"); p != "" {
 		if n, err := strconv.Atoi(p); err == nil {
 			port = n

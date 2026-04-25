@@ -138,11 +138,11 @@ Optionally synthesizes the extracted text with TTS using `--speak`.
 ./vocalize serve [flags]
 ```
 
-Starts an HTTP server serving the web UI at `http://localhost:8080`. `GEMINI_API_KEY` is only required if you use TTS; summarization works with Groq or OpenRouter keys alone.
+Starts an HTTP server serving the web UI at `http://localhost:8282`. `GEMINI_API_KEY` is only required if you use TTS; summarization works with Groq or OpenRouter keys alone.
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--port <n>` | `8080` (or `$PORT`) | Port to listen on |
+| `--port <n>` | `8282` (or `$PORT`) | Port to listen on |
 | `--host <addr>` | `127.0.0.1` (or `$HOST`) | Address to bind to |
 
 **Examples**

@@ -43,7 +43,7 @@ COPY --from=builder /app/vocalize .
 COPY --from=builder /app/web ./web
 
 # Expose port
-EXPOSE 8080
+EXPOSE 8282
 
 # Run the application
 CMD ["./vocalize", "serve"]

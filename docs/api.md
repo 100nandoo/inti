@@ -1,6 +1,6 @@
 # HTTP API Reference
 
-The web server exposes a JSON REST API on `http://localhost:8080` (default). All request and response bodies use `application/json` unless noted.
+The web server exposes a JSON REST API on `http://localhost:8282` (default). All request and response bodies use `application/json` unless noted.
 
 ## Table of Contents
 
@@ -58,7 +58,7 @@ Decode the `opus` field from base64 to get the raw Ogg Opus bytes (24 kHz · PCM
 **curl example**
 
 ```sh
-curl -s -X POST http://localhost:8080/api/speak \
+curl -s -X POST http://localhost:8282/api/speak \
   -H 'Content-Type: application/json' \
   -d '{"text": "Hello, world!", "voice": "Kore", "model": "gemini-2.5-flash-preview-tts"}' \
   | jq -r '.opus' \
@@ -103,22 +103,22 @@ When multiple files are uploaded, extracted text is joined with a blank line bet
 
 ```sh
 # Single image
-curl -s -X POST http://localhost:8080/api/ocr \
+curl -s -X POST http://localhost:8282/api/ocr \
   -F "files=@screenshot.png" \
   | jq -r '.text'
 
 # Multiple images
-curl -s -X POST http://localhost:8080/api/ocr \
+curl -s -X POST http://localhost:8282/api/ocr \
   -F "files=@page1.png" \
   -F "files=@page2.png" \
   | jq -r '.text'
 
 # Extract text then pipe into /api/speak
-TEXT=$(curl -s -X POST http://localhost:8080/api/ocr \
+TEXT=$(curl -s -X POST http://localhost:8282/api/ocr \
   -F "files=@screenshot.png" \
   | jq -r '.text')
 
-curl -s -X POST http://localhost:8080/api/speak \
+curl -s -X POST http://localhost:8282/api/speak \
   -H 'Content-Type: application/json' \
   -d "{\"text\": \"$TEXT\", \"voice\": \"Kore\"}" \
   | jq -r '.opus' \
@@ -175,19 +175,19 @@ The `summary` field is Markdown-formatted text. `provider` and `model` reflect w
 
 ```sh
 # Using the server's configured provider
-curl -s -X POST http://localhost:8080/api/summarize \
+curl -s -X POST http://localhost:8282/api/summarize \
   -H 'Content-Type: application/json' \
   -d '{"text": "Go is a statically typed language..."}' \
   | jq -r '.summary'
 
 # Override provider and key per-request
-curl -s -X POST http://localhost:8080/api/summarize \
+curl -s -X POST http://localhost:8282/api/summarize \
   -H 'Content-Type: application/json' \
   -d '{"text": "Go is a statically typed language...", "provider": "groq", "apiKey": "gsk_..."}' \
   | jq '{summary, provider, model}'
 
 # Custom instruction
-curl -s -X POST http://localhost:8080/api/summarize \
+curl -s -X POST http://localhost:8282/api/summarize \
   -H 'Content-Type: application/json' \
   -d '{"text": "...", "instruction": "Summarize in one sentence."}' \
   | jq -r '.summary'
@@ -213,7 +213,7 @@ Both fields are empty strings when no provider is configured server-side.
 **curl example**
 
 ```sh
-curl -s http://localhost:8080/api/summarizer-config | jq .
+curl -s http://localhost:8282/api/summarizer-config | jq .
 ```
 
 ---
@@ -234,7 +234,7 @@ List all available voices.
 **curl example**
 
 ```sh
-curl -s http://localhost:8080/api/voices | jq '.voices[]'
+curl -s http://localhost:8282/api/voices | jq '.voices[]'
 ```
 
 ---
@@ -255,7 +255,7 @@ List all available TTS models.
 **curl example**
 
 ```sh
-curl -s http://localhost:8080/api/models | jq '.models[]'
+curl -s http://localhost:8282/api/models | jq '.models[]'
 ```
 
 ---

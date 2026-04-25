@@ -29,6 +29,6 @@ var serveCmd = &cobra.Command{
 }
 
 func init() {
-	serveCmd.Flags().Int("port", 0, "HTTP port (default 8080)")
+	serveCmd.Flags().Int("port", 0, "HTTP port (default 8282)")
 	serveCmd.Flags().String("host", "", "HTTP host (default 127.0.0.1)")
 }
