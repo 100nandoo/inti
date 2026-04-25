@@ -350,10 +350,10 @@ function populateModelSelect(provider) {
   });
 }
 
-function populateProviderSelect() {
+function populateProviderSelect(serverProvider = '') {
   const saved = (() => { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch { return {}; } })();
   const keys = saved.keys || {};
-  const current = providerSelect.value || saved.provider || '';
+  const current = providerSelect.value || saved.provider || serverProvider || '';
 
   const PROVIDERS = [
     { value: 'gemini',      label: 'Gemini' },
@@ -376,7 +376,18 @@ function populateProviderSelect() {
   }
   populateModelSelect(providerSelect.value);
 }
-populateProviderSelect();
+
+(async () => {
+  let serverProvider = '';
+  try {
+    const res = await fetch('/api/summarizer-config');
+    if (res.ok) {
+      const data = await res.json();
+      serverProvider = data.provider || '';
+    }
+  } catch {}
+  populateProviderSelect(serverProvider);
+})();
 
 providerSelect.addEventListener('change', () => {
   populateModelSelect(providerSelect.value);

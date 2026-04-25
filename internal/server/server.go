@@ -2,14 +2,98 @@ package server
 
 import (
 	"embed"
+	"encoding/json"
 	"fmt"
 	"io/fs"
 	"net/http"
+	"os"
+	"path/filepath"
+	"sync"
 
 	"github.com/100nandoo/vocalize/internal/config"
 	"github.com/100nandoo/vocalize/internal/gemini"
 	"github.com/100nandoo/vocalize/internal/summarizer"
 )
+
+type activeSumConfig struct {
+	mu       sync.RWMutex
+	Provider string
+	Model    string
+	APIKey   string
+}
+
+func (a *activeSumConfig) get() (provider, model, apiKey string) {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	return a.Provider, a.Model, a.APIKey
+}
+
+func (a *activeSumConfig) set(provider, model, apiKey string) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.Provider = provider
+	a.Model = model
+	a.APIKey = apiKey
+}
+
+type persistedSumConfig struct {
+	Provider string `json:"provider"`
+	Model    string `json:"model"`
+	APIKey   string `json:"apiKey"`
+}
+
+func configFilePath() string {
+	if dir := os.Getenv("VOCALIZE_CONFIG_DIR"); dir != "" {
+		return filepath.Join(dir, "config.json")
+	}
+	base, err := os.UserConfigDir()
+	if err != nil {
+		return "config.json"
+	}
+	return filepath.Join(base, "vocalize", "config.json")
+}
+
+func loadActiveConfig(cfg *config.Config) *activeSumConfig {
+	asc := &activeSumConfig{
+		Provider: cfg.SummarizerProvider,
+		APIKey:   apiKeyForProvider(cfg.SummarizerProvider, cfg),
+	}
+	data, err := os.ReadFile(configFilePath())
+	if err == nil {
+		var p persistedSumConfig
+		if json.Unmarshal(data, &p) == nil {
+			if p.Provider != "" {
+				asc.Provider = p.Provider
+				asc.APIKey = p.APIKey
+			}
+			asc.Model = p.Model
+		}
+	}
+	return asc
+}
+
+func saveActiveConfig(provider, model, apiKey string) error {
+	path := configFilePath()
+	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
+		return err
+	}
+	data, err := json.Marshal(persistedSumConfig{Provider: provider, Model: model, APIKey: apiKey})
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path, data, 0600)
+}
+
+func apiKeyForProvider(provider string, cfg *config.Config) string {
+	switch provider {
+	case "groq":
+		return cfg.GroqAPIKey
+	case "openrouter":
+		return cfg.OpenRouterAPIKey
+	default:
+		return cfg.GeminiAPIKey
+	}
+}
 
 func Start(cfg *config.Config, webFS embed.FS) error {
 	var g *gemini.Client
@@ -27,6 +111,8 @@ func Start(cfg *config.Config, webFS embed.FS) error {
 		sum = nil
 	}
 
+	asc := loadActiveConfig(cfg)
+
 	mux := http.NewServeMux()
 
 	// API routes
@@ -34,8 +120,8 @@ func Start(cfg *config.Config, webFS embed.FS) error {
 	mux.HandleFunc("/api/voices", handleVoices(cfg))
 	mux.HandleFunc("/api/models", handleModels(cfg))
 	mux.HandleFunc("/api/ocr", handleOCR())
-	mux.HandleFunc("/api/summarize", handleSummarize(sum, cfg))
-	mux.HandleFunc("/api/summarizer-config", handleSummarizerConfig(cfg))
+	mux.HandleFunc("/api/summarize", handleSummarize(sum, asc, cfg))
+	mux.HandleFunc("/api/summarizer-config", handleSummarizerConfig(asc, cfg))
 
 	// Static files — strip the "web/" prefix from the embedded FS
 	webRoot, err := fs.Sub(webFS, "web")

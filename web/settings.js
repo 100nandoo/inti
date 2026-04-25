@@ -18,15 +18,24 @@ function load() {
   } catch {}
 }
 
-function save() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({
-    provider: sumProviderSelect.value,
-    keys: {
-      gemini:      keyGemini.value.trim(),
-      groq:        keyGroq.value.trim(),
-      openrouter:  keyOpenRouter.value.trim(),
-    },
-  }));
+async function save() {
+  const provider = sumProviderSelect.value;
+  const keys = {
+    gemini:     keyGemini.value.trim(),
+    groq:       keyGroq.value.trim(),
+    openrouter: keyOpenRouter.value.trim(),
+  };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ provider, keys }));
+
+  const apiKey = provider && keys[provider] ? keys[provider] : '';
+  try {
+    await fetch('/api/summarizer-config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ provider, apiKey, model: '' }),
+    });
+  } catch {}
+
   sumSaveStatus.textContent = 'Saved';
   sumSaveStatus.className = 'status-text';
   setTimeout(() => { sumSaveStatus.textContent = ''; }, 2000);

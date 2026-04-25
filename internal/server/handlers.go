@@ -191,7 +191,7 @@ func handleOCR() http.HandlerFunc {
 	}
 }
 
-func handleSummarize(serverSum summarizer.Summarizer, cfg *config.Config) http.HandlerFunc {
+func handleSummarize(serverSum summarizer.Summarizer, asc *activeSumConfig, cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			writeJSON(w, http.StatusMethodNotAllowed, errResponse{"method not allowed"})
@@ -212,6 +212,7 @@ func handleSummarize(serverSum summarizer.Summarizer, cfg *config.Config) http.H
 		s := serverSum
 		usedProvider := cfg.SummarizerProvider
 		if req.Provider != "" || req.APIKey != "" || req.Model != "" {
+			// explicit per-request override (web UI sends these)
 			var err error
 			s, err = summarizer.NewFromRequest(req.Provider, req.APIKey, req.Model, cfg)
 			if err != nil {
@@ -220,6 +221,20 @@ func handleSummarize(serverSum summarizer.Summarizer, cfg *config.Config) http.H
 			}
 			if req.Provider != "" {
 				usedProvider = req.Provider
+			}
+		} else {
+			// no per-request override: use activeSumConfig saved by web UI
+			activeProvider, activeModel, activeAPIKey := asc.get()
+			if activeProvider != "" || activeAPIKey != "" || activeModel != "" {
+				var err error
+				s, err = summarizer.NewFromRequest(activeProvider, activeAPIKey, activeModel, cfg)
+				if err != nil {
+					writeJSON(w, http.StatusBadRequest, errResponse{err.Error()})
+					return
+				}
+				if activeProvider != "" {
+					usedProvider = activeProvider
+				}
 			}
 		}
 		if s == nil {
@@ -254,12 +269,45 @@ func handleSummarize(serverSum summarizer.Summarizer, cfg *config.Config) http.H
 	}
 }
 
-func handleSummarizerConfig(cfg *config.Config) http.HandlerFunc {
+type summarizerConfigRequest struct {
+	Provider string `json:"provider"`
+	Model    string `json:"model"`
+	APIKey   string `json:"apiKey"`
+}
+
+func handleSummarizerConfig(asc *activeSumConfig, cfg *config.Config) http.HandlerFunc {
+	validProviders := map[string]bool{"gemini": true, "groq": true, "openrouter": true, "": true}
 	return func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, http.StatusOK, summarizerConfigResponse{
-			Provider: cfg.SummarizerProvider,
-			Model:    modelForProvider(cfg.SummarizerProvider, cfg),
-		})
+		switch r.Method {
+		case http.MethodGet:
+			provider, model, _ := asc.get()
+			if model == "" {
+				model = modelForProvider(provider, cfg)
+			}
+			writeJSON(w, http.StatusOK, summarizerConfigResponse{Provider: provider, Model: model})
+		case http.MethodPost:
+			var req summarizerConfigRequest
+			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+				writeJSON(w, http.StatusBadRequest, errResponse{"invalid request body"})
+				return
+			}
+			if !validProviders[req.Provider] {
+				writeJSON(w, http.StatusBadRequest, errResponse{"invalid provider"})
+				return
+			}
+			asc.set(req.Provider, req.Model, req.APIKey)
+			if err := saveActiveConfig(req.Provider, req.Model, req.APIKey); err != nil {
+				// non-fatal: config will still work in-memory this session
+				_ = err
+			}
+			model := req.Model
+			if model == "" {
+				model = modelForProvider(req.Provider, cfg)
+			}
+			writeJSON(w, http.StatusOK, summarizerConfigResponse{Provider: req.Provider, Model: model})
+		default:
+			writeJSON(w, http.StatusMethodNotAllowed, errResponse{"method not allowed"})
+		}
 	}
 }
 
