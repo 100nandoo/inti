@@ -11,9 +11,12 @@ services:
       # Load from .env file
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - LOG_LEVEL=${LOG_LEVEL:-info}
+      - VOCALIZE_CONFIG_DIR=/app/config
+      - HOST=0.0.0.0
     env_file:
       - .env
     volumes:
+      - ./config:/app/config
       # Optional: mount web directory for development
       # - ./web:/app/web
     restart: unless-stopped
