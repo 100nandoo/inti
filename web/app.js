@@ -336,6 +336,9 @@ const SUMMARIZER_MODELS = {
     { value: 'z-ai/glm-4.5-air:free',                              label: 'GLM 4.5 Air (free)' },
     { value: 'cognitivecomputations/dolphin-mistral-24b-venice-edition:free', label: 'Dolphin Mistral 24B Venice (free)' },
   ],
+  mock: [
+    { value: 'mock-model', label: 'Mock Model' },
+  ],
 };
 
 function populateModelSelect(provider) {
@@ -359,11 +362,12 @@ function populateProviderSelect(serverProvider = '') {
     { value: 'gemini',      label: 'Gemini' },
     { value: 'groq',        label: 'Groq' },
     { value: 'openrouter',  label: 'OpenRouter' },
+    { value: 'mock',        label: 'Mock' },
   ];
 
   providerSelect.innerHTML = '<option value="">Server default</option>';
   PROVIDERS.forEach(({ value, label }) => {
-    if (keys[value]) {
+    if (value === 'mock' || keys[value]) {
       const opt = document.createElement('option');
       opt.value = value;
       opt.textContent = label;

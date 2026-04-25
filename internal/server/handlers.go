@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -44,6 +45,7 @@ type summarizeRequest struct {
 	Provider    string `json:"provider"` // optional: override server-configured provider
 	APIKey      string `json:"apiKey"`   // optional: key supplied from web UI
 	Model       string `json:"model"`    // optional: override provider default model
+	Mock        bool   `json:"mock"`     // optional: return a mock summary
 }
 
 type summarizerConfigResponse struct {
@@ -209,6 +211,15 @@ func handleSummarize(serverSum summarizer.Summarizer, asc *activeSumConfig, cfg 
 			return
 		}
 
+		if req.Mock {
+			writeJSON(w, http.StatusOK, summarizeResponse{
+				Summary:  fmt.Sprintf("This is a mock summary of the provided text.\n\nOriginal text length: %d characters.\nInstruction: %q", len(req.Text), req.Instruction),
+				Provider: "mock",
+				Model:    "mock-model",
+			})
+			return
+		}
+
 		s := serverSum
 		usedProvider := cfg.SummarizerProvider
 		if req.Provider != "" || req.APIKey != "" || req.Model != "" {
@@ -276,7 +287,7 @@ type summarizerConfigRequest struct {
 }
 
 func handleSummarizerConfig(asc *activeSumConfig, cfg *config.Config) http.HandlerFunc {
-	validProviders := map[string]bool{"gemini": true, "groq": true, "openrouter": true, "": true}
+	validProviders := map[string]bool{"gemini": true, "groq": true, "openrouter": true, "mock": true, "": true}
 	return func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
@@ -319,6 +330,8 @@ func modelForProvider(provider string, cfg *config.Config) string {
 		return cfg.GroqModel
 	case "openrouter":
 		return cfg.OpenRouterModel
+	case "mock":
+		return "mock-model"
 	default:
 		return ""
 	}

@@ -70,6 +70,9 @@ func newForProvider(provider, apiKeyOverride, modelOverride string, cfg *config.
 		}
 		return &OpenRouterClient{apiKey: key, model: m}, nil
 
+	case "mock":
+		return &MockClient{}, nil
+
 	case "":
 		return nil, fmt.Errorf("no summarizer provider configured — set SUMMARIZER_PROVIDER or provide an API key in the request")
 
