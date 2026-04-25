@@ -18,6 +18,7 @@ services:
         required: false
     volumes:
       - ./config:/app/config
+      - ./.env:/app/.env
       # Optional: mount web directory for development
       # - ./web:/app/web
     restart: unless-stopped

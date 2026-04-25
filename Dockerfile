@@ -1,10 +1,15 @@
 # Build stage
-FROM golang:1.23-alpine AS builder
+FROM golang:1.23-bookworm AS builder
 
 WORKDIR /app
 
-# Install build dependencies (CGo requires build-base and opus-dev)
-RUN apk add --no-cache git build-base opus-dev opusfile-dev
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    build-essential \
+    libopus-dev \
+    libopusfile-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy go mod files
 COPY go.mod go.sum ./
@@ -19,21 +24,23 @@ COPY . .
 RUN CGO_ENABLED=1 GOOS=linux go build -o vocalize .
 
 # Runtime stage
-FROM alpine:latest
+FROM debian:bookworm-slim
 
 WORKDIR /app
 
 # Install runtime dependencies
-RUN apk add --no-cache ca-certificates opus opusfile
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    libopus0 \
+    libopusfile0 \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy binary from builder
 COPY --from=builder /app/vocalize .
 
 # Copy web assets
 COPY --from=builder /app/web ./web
-
-# Copy config files if they exist
-COPY .env.example .env* ./
 
 # Expose port
 EXPOSE 8080
