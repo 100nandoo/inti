@@ -131,7 +131,7 @@ New file: `web/theme.js`
 
 ```js
 (function () {
-  const STORAGE_KEY = 'vocalize:theme';
+  const STORAGE_KEY = 'inti:theme';
 
   function applyTheme(theme) {
     document.documentElement.dataset.theme = theme === 'light' ? 'light' : '';
@@ -179,7 +179,7 @@ No changes needed to `app.js`, `settings.js`, or `api-keys.js`.
 
 | State | Storage |
 |-------|---------|
-| User preference | `localStorage['vocalize:theme']` = `'light'` or `'dark'` |
+| User preference | `localStorage['inti:theme']` = `'light'` or `'dark'` |
 | Default (no entry) | Dark mode |
 | Cross-page | All three pages share the same key |
 
@@ -198,7 +198,7 @@ No changes needed to `app.js`, `settings.js`, or `api-keys.js`.
 
 ```sh
 go build ./...
-./vocalize serve
+./inti serve
 ```
 
 Manual checks:

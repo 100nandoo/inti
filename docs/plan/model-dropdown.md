@@ -253,7 +253,7 @@ Call `loadServerConfig()` after `loadProviderCatalog()`.
 
 ```sh
 go build ./...    # must compile cleanly
-./vocalize serve
+./inti serve
 ```
 
 Manual checks:

@@ -35,7 +35,7 @@ The `#summary-result` section (`index.html` lines 97–114) renders two action b
 ## Target Behavior
 
 - A **Download** button appears in `summary-actions` between Copy and Speak.
-- Clicking it triggers a browser file download of the summary as `vocalize-summary-<timestamp>.md`.
+- Clicking it triggers a browser file download of the summary as `inti-summary-<timestamp>.md`.
 - The file contains the raw markdown text (not the HTML-rendered version).
 - Button is disabled / hidden when no summary is present (same lifecycle as the rest of `#summary-result`).
 
@@ -90,7 +90,7 @@ summaryDownloadBtn.addEventListener('click', () => {
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
   a.href     = url;
-  a.download = `vocalize-summary-${Date.now()}.md`;
+  a.download = `inti-summary-${Date.now()}.md`;
   a.click();
   URL.revokeObjectURL(url);
 });
@@ -111,7 +111,7 @@ summaryDownloadBtn.dataset.md = '';
 ## Filename Format
 
 ```
-vocalize-summary-1745000000000.md
+inti-summary-1745000000000.md
 ```
 
 Using `Date.now()` (Unix ms) keeps filenames unique and sortable without any date-formatting logic. Adding a human date (`2026-04-25`) is a possible improvement but adds complexity for minimal gain.
@@ -129,12 +129,12 @@ Using `Date.now()` (Unix ms) keeps filenames unique and sortable without any dat
 
 ```sh
 go build ./...   # ensure no Go changes break compilation
-./vocalize serve
+./inti serve
 ```
 
 Manual checks:
 1. Summarize any text → **Download** button appears in summary actions row
-2. Click Download → browser saves `vocalize-summary-<ts>.md` to downloads
+2. Click Download → browser saves `inti-summary-<ts>.md` to downloads
 3. Open the file — contents match the raw summary (markdown syntax intact)
 4. Clear / start a new summarize → previous download data does not persist
 5. During active summarize request → Download button is disabled

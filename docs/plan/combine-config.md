@@ -1,4 +1,4 @@
-# Plan: Combine config.json + api_keys.json → vocalize.toml
+# Plan: Combine config.json + api_keys.json → inti.toml
 
 ## Table of Contents
 
@@ -16,9 +16,9 @@
 
 ## Context
 
-Two separate JSON files currently store configuration for the vocalize server:
-- `~/.config/vocalize/config.json` — summarizer provider/model/API key
-- `~/.config/vocalize/api_keys.json` — array of hashed API keys for auth
+Two separate JSON files currently store configuration for the inti server:
+- `~/.config/inti/config.json` — summarizer provider/model/API key
+- `~/.config/inti/api_keys.json` — array of hashed API keys for auth
 
 JSON lacks comment support and splits logically related config across files. Combining them into a single TOML file makes it easier to hand-edit, supports inline comments, and reduces mental overhead.
 
@@ -30,7 +30,7 @@ JSON lacks comment support and splits logically related config across files. Com
 
 ## Target Format
 
-Target file: `~/.config/vocalize/vocalize.toml`
+Target file: `~/.config/inti/inti.toml`
 
 ```toml
 [summarizer]
@@ -41,7 +41,7 @@ api_key = "your_api_key_here"
 [[api_keys]]
 id = "a1b2c3d4"
 name = "My Production Key"
-prefix = "voc_abc123d..."
+prefix = "inti_abc123d..."
 hash = "sha256_hex"
 created_at = "2026-04-25T21:30:00Z"
 last_used_at = "2026-04-25T22:15:00Z"
@@ -69,7 +69,7 @@ New file: `internal/server/config_store.go`
 Define the combined top-level struct and coordination layer:
 
 ```go
-type vocalizeConfig struct {
+type intiConfig struct {
     Summarizer summarizerSection `toml:"summarizer"`
     APIKeys    []storedKey       `toml:"api_keys"`
 }
@@ -95,15 +95,15 @@ type storedKey struct {
 ```
 
 Also add to this file:
-- `vocalizeConfigPath()` — single path helper (replaces both old helpers)
+- `intiConfigPath()` — single path helper (replaces both old helpers)
 - `var fileMu sync.Mutex` — serializes all disk writes
-- `readVocalizeConfigUnlocked()` / `writeVocalizeConfigUnlocked()` — low-level I/O (callers must hold `fileMu`)
-- `migrateOldConfigFiles()` — reads old JSON files, writes TOML, deletes old files; skips if `vocalize.toml` already exists
+- `readIntiConfigUnlocked()` / `writeIntiConfigUnlocked()` — low-level I/O (callers must hold `fileMu`)
+- `migrateOldConfigFiles()` — reads old JSON files, writes TOML, deletes old files; skips if `inti.toml` already exists
 
 ### 3. Update `server.go`
 
 - Remove `configFilePath()` and `persistedSumConfig`
-- Replace `loadActiveConfig()` — load via `readVocalizeConfigUnlocked()`, same merge logic as before
+- Replace `loadActiveConfig()` — load via `readIntiConfigUnlocked()`, same merge logic as before
 - Replace `saveActiveConfig()` — acquire `fileMu`, read current TOML, patch `Summarizer` section, write back (preserves `api_keys`)
 - Add `migrateOldConfigFiles()` call at the top of `Start()`
 - Remove `encoding/json` import
@@ -112,7 +112,7 @@ Also add to this file:
 
 - Remove `apiKeysFilePath()` and `encoding/json` import
 - Move `storedKey` struct definition to `config_store.go`
-- Replace `loadAPIKeyStore()` — load via `readVocalizeConfigUnlocked()`
+- Replace `loadAPIKeyStore()` — load via `readIntiConfigUnlocked()`
 - Replace `save()` — acquire `fileMu`, read current TOML, patch `APIKeys`, write back (preserves `summarizer`)
 
 ## Concurrency Design
@@ -129,7 +129,7 @@ The save pattern (read-modify-write under `fileMu`) prevents either subsystem fr
 ## Migration Behavior
 
 - On startup, `migrateOldConfigFiles()` runs before any load
-- If `vocalize.toml` already exists → skip (idempotent)
+- If `inti.toml` already exists → skip (idempotent)
 - Otherwise: parse old JSON files (either/both may be absent) → write merged TOML → delete old JSON files
 - Old files are only deleted after a successful TOML write
 
@@ -137,12 +137,12 @@ The save pattern (read-modify-write under `fileMu`) prevents either subsystem fr
 
 ```sh
 go build ./...      # must compile cleanly
-./vocalize serve    # start server
+./inti serve    # start server
 ```
 
 Manual checks:
-- First run: `~/.config/vocalize/` should contain `vocalize.toml`; old `config.json` and `api_keys.json` should be gone
-- Manually edit `vocalize.toml` and restart — changes must take effect
+- First run: `~/.config/inti/` should contain `inti.toml`; old `config.json` and `api_keys.json` should be gone
+- Manually edit `inti.toml` and restart — changes must take effect
 - `POST /api/summarizer-config` — summarizer section in TOML must update, `api_keys` section unchanged
 - `POST /api/admin/keys` — `api_keys` section in TOML must update, `summarizer` section unchanged
 - Concurrent auth requests (`touchLastUsed`) — no data corruption in the file

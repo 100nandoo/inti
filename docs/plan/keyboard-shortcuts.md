@@ -140,7 +140,7 @@ Every shortcut checks `disabled` before calling `.click()` — this ensures shor
 
 ```sh
 go build ./...
-./vocalize serve
+./inti serve
 ```
 
 Manual checks:
