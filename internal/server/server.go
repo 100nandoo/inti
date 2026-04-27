@@ -73,7 +73,6 @@ func apiKeyForProvider(provider string, cfg *config.Config) string {
 }
 
 func Start(cfg *config.Config, webFS embed.FS) error {
-	migrateOldConfigDir()
 
 	var g *gemini.Client
 	if cfg.GeminiAPIKey != "" {
