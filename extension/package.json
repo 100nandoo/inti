@@ -1,0 +1,38 @@
+{
+  "name": "inti",
+  "version": "1.0.0",
+  "type": "module",
+  "packageManager": "pnpm@10.33.2",
+  "scripts": {
+    "dev": "INTI_FIREFOX_TARGET=desktop wxt -b firefox",
+    "dev:chrome": "wxt -b chrome --mv3",
+    "dev:firefox": "INTI_FIREFOX_TARGET=desktop wxt -b firefox",
+    "build": "pnpm run build:chrome && pnpm run build:firefox-desktop",
+    "build:chrome": "wxt build -b chrome --mv3",
+    "build:firefox-desktop": "INTI_FIREFOX_TARGET=desktop wxt build -b firefox",
+    "build:firefox-android": "INTI_FIREFOX_TARGET=android wxt build -b firefox",
+    "package:chrome": "pnpm run build:chrome && cd dist/chrome-mv3 && zip -r ../chrome.zip .",
+    "package:firefox-desktop": "pnpm run build:firefox-desktop && cd dist/firefox-mv2 && zip -r ../firefox-desktop.zip .",
+    "package:firefox-android": "pnpm run build:firefox-android && cd dist/firefox-mv2 && zip -r ../firefox-android.zip .",
+    "icons": "tsx scripts/generate-icons.ts"
+  },
+  "dependencies": {
+    "@mozilla/readability": "latest",
+    "marked": "^18.0.2"
+  },
+  "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
+    "@types/chrome": "latest",
+    "@types/mozilla-readability": "latest",
+    "@sveltejs/vite-plugin-svelte": "^4.0.0-next.6",
+    "svelte": "latest",
+    "tsx": "latest",
+    "typescript": "latest",
+    "wxt": "0.19.29"
+  },
+  "pnpm": {
+    "overrides": {
+      "@sveltejs/vite-plugin-svelte": "^4.0.0-next.6"
+    }
+  }
+}
