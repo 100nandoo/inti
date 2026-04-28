@@ -9,7 +9,12 @@
 - [Packaging for release](#packaging-for-release)
 - [Project structure](#project-structure)
 - [Architecture](#architecture)
+- [Platform routing](#platform-routing)
+- [Manifest strategy](#manifest-strategy)
+- [Settings and storage](#settings-and-storage)
 - [Message types](#message-types)
+- [API contract](#api-contract)
+- [Adding a new setting](#adding-a-new-setting)
 - [Tech stack](#tech-stack)
 
 ---
@@ -58,7 +63,7 @@ pnpm run package:firefox-desktop  # → dist/firefox-desktop.zip
 pnpm run package:firefox-android  # → dist/firefox-android.zip
 ```
 
-## Project structure
+## Project Structure
 
 ```
 src/
@@ -102,6 +107,17 @@ scripts/
 
 ## Architecture
 
+Two separate Vite builds are intentional and should not be merged:
+
+| Config | Entries | Format | Why |
+|---|---|---|---|
+| `vite.scripts.config.ts` | service worker, content script | ES, no exports | Firefox `background.scripts` must load classic-script-compatible output |
+| `vite.config.ts` | popup, sidebar, options (HTML) | ES module | HTML pages can use module output and shared chunks |
+
+The scripts build runs first with `emptyOutDir: true`. The pages build appends with `emptyOutDir: false`. Output lands in `build/`, then `scripts/build-manifests.ts` copies files into `dist/{target}/` and writes the final manifest.
+
+Firefox MV3 uses `background.scripts`, not `background.service_worker`. That means the background bundle cannot contain `import` or `export` syntax. The scripts build keeps the generated output compatible with that constraint.
+
 ```
 User click
     │
@@ -129,7 +145,7 @@ Service Worker ──── POST {apiUrl}/api/summarize ──── { summary }
                     Overlay.svelte
 ```
 
-**Platform routing:**
+## Platform Routing
 
 | Platform | Primary UI | SUMMARY_READY | SHOW_OVERLAY |
 |---|---|---|---|
@@ -137,7 +153,18 @@ Service Worker ──── POST {apiUrl}/api/summarize ──── { summary }
 | Firefox desktop | Sidebar | ✓ | ✓ |
 | Firefox Android | Page overlay | — | ✓ |
 
-## Settings and storage
+The service worker routes by platform. Android skips `SUMMARY_READY` because there is no sidebar UI and relies on the overlay path.
+
+## Manifest Strategy
+
+`manifests/base.json` intentionally excludes `background` because that field differs by target:
+
+- Chrome uses `{ "service_worker": "background/service-worker.js" }`
+- Firefox targets use `{ "scripts": ["background/service-worker.js"] }`
+
+`scripts/build-manifests.ts` deep-merges the base manifest with the per-target overlay. Arrays are unioned without duplicates, nested objects recurse, and scalar values from the overlay win.
+
+## Settings and Storage
 
 Inti stores all persistent state in extension storage, not page `localStorage`.
 
@@ -149,16 +176,16 @@ Inti stores all persistent state in extension storage, not page `localStorage`.
 
 Settings surfaces:
 
-- [src/options/Options.svelte](/Users/fernando/Codes/inti-web-extensions/src/options/Options.svelte:1) is the full settings page. It manages `apiUrl`, optional `instruction`, and `theme`.
-- [src/shared/SettingsPanel.svelte](/Users/fernando/Codes/inti-web-extensions/src/shared/SettingsPanel.svelte:1) is the compact in-extension settings panel shared by popup and sidebar. It manages `apiUrl`, optional `apiKey`, and `theme`.
+- `src/options/Options.svelte` is the full settings page. It manages `apiUrl`, optional `instruction`, and `theme`.
+- `src/shared/SettingsPanel.svelte` is the compact in-extension settings panel shared by popup and sidebar. It manages `apiUrl`, optional `apiKey`, and `theme`.
 - The compact panel uses one shared save button for `apiUrl` and `apiKey`. That button is disabled until either field differs from the last saved values, and status feedback resets as soon as the user edits a field again.
 
 Implementation details:
 
-- [src/shared/storage.ts](/Users/fernando/Codes/inti-web-extensions/src/shared/storage.ts:1) wraps extension storage reads and writes.
-- [src/shared/webext.ts](/Users/fernando/Codes/inti-web-extensions/src/shared/webext.ts:7) prefers `browser` on Firefox and falls back to `chrome`.
-- [src/background/service-worker.ts](/Users/fernando/Codes/inti-web-extensions/src/background/service-worker.ts:137) reads `settings` before each summarization request.
-- If `settings.apiKey` is present, the service worker sends it as the `X-API-Key` header in [src/background/service-worker.ts](/Users/fernando/Codes/inti-web-extensions/src/background/service-worker.ts:191).
+- `src/shared/storage.ts` wraps extension storage reads and writes.
+- `src/shared/webext.ts` prefers `browser` on Firefox and falls back to `chrome`.
+- `src/background/service-worker.ts` reads `settings` before each summarization request.
+- If `settings.apiKey` is present, the service worker sends it as the `X-API-Key` header.
 
 Firefox debugging:
 
@@ -179,7 +206,30 @@ Defined in `src/shared/types.ts`:
 | `SUMMARY_READY` | SW → Popup/Sidebar | `SummaryData` |
 | `ERROR` | SW → Popup/Sidebar | `string` |
 
-## Tech stack
+## API Contract
+
+The service worker posts to the configured `settings.apiUrl` with:
+
+```json
+{ "title": "string", "text": "string" }
+```
+
+Expected response:
+
+```json
+{ "summary": "string" }
+```
+
+Any non-2xx response or network error sets the badge to `!` and broadcasts an `ERROR` message.
+
+## Adding a New Setting
+
+1. Add the field to the `Settings` interface in `src/shared/types.ts`.
+2. Expose it in the appropriate settings surface.
+3. Read it where needed via the storage helpers in `src/shared/storage.ts`.
+4. Update both `README.md` and this file if the setting changes user-visible behavior.
+
+## Tech Stack
 
 | Concern | Choice |
 |---|---|

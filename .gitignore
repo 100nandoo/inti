@@ -28,11 +28,16 @@ go.work.sum
 .env
 
 # Editor/IDE
-# .idea/
+.idea/
 # .vscode/
+.wxt/
+node_modules/
+build/
+dist/
 *.wav
 *.mp3
 *.opus
+*.zip
 # config directory
 config/
 

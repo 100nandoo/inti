@@ -9,6 +9,7 @@ Text-to-speech powered by Google Gemini, with a modern web UI and an interactive
 - [Setup](#setup)
 - [Usage](#usage)
   - [Web server](#web-server)
+  - [Browser extension usage](#browser-extension-usage)
   - [One-shot CLI](#one-shot-cli)
   - [Interactive TUI](#interactive-tui)
 - [API](#api)
@@ -18,12 +19,18 @@ Text-to-speech powered by Google Gemini, with a modern web UI and an interactive
 - [Deploying publicly](#deploying-publicly)
 - [Project structure](#project-structure)
 - [Requirements](#requirements)
+- [Browser Extension](#browser-extension)
+  - [Extension Install](#extension-install)
+  - [Extension Setup](#extension-setup)
+  - [Extension Usage](#extension-usage)
+  - [Extension Keyboard Shortcuts](#extension-keyboard-shortcuts)
 
 ## Features
 
 - **Web UI** — dark interface with model & voice dropdowns, gender filter, waveform indicator, and Opus download
 - **Image OCR** — drag-and-drop or browse to upload images (multi-file supported); extracted text can be synthesized or summarized in one click
 - **Summarizer** — summarize text with Gemini, Groq (free tier), or OpenRouter (free models); results rendered as Markdown; provider and API keys configurable in the Settings page without restarting the server
+- **Browser extension** — summarize article pages directly in Chrome desktop, Firefox desktop, and Firefox Android via the bundled `extension/` app
 - **Synthesis metadata** — activity feed shows word count, duration, voice, model, and summarizer model used
 - **API key authentication** — protect the server with a master key and issue per-user API keys via the built-in `/api-keys.html` management page
 - **Interactive TUI** — Bubble Tea terminal UI with scrollable history and a command menu
@@ -37,6 +44,7 @@ Text-to-speech powered by Google Gemini, with a modern web UI and an interactive
 - [CLI reference](docs/cli.md) — all subcommands, flags, and examples
 - [API reference](docs/api.md) — HTTP endpoints, request/response schemas, and curl examples
 - [Configuration reference](docs/config.md) — all env vars, config file locations, and API key setup
+- [Extension contributing guide](docs/contributing.md) — development, build, packaging, and architecture notes for the browser extension in `extension/`
 
 ## Setup
 
@@ -66,6 +74,16 @@ To use OCR, drop or browse images in the **Image OCR** card. The extracted text 
 To configure the summarizer provider and API key, click **Settings** in the top-right corner. To manage API keys for access control, click **API Keys**.
 
 Flags: `--port 3000`, `--host 0.0.0.0`
+
+The same summarization backend can also be used by the browser extension in [`extension/`](extension/) for article-page summaries inside Chrome and Firefox.
+
+### Browser extension usage
+
+The browser extension uses your Inti summarization API to summarize the current article page:
+
+- Toolbar: click the Inti toolbar button to summarize the page and open the result in the side UI, or as an overlay on Firefox Android.
+- Context menu: right-click the page and choose **Summarize Page with Inti** to start the same summary flow.
+- Sidebar: open the Inti side panel or sidebar and click **Summarize Article** to summarize the active page from the persistent side UI.
 
 ### One-shot CLI
 
@@ -213,7 +231,8 @@ The web UI stores the key in `localStorage` and sends it automatically.
 ├── main.go                    # Entry point
 ├── embed.go                   # Embeds web/ into binary
 ├── cmd/                       # CLI commands (root, speak, summarize, serve, ocr, pdf)
-├── docs/                      # API, CLI, and configuration documentation
+├── docs/                      # Main app docs plus browser extension contributor documentation
+├── extension/                 # Browser extension source, manifests, and build tooling
 ├── internal/
 │   ├── config/                # Env/config loading and validation
 │   ├── gemini/                # Gemini TTS + summarization client
@@ -235,3 +254,61 @@ The web UI stores the key in `localStorage` and sends it automatically.
 - An Opus-capable audio player for the CLI/TUI `speak` and `export` commands: `mpv`, `ffplay`, or `vlc`
   - macOS: `brew install mpv`
   - Linux: `apt install mpv` or `apt install ffmpeg`
+
+## Browser Extension
+
+This repository also includes a browser extension under [`extension/`](extension/) that summarizes article pages with AI and targets Chrome desktop, Firefox desktop, and Firefox Android.
+
+- Extension contributor guide: [`docs/contributing.md`](docs/contributing.md)
+
+### Extension Install
+
+Download the latest extension release from the repository [Releases](../../releases) page, then load the unpacked build for your browser.
+
+#### Chrome
+
+1. Open `chrome://extensions`
+2. Enable **Developer mode**
+3. Click **Load unpacked** and select the `chrome/` folder from the release zip
+
+#### Firefox Desktop
+
+1. Open `about:debugging#/runtime/this-firefox`
+2. Click **Load Temporary Add-on**
+3. Select `manifest.json` from the `firefox-desktop/` folder
+
+#### Firefox Android
+
+1. Install [Firefox for Android](https://www.mozilla.org/firefox/android/)
+2. Open **Settings -> About Firefox** and tap the version number five times to enable debug mode
+3. On desktop Firefox, open `about:debugging#/setup` and connect the Android device over USB
+4. Select the device and click **Load Temporary Add-on**
+5. Select `manifest.json` from the `firefox-android/` folder
+
+### Extension Setup
+
+1. Deploy your summarization API and note its base URL.
+2. Open Inti extension settings and save the API URL.
+
+The extension posts article data to your configured endpoint and stores its state in extension storage (`chrome.storage.local` / `browser.storage.local`), not page `localStorage`.
+
+Extension settings surfaces:
+
+- The full Options page manages `apiUrl`, optional summarization `instruction`, and `theme`.
+- The popup/sidebar settings panel manages `apiUrl`, optional `apiKey`, and `theme`.
+- When `apiKey` is set, the extension sends it as the `X-API-Key` header on summarization requests.
+
+### Extension Usage
+
+Click the Inti extension action on an article page and run **Summarize Article**. The extension extracts the page content, sends it to your API, and renders the summary in the platform-specific UI:
+
+- Chrome desktop: side panel
+- Firefox desktop: sidebar
+- Firefox Android: page overlay
+
+The last summary and saved settings are restored the next time you open the extension.
+
+### Extension Keyboard Shortcuts
+
+- `Alt + Shift + S` (`Cmd + Shift + S` on Mac): summarize the current page
+- `Ctrl + Shift + Y` (`Cmd + Shift + Y` on Mac): toggle the Firefox desktop sidebar
