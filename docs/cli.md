@@ -21,6 +21,13 @@ All subcommands share the same binary: `./inti`.
 ./inti [command] --help
 ```
 
+For local development with automatic rebuild and restart:
+
+```sh
+go install github.com/air-verse/air@latest
+make dev
+```
+
 ---
 
 ## `speak` — Synthesize text

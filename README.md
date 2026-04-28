@@ -58,6 +58,13 @@ cp .env.example .env
 go build -o inti .
 ```
 
+For local development with auto-rebuild and restart on Go or embedded web asset changes:
+
+```sh
+go install github.com/air-verse/air@latest
+make dev
+```
+
 ## Usage
 
 ### Web server
@@ -66,6 +73,8 @@ go build -o inti .
 ./inti serve
 # Open http://localhost:8282
 ```
+
+During development, `make dev` is the faster loop. It uses [Air](https://github.com/air-verse/air) with the repo's `.air.toml` to rebuild into `./tmp/inti` and restart `serve` automatically when watched files change.
 
 Choose a **model** and **voice** from the dropdowns, type your text, and hit **Synthesize**. Download the result with the **Download** button.
 

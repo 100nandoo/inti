@@ -43,14 +43,14 @@
           <span class="ocr-hint">Extract text from an image</span>
         </div>
 
-        <div class="drop-zone" id="drop-zone">
+        <div class="drop-zone" id="drop-zone" tabindex="0">
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
             <rect x="3" y="3" width="18" height="18" rx="2"/>
             <circle cx="8.5" cy="8.5" r="1.5"/>
             <polyline points="21 15 16 10 5 21"/>
           </svg>
-          <p>Drop images here, or <label for="file-input" class="file-label">browse</label></p>
-          <span class="drop-hint" id="drop-hint">PNG, JPEG, WebP, TIFF · select multiple</span>
+          <p>Drop images here, paste from clipboard, or <label for="file-input" class="file-label">browse</label></p>
+          <span class="drop-hint" id="drop-hint">PNG, JPEG, WebP, TIFF · select multiple · Cmd+V on Mac</span>
           <input type="file" id="file-input" accept="image/*" multiple hidden />
         </div>
 

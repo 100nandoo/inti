@@ -52,6 +52,12 @@ Single Go binary with web assets embedded via `go:embed` (see `embed.go`).
 
 **Web frontend** (`web/`): vanilla HTML/CSS/JS, embedded into the binary. Communicates with the HTTP API only.
 
+## Web Frontend Compatibility
+
+- All `web/` features should be cross-browser by default.
+- Verify browser APIs and CSS support in current MDN docs before shipping.
+- Prefer MDN Baseline features, or add fallbacks for partial support.
+
 ## API
 
 ```

@@ -37,6 +37,7 @@ const imgModal       = document.getElementById('img-preview-modal');
 const imgModalImg    = document.getElementById('img-preview-img');
 const imgModalClose  = document.getElementById('img-preview-close');
 const imgModalBack   = document.getElementById('img-preview-backdrop');
+const ocrCard        = document.getElementById('ocr-card');
 
 function openImgPreview(src) {
   imgModalImg.src = src;
@@ -109,6 +110,16 @@ dropZone.addEventListener('drop', (e) => {
   if (files.length) addStagedFiles(files);
 });
 
+dropZone.addEventListener('click', () => {
+  dropZone.focus();
+});
+
+dropZone.addEventListener('paste', handleClipboardPaste);
+document.addEventListener('paste', (e) => {
+  if (!shouldHandleGlobalPaste()) return;
+  handleClipboardPaste(e);
+});
+
 fileInput.addEventListener('change', () => {
   const files = Array.from(fileInput.files);
   if (files.length) addStagedFiles(files);
@@ -118,6 +129,43 @@ fileInput.addEventListener('change', () => {
 function addStagedFiles(files) {
   stagedFiles.push(...files);
   renderFileList();
+}
+
+function shouldHandleGlobalPaste() {
+  const active = document.activeElement;
+  if (!active) return false;
+  if (active === textInput || active.closest('input, textarea, select, [contenteditable="true"]')) {
+    return false;
+  }
+  return ocrCard.contains(active);
+}
+
+function handleClipboardPaste(e) {
+  const files = getImageFilesFromClipboard(e.clipboardData);
+  if (!files.length) return;
+  e.preventDefault();
+  addStagedFiles(files);
+}
+
+function getImageFilesFromClipboard(clipboardData) {
+  if (!clipboardData) return [];
+
+  const itemFiles = Array.from(clipboardData.items || [])
+    .filter(item => item.kind === 'file' && item.type.startsWith('image/'))
+    .map((item, index) => {
+      const file = item.getAsFile();
+      if (!file) return null;
+      if (!file.name) {
+        const ext = file.type.split('/')[1] || 'png';
+        return new File([file], `clipboard-image-${Date.now()}-${index}.${ext}`, { type: file.type });
+      }
+      return file;
+    })
+    .filter(Boolean);
+
+  if (itemFiles.length) return itemFiles;
+
+  return Array.from(clipboardData.files || []).filter(file => file.type.startsWith('image/'));
 }
 
 function renderFileList() {

@@ -1,0 +1,9 @@
+root = "."
+tmp_dir = "tmp"
+
+[build]
+cmd = "go build -o ./tmp/inti ."
+entrypoint = ["./tmp/inti"]
+args_bin = ["serve"]
+include_ext = ["go", "html", "css", "js"]
+exclude_dir = ["tmp", "dist", "build", "node_modules", "extension", ".git",]
