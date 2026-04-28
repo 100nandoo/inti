@@ -98,6 +98,7 @@ let lastWavBlob  = null;
 let processing   = false;
 let stagedFiles  = [];
 let dragSrcIndex = null;
+let isPointerOverOcrCard = false;
 
 // --- OCR drop zone ---
 
@@ -121,7 +122,14 @@ dropZone.addEventListener('click', () => {
   dropZone.focus();
 });
 
-dropZone.addEventListener('paste', handleClipboardPaste);
+ocrCard.addEventListener('pointerenter', () => {
+  isPointerOverOcrCard = true;
+});
+
+ocrCard.addEventListener('pointerleave', () => {
+  isPointerOverOcrCard = false;
+});
+
 document.addEventListener('paste', (e) => {
   if (!shouldHandleGlobalPaste()) return;
   handleClipboardPaste(e);
@@ -140,11 +148,11 @@ function addStagedFiles(files) {
 
 function shouldHandleGlobalPaste() {
   const active = document.activeElement;
-  if (!active) return false;
-  if (active === textInput || active.closest('input, textarea, select, [contenteditable="true"]')) {
+  if (active && active.closest('input, textarea, select, [contenteditable="true"]')) {
     return false;
   }
-  return ocrCard.contains(active);
+
+  return isPointerOverOcrCard || (active ? ocrCard.contains(active) : false);
 }
 
 function handleClipboardPaste(e) {
