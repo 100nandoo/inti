@@ -13,63 +13,98 @@ import (
 )
 
 type activeSumConfig struct {
-	mu       sync.RWMutex
-	Provider string
-	Model    string
-	APIKey   string
+	mu         sync.RWMutex
+	Provider   string
+	Model      string
+	Keys       map[string]string
+	GroqLimits *storedRateLimits
 }
 
-func (a *activeSumConfig) get() (provider, model, apiKey string) {
+func (a *activeSumConfig) get() (provider, model string, keys map[string]string, groqLimits *storedRateLimits) {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
-	return a.Provider, a.Model, a.APIKey
+	keys = map[string]string{
+		"gemini":     a.Keys["gemini"],
+		"groq":       a.Keys["groq"],
+		"openrouter": a.Keys["openrouter"],
+	}
+	if a.GroqLimits != nil {
+		limitsCopy := *a.GroqLimits
+		groqLimits = &limitsCopy
+	}
+	return a.Provider, a.Model, keys, groqLimits
 }
 
-func (a *activeSumConfig) set(provider, model, apiKey string) {
+func (a *activeSumConfig) keyForProvider(provider string) string {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	return a.Keys[provider]
+}
+
+func (a *activeSumConfig) set(provider, model string, keys map[string]string, groqLimits *storedRateLimits) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	a.Provider = provider
 	a.Model = model
-	a.APIKey = apiKey
+	a.Keys = map[string]string{
+		"gemini":     keys["gemini"],
+		"groq":       keys["groq"],
+		"openrouter": keys["openrouter"],
+	}
+	a.GroqLimits = groqLimits
+}
+
+func (a *activeSumConfig) setGroqLimits(groqLimits *storedRateLimits) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.GroqLimits = groqLimits
 }
 
 func loadActiveConfig(cfg *config.Config) *activeSumConfig {
 	asc := &activeSumConfig{
+		Keys: map[string]string{
+			"gemini":     cfg.GeminiAPIKey,
+			"groq":       cfg.GroqAPIKey,
+			"openrouter": cfg.OpenRouterAPIKey,
+		},
 		Provider: cfg.SummarizerProvider,
-		APIKey:   apiKeyForProvider(cfg.SummarizerProvider, cfg),
 	}
 	fileMu.Lock()
 	vc := readIntiConfigUnlocked()
 	fileMu.Unlock()
 	if vc.Summarizer.Provider != "" {
 		asc.Provider = vc.Summarizer.Provider
-		asc.APIKey = vc.Summarizer.APIKey
 	}
 	asc.Model = vc.Summarizer.Model
+	if vc.Summarizer.GeminiAPIKey != "" {
+		asc.Keys["gemini"] = vc.Summarizer.GeminiAPIKey
+	}
+	if vc.Summarizer.GroqAPIKey != "" {
+		asc.Keys["groq"] = vc.Summarizer.GroqAPIKey
+	}
+	if vc.Summarizer.OpenRouterAPIKey != "" {
+		asc.Keys["openrouter"] = vc.Summarizer.OpenRouterAPIKey
+	}
+	if vc.Summarizer.APIKey != "" && asc.Provider != "" && asc.Keys[asc.Provider] == "" {
+		asc.Keys[asc.Provider] = vc.Summarizer.APIKey
+	}
+	asc.GroqLimits = vc.Summarizer.GroqLimits
 	return asc
 }
 
-func saveActiveConfig(provider, model, apiKey string) error {
+func saveActiveConfig(provider, model string, keys map[string]string, groqLimits *storedRateLimits) error {
 	fileMu.Lock()
 	defer fileMu.Unlock()
 	vc := readIntiConfigUnlocked()
 	vc.Summarizer = summarizerSection{
-		Provider: provider,
-		Model:    model,
-		APIKey:   apiKey,
+		Provider:         provider,
+		Model:            model,
+		GeminiAPIKey:     keys["gemini"],
+		GroqAPIKey:       keys["groq"],
+		OpenRouterAPIKey: keys["openrouter"],
+		GroqLimits:       groqLimits,
 	}
 	return writeIntiConfigUnlocked(vc)
-}
-
-func apiKeyForProvider(provider string, cfg *config.Config) string {
-	switch provider {
-	case "groq":
-		return cfg.GroqAPIKey
-	case "openrouter":
-		return cfg.OpenRouterAPIKey
-	default:
-		return cfg.GeminiAPIKey
-	}
 }
 
 func Start(cfg *config.Config, webFS embed.FS) error {
@@ -112,8 +147,12 @@ func Start(cfg *config.Config, webFS embed.FS) error {
 	if err != nil {
 		return fmt.Errorf("embed sub: %w", err)
 	}
+	unauthorizedHTML, err := fs.ReadFile(webRoot, "401.html")
+	if err != nil {
+		return fmt.Errorf("read unauthorized page: %w", err)
+	}
 	mux.Handle("/", http.FileServer(http.FS(webRoot)))
 
 	addr := fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)
-	return http.ListenAndServe(addr, requireAPIKey(cfg.MasterKey, ks, mux))
+	return http.ListenAndServe(addr, requireAPIKey(cfg.MainKey, ks, unauthorizedHTML, mux))
 }

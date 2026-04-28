@@ -44,10 +44,14 @@ func (s *apiKeyStore) hasKeys() bool {
 
 func (s *apiKeyStore) validate(raw string) (id string, ok bool) {
 	h := hashKey(raw)
+	return s.validateHash(h)
+}
+
+func (s *apiKeyStore) validateHash(hash string) (id string, ok bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	for _, k := range s.keys {
-		if k.Hash == h {
+		if k.Hash == hash {
 			return k.ID, true
 		}
 	}

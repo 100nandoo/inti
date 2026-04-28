@@ -24,7 +24,7 @@ cp .env.example .env
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `GEMINI_API_KEY` | Yes (for TTS) | — | Google Gemini API key. Required for TTS and Gemini summarization |
-| `INTI_MASTER_KEY` | No | — | Master key that always authenticates all API requests. Set this when deploying publicly. See [API key management](#api-key-management) |
+| `INTI_MAIN_KEY` | No | — | Main key that always authenticates all API requests. Set this when deploying publicly. See [API key management](#api-key-management). `INTI_MASTER_KEY` is still accepted as a fallback |
 | `DEFAULT_VOICE` | No | `Kore` | Default TTS voice. Must be one of the 30 valid voice names |
 | `DEFAULT_MODEL` | No | `gemini-3.1-flash-tts-preview` | Default TTS model |
 | `PORT` | No | `8282` | HTTP server port |
@@ -44,7 +44,7 @@ GEMINI_API_KEY=AIza...
 # Protect the API when deploying publicly
 # Generate with: openssl rand -hex 32
 #           or:  python3 -c "import secrets; print(secrets.token_hex(32))"
-INTI_MASTER_KEY=change_me_to_a_strong_secret
+INTI_MAIN_KEY=change_me_to_a_strong_secret
 
 # Optional overrides
 # DEFAULT_VOICE=Puck
@@ -75,15 +75,15 @@ INTI_CONFIG_DIR=/data/inti
 
 ## API key management
 
-When deployed publicly (e.g. via Cloudflare Tunnel), set `INTI_MASTER_KEY` to protect all API endpoints.
+When deployed publicly (e.g. via Cloudflare Tunnel), set `INTI_MAIN_KEY` to protect all API endpoints.
 
 **Authentication rules:**
 
-- If `INTI_MASTER_KEY` is set — auth is always enforced. Every `/api/*` request must include a valid `X-API-Key` header.
-- If `INTI_MASTER_KEY` is not set — the server runs in setup mode until the first API key is created via the web UI, at which point auth is enforced automatically.
-- Static pages (`/`, `/api-keys.html`, etc.) are always publicly accessible regardless of auth.
+- If `INTI_MAIN_KEY` is set — auth is enforced for HTML pages and every `/api/*` request.
+- If `INTI_MAIN_KEY` is not set — `INTI_MASTER_KEY` is checked as a fallback for backward compatibility.
+- Static assets such as CSS and JS are publicly accessible so protected HTML pages can load correctly.
 
-**Bootstrapping with a master key:**
+**Bootstrapping with a main key:**
 
 1. Generate a strong secret:
    ```sh
@@ -93,11 +93,10 @@ When deployed publicly (e.g. via Cloudflare Tunnel), set `INTI_MASTER_KEY` to pr
    ```
 2. Add it to `.env`:
    ```sh
-   INTI_MASTER_KEY=<generated secret>
+   INTI_MAIN_KEY=<generated secret>
    ```
-3. Restart the server, then open `http://localhost:8282/api-keys.html`.
-4. Paste the master key into **Your Access Key** and save — this stores it in the browser for admin calls.
-5. Create API keys to share with others. They use those keys; you keep the master key private.
+3. Restart the server, then open `http://localhost:8282/api-keys.html?key=<your main key>`.
+4. Create API keys to share with others. They use those keys; you keep the main key private.
 
 **Using the API with a key:**
 
@@ -106,7 +105,7 @@ curl -s http://localhost:8282/api/voices \
   -H 'X-API-Key: inti_...'
 ```
 
-The web UI reads the stored key from `localStorage` automatically and includes it with every request.
+The web UI reads the key from the page URL `?key=...` and includes it with every request.
 
 ---
 

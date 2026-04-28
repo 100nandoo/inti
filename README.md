@@ -32,7 +32,7 @@ Text-to-speech powered by Google Gemini, with a modern web UI and an interactive
 - **Summarizer** — summarize text with Gemini, Groq (free tier), or OpenRouter (free models); results rendered as Markdown; provider and API keys configurable in the Settings page without restarting the server
 - **Browser extension** — summarize article pages directly in Chrome desktop, Firefox desktop, and Firefox Android via the bundled `extension/` app
 - **Synthesis metadata** — activity feed shows word count, duration, voice, model, and summarizer model used
-- **API key authentication** — protect the server with a master key and issue per-user API keys via the built-in `/api-keys.html` management page
+- **API key authentication** — protect the server with a main key and issue per-user API keys via the built-in `/api-keys.html` management page
 - **Interactive TUI** — Bubble Tea terminal UI with scrollable history and a command menu
 - **One-shot CLI** — pipe-friendly `speak`, `summarize`, and `ocr` subcommands for scripts and automation
 - **PDF converter** — convert PDF pages to numbered PNG images with the `pdf` subcommand
@@ -194,7 +194,7 @@ See [docs/api.md](docs/api.md) for the full reference with curl examples.
 | Variable              | Default                        | Description                                                    |
 | --------------------- | ------------------------------ | -------------------------------------------------------------- |
 | `GEMINI_API_KEY`      | —                              | Required for TTS and Gemini summarization                      |
-| `INTI_MASTER_KEY`     | —                              | Master key for API authentication (recommended for public deployment) |
+| `INTI_MAIN_KEY`       | —                              | Main key for API authentication (recommended for public deployment). `INTI_MASTER_KEY` is still accepted as a fallback |
 | `DEFAULT_VOICE`       | `Kore`                         | Default voice name                                             |
 | `DEFAULT_MODEL`       | `gemini-3.1-flash-tts-preview` | Default TTS model                                              |
 | `PORT`                | `8282`                         | Web server port                                                |
@@ -212,7 +212,7 @@ See [docs/config.md](docs/config.md) for the full reference including config fil
 
 ## Deploying publicly
 
-When exposing Inti via Cloudflare Tunnel or any public URL, set a master key to lock down the API:
+When exposing Inti via Cloudflare Tunnel or any public URL, set a main key to lock down the API:
 
 1. Generate a secret:
    ```sh
@@ -222,17 +222,17 @@ When exposing Inti via Cloudflare Tunnel or any public URL, set a master key to 
    ```
 2. Add it to `.env`:
    ```sh
-   INTI_MASTER_KEY=<generated secret>
+   INTI_MAIN_KEY=<generated secret>
    HOST=0.0.0.0
    ```
-3. Open `http://your-host/api-keys.html`, paste the master key, and create per-user API keys to share with others.
+3. Open `http://your-host/api-keys.html?key=<your main key>` and create per-user API keys to share with others.
 
 All API requests must then include the key in the header:
 ```sh
 curl -s http://your-host/api/voices -H 'X-API-Key: inti_...'
 ```
 
-The web UI stores the key in `localStorage` and sends it automatically.
+The web UI expects the key in the page URL as `?key=...`.
 
 ## Project structure
 

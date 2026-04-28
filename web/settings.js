@@ -1,11 +1,3 @@
-const STORAGE_KEY = 'inti:summarizer';
-const API_KEY_STORAGE = 'inti:apiKey';
-
-function withAPIKey(headers = {}) {
-  const k = localStorage.getItem(API_KEY_STORAGE) || '';
-  return k ? { ...headers, 'X-API-Key': k } : headers;
-}
-
 const sumProviderSelect = document.getElementById('sum-provider-select');
 const keyGemini         = document.getElementById('key-gemini');
 const keyGroq           = document.getElementById('key-groq');
@@ -14,56 +6,102 @@ const sumSaveBtn        = document.getElementById('sum-save-btn');
 const sumClearBtn       = document.getElementById('sum-clear-btn');
 const sumSaveStatus     = document.getElementById('sum-save-status');
 
-function load() {
+let serverConfig = {
+  provider: '',
+  model: '',
+  keys: { gemini: '', groq: '', openrouter: '' },
+  groqLimits: null,
+};
+
+function applyConfig(config) {
+  serverConfig = {
+    provider: config.provider || '',
+    model: config.model || '',
+    keys: {
+      gemini: config.keys?.gemini || '',
+      groq: config.keys?.groq || '',
+      openrouter: config.keys?.openrouter || '',
+    },
+    groqLimits: config.groqLimits || null,
+  };
+
+  sumProviderSelect.value = serverConfig.provider;
+  keyGemini.value = serverConfig.keys.gemini;
+  keyGroq.value = serverConfig.keys.groq;
+  keyOpenRouter.value = serverConfig.keys.openrouter;
+  renderGroqUsage();
+}
+
+async function load() {
   try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-    if (saved.provider)         sumProviderSelect.value = saved.provider;
-    if (saved.keys?.gemini)     keyGemini.value     = saved.keys.gemini;
-    if (saved.keys?.groq)       keyGroq.value       = saved.keys.groq;
-    if (saved.keys?.openrouter) keyOpenRouter.value = saved.keys.openrouter;
-  } catch {}
+    const res = await fetch(apiURL('/api/summarizer-config'));
+    if (!res.ok) throw new Error('Could not load settings');
+    applyConfig(await res.json());
+  } catch (err) {
+    sumSaveStatus.textContent = err.message;
+    sumSaveStatus.className = 'status-text error';
+  }
 }
 
 async function save() {
   const provider = sumProviderSelect.value;
   const keys = {
-    gemini:     keyGemini.value.trim(),
-    groq:       keyGroq.value.trim(),
+    gemini: keyGemini.value.trim(),
+    groq: keyGroq.value.trim(),
     openrouter: keyOpenRouter.value.trim(),
   };
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({ provider, keys }));
 
-  const apiKey = provider && keys[provider] ? keys[provider] : '';
   try {
-    await fetch('/api/summarizer-config', {
+    const res = await fetch(apiURL('/api/summarizer-config'), {
       method: 'POST',
-      headers: withAPIKey({ 'Content-Type': 'application/json' }),
-      body: JSON.stringify({ provider, apiKey, model: '' }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ provider, model: '', keys }),
     });
-  } catch {}
-
-  sumSaveStatus.textContent = 'Saved';
-  sumSaveStatus.className = 'status-text';
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({ error: res.statusText }));
+      throw new Error(body.error || res.statusText);
+    }
+    applyConfig(await res.json());
+    sumSaveStatus.textContent = 'Saved';
+    sumSaveStatus.className = 'status-text';
+  } catch (err) {
+    sumSaveStatus.textContent = err.message;
+    sumSaveStatus.className = 'status-text error';
+  }
   setTimeout(() => { sumSaveStatus.textContent = ''; }, 2000);
 }
 
-function clearAll() {
-  localStorage.removeItem(STORAGE_KEY);
-  document.getElementById('groq-usage-section').hidden = true;
-  sumProviderSelect.value = '';
-  keyGemini.value = '';
-  keyGroq.value = '';
-  keyOpenRouter.value = '';
-  sumSaveStatus.textContent = 'Cleared';
-  sumSaveStatus.className = 'status-text';
+async function clearAll() {
+  try {
+    const res = await fetch(apiURL('/api/summarizer-config'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        provider: '',
+        model: '',
+        keys: { gemini: '', groq: '', openrouter: '' },
+      }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({ error: res.statusText }));
+      throw new Error(body.error || res.statusText);
+    }
+    applyConfig(await res.json());
+    document.getElementById('groq-usage-section').hidden = true;
+    sumSaveStatus.textContent = 'Cleared';
+    sumSaveStatus.className = 'status-text';
+  } catch (err) {
+    sumSaveStatus.textContent = err.message;
+    sumSaveStatus.className = 'status-text error';
+  }
   setTimeout(() => { sumSaveStatus.textContent = ''; }, 2000);
 }
 
 sumSaveBtn.addEventListener('click', save);
 sumClearBtn.addEventListener('click', clearAll);
 
+preserveKeyLinks();
 load();
-renderGroqUsage();
 
 function fmtDuration(ms) {
   if (ms <= 0) return 'now';
@@ -83,60 +121,56 @@ function fmtAgo(ms) {
 }
 
 function renderGroqUsage() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-    const limits = saved.groqLimits;
-    if (!limits) return;
+  const limits = serverConfig.groqLimits;
+  if (!limits) {
+    document.getElementById('groq-usage-section').hidden = true;
+    return;
+  }
 
-    document.getElementById('groq-usage-section').hidden = false;
+  document.getElementById('groq-usage-section').hidden = false;
 
-    const now = Date.now();
+  const now = Date.now();
 
-    // Timestamp
-    if (limits.capturedAt) {
-      document.getElementById('groq-usage-ts').textContent = `Updated ${fmtAgo(now - limits.capturedAt)}`;
+  if (limits.capturedAt) {
+    document.getElementById('groq-usage-ts').textContent = `Updated ${fmtAgo(now - limits.capturedAt)}`;
+  }
+
+  const limReq = parseInt(limits.limitRequests) || 0;
+  const remReq = parseInt(limits.remainingRequests) || 0;
+  if (limReq > 0) {
+    const pct = Math.round((remReq / limReq) * 100);
+    const bar = document.getElementById('groq-req-bar');
+    bar.style.width = pct + '%';
+    bar.classList.toggle('low', pct < 20);
+    document.getElementById('groq-req-numbers').textContent =
+      `${remReq.toLocaleString()} / ${limReq.toLocaleString()}`;
+  }
+
+  const limTok = parseInt(limits.limitTokens) || 0;
+  const remTok = parseInt(limits.remainingTokens) || 0;
+  if (limTok > 0) {
+    const pct = Math.round((remTok / limTok) * 100);
+    const bar = document.getElementById('groq-tok-bar');
+    bar.style.width = pct + '%';
+    bar.classList.toggle('low', pct < 20);
+    document.getElementById('groq-tok-numbers').textContent =
+      `${remTok.toLocaleString()} / ${limTok.toLocaleString()}`;
+  }
+
+  function tickResets() {
+    const n = Date.now();
+    const reqEl = document.getElementById('groq-req-reset');
+    const tokEl = document.getElementById('groq-tok-reset');
+    if (limits.resetRequestsAt) {
+      reqEl.textContent = `Resets in ${fmtDuration(limits.resetRequestsAt - n)}`;
     }
-
-    // Requests (RPD) — static counts
-    const limReq = parseInt(limits.limitRequests) || 0;
-    const remReq = parseInt(limits.remainingRequests) || 0;
-    if (limReq > 0) {
-      const pct = Math.round((remReq / limReq) * 100);
-      const bar = document.getElementById('groq-req-bar');
-      bar.style.width = pct + '%';
-      bar.classList.toggle('low', pct < 20);
-      document.getElementById('groq-req-numbers').textContent =
-        `${remReq.toLocaleString()} / ${limReq.toLocaleString()}`;
+    if (limits.resetTokensAt) {
+      tokEl.textContent = `Resets in ${fmtDuration(limits.resetTokensAt - n)}`;
     }
+  }
 
-    // Tokens (TPM) — static counts
-    const limTok = parseInt(limits.limitTokens) || 0;
-    const remTok = parseInt(limits.remainingTokens) || 0;
-    if (limTok > 0) {
-      const pct = Math.round((remTok / limTok) * 100);
-      const bar = document.getElementById('groq-tok-bar');
-      bar.style.width = pct + '%';
-      bar.classList.toggle('low', pct < 20);
-      document.getElementById('groq-tok-numbers').textContent =
-        `${remTok.toLocaleString()} / ${limTok.toLocaleString()}`;
-    }
-
-    // Live countdown via absolute timestamps
-    function tickResets() {
-      const n = Date.now();
-      const reqEl = document.getElementById('groq-req-reset');
-      const tokEl = document.getElementById('groq-tok-reset');
-      if (limits.resetRequestsAt) {
-        reqEl.textContent = `Resets in ${fmtDuration(limits.resetRequestsAt - n)}`;
-      }
-      if (limits.resetTokensAt) {
-        tokEl.textContent = `Resets in ${fmtDuration(limits.resetTokensAt - n)}`;
-      }
-    }
-    tickResets();
-    const timer = setInterval(tickResets, 1000);
-    // Stop ticking when both resets have passed
-    setTimeout(() => clearInterval(timer),
-      Math.max(limits.resetRequestsAt || 0, limits.resetTokensAt || 0) - Date.now() + 2000);
-  } catch {}
+  tickResets();
+  const timer = setInterval(tickResets, 1000);
+  setTimeout(() => clearInterval(timer),
+    Math.max(limits.resetRequestsAt || 0, limits.resetTokensAt || 0) - Date.now() + 2000);
 }

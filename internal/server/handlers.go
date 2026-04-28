@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/100nandoo/inti/internal/audio"
 	"github.com/100nandoo/inti/internal/config"
@@ -43,21 +44,22 @@ type summarizeRequest struct {
 	Text        string `json:"text"`
 	Instruction string `json:"instruction"`
 	Provider    string `json:"provider"` // optional: override server-configured provider
-	APIKey      string `json:"apiKey"`   // optional: key supplied from web UI
 	Model       string `json:"model"`    // optional: override provider default model
 	Mock        bool   `json:"mock"`     // optional: return a mock summary
 }
 
 type summarizerConfigResponse struct {
-	Provider string `json:"provider"`
-	Model    string `json:"model"`
+	Provider   string            `json:"provider"`
+	Model      string            `json:"model"`
+	Keys       map[string]string `json:"keys"`
+	GroqLimits *storedRateLimits `json:"groqLimits,omitempty"`
 }
 
 type summarizeResponse struct {
-	Summary    string                  `json:"summary"`
-	Provider   string                  `json:"provider"`
-	Model      string                  `json:"model"`
-	RateLimits *summarizer.RateLimits  `json:"rateLimits,omitempty"`
+	Summary    string                 `json:"summary"`
+	Provider   string                 `json:"provider"`
+	Model      string                 `json:"model"`
+	RateLimits *summarizer.RateLimits `json:"rateLimits,omitempty"`
 }
 
 func handleSpeak(g *gemini.Client, cfg *config.Config) http.HandlerFunc {
@@ -222,20 +224,24 @@ func handleSummarize(serverSum summarizer.Summarizer, asc *activeSumConfig, cfg 
 
 		s := serverSum
 		usedProvider := cfg.SummarizerProvider
-		if req.Provider != "" || req.APIKey != "" || req.Model != "" {
-			// explicit per-request override (web UI sends these)
+		if req.Provider != "" || req.Model != "" {
+			overrideProvider := req.Provider
+			if overrideProvider == "" {
+				overrideProvider = cfg.SummarizerProvider
+			}
+			overrideAPIKey := asc.keyForProvider(overrideProvider)
 			var err error
-			s, err = summarizer.NewFromRequest(req.Provider, req.APIKey, req.Model, cfg)
+			s, err = summarizer.NewFromRequest(overrideProvider, overrideAPIKey, req.Model, cfg)
 			if err != nil {
 				writeJSON(w, http.StatusBadRequest, errResponse{err.Error()})
 				return
 			}
-			if req.Provider != "" {
-				usedProvider = req.Provider
+			if overrideProvider != "" {
+				usedProvider = overrideProvider
 			}
 		} else {
-			// no per-request override: use activeSumConfig saved by web UI
-			activeProvider, activeModel, activeAPIKey := asc.get()
+			activeProvider, activeModel, activeKeys, _ := asc.get()
+			activeAPIKey := activeKeys[activeProvider]
 			if activeProvider != "" || activeAPIKey != "" || activeModel != "" {
 				var err error
 				s, err = summarizer.NewFromRequest(activeProvider, activeAPIKey, activeModel, cfg)
@@ -270,6 +276,14 @@ func handleSummarize(serverSum summarizer.Summarizer, asc *activeSumConfig, cfg 
 		var rateLimits *summarizer.RateLimits
 		if rl, ok := s.(summarizer.RateLimiter); ok {
 			rateLimits = rl.GetLastRateLimits()
+			if rateLimits != nil && usedProvider == "groq" {
+				stored := captureGroqLimits(rateLimits)
+				provider, model, keys, _ := asc.get()
+				asc.setGroqLimits(stored)
+				if err := saveActiveConfig(provider, model, keys, stored); err != nil {
+					_ = err
+				}
+			}
 		}
 		writeJSON(w, http.StatusOK, summarizeResponse{
 			Summary:    summary,
@@ -281,9 +295,9 @@ func handleSummarize(serverSum summarizer.Summarizer, asc *activeSumConfig, cfg 
 }
 
 type summarizerConfigRequest struct {
-	Provider string `json:"provider"`
-	Model    string `json:"model"`
-	APIKey   string `json:"apiKey"`
+	Provider string            `json:"provider"`
+	Model    string            `json:"model"`
+	Keys     map[string]string `json:"keys"`
 }
 
 func handleSummarizerConfig(asc *activeSumConfig, cfg *config.Config) http.HandlerFunc {
@@ -291,11 +305,11 @@ func handleSummarizerConfig(asc *activeSumConfig, cfg *config.Config) http.Handl
 	return func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
-			provider, model, _ := asc.get()
+			provider, model, keys, groqLimits := asc.get()
 			if model == "" {
 				model = modelForProvider(provider, cfg)
 			}
-			writeJSON(w, http.StatusOK, summarizerConfigResponse{Provider: provider, Model: model})
+			writeJSON(w, http.StatusOK, summarizerConfigResponse{Provider: provider, Model: model, Keys: keys, GroqLimits: groqLimits})
 		case http.MethodPost:
 			var req summarizerConfigRequest
 			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -306,8 +320,12 @@ func handleSummarizerConfig(asc *activeSumConfig, cfg *config.Config) http.Handl
 				writeJSON(w, http.StatusBadRequest, errResponse{"invalid provider"})
 				return
 			}
-			asc.set(req.Provider, req.Model, req.APIKey)
-			if err := saveActiveConfig(req.Provider, req.Model, req.APIKey); err != nil {
+			_, _, currentKeys, groqLimits := asc.get()
+			if req.Keys["groq"] == "" || req.Keys["groq"] != currentKeys["groq"] {
+				groqLimits = nil
+			}
+			asc.set(req.Provider, req.Model, req.Keys, groqLimits)
+			if err := saveActiveConfig(req.Provider, req.Model, req.Keys, groqLimits); err != nil {
 				// non-fatal: config will still work in-memory this session
 				_ = err
 			}
@@ -315,11 +333,39 @@ func handleSummarizerConfig(asc *activeSumConfig, cfg *config.Config) http.Handl
 			if model == "" {
 				model = modelForProvider(req.Provider, cfg)
 			}
-			writeJSON(w, http.StatusOK, summarizerConfigResponse{Provider: req.Provider, Model: model})
+			writeJSON(w, http.StatusOK, summarizerConfigResponse{Provider: req.Provider, Model: model, Keys: req.Keys, GroqLimits: groqLimits})
 		default:
 			writeJSON(w, http.StatusMethodNotAllowed, errResponse{"method not allowed"})
 		}
 	}
+}
+
+func captureGroqLimits(rateLimits *summarizer.RateLimits) *storedRateLimits {
+	if rateLimits == nil {
+		return nil
+	}
+	now := time.Now().UnixMilli()
+	return &storedRateLimits{
+		LimitRequests:     rateLimits.LimitRequests,
+		LimitTokens:       rateLimits.LimitTokens,
+		RemainingRequests: rateLimits.RemainingRequests,
+		RemainingTokens:   rateLimits.RemainingTokens,
+		ResetRequests:     rateLimits.ResetRequests,
+		ResetTokens:       rateLimits.ResetTokens,
+		CapturedAt:        now,
+		ResetRequestsAt:   now + parseGroqDuration(rateLimits.ResetRequests),
+		ResetTokensAt:     now + parseGroqDuration(rateLimits.ResetTokens),
+	}
+}
+
+func parseGroqDuration(raw string) int64 {
+	if raw == "" {
+		return 0
+	}
+	if d, err := time.ParseDuration(raw); err == nil {
+		return d.Milliseconds()
+	}
+	return 0
 }
 
 func modelForProvider(provider string, cfg *config.Config) string {

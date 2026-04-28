@@ -1,25 +1,8 @@
-const API_KEY_STORAGE = 'inti:apiKey';
-
-function getStoredKey() {
-  return localStorage.getItem(API_KEY_STORAGE) || '';
-}
-
-function apiHeaders(extra = {}) {
-  const k = getStoredKey();
-  return k ? { ...extra, 'X-API-Key': k } : extra;
-}
-
 function formatDate(iso) {
   if (!iso) return '—';
   const d = new Date(iso);
   return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 }
-
-// ── DOM refs ──────────────────────────────────────────────────
-const storedKeyInput = document.getElementById('stored-key-input');
-const saveKeyBtn     = document.getElementById('save-key-btn');
-const clearKeyBtn    = document.getElementById('clear-key-btn');
-const keySaveStatus  = document.getElementById('key-save-status');
 
 const newKeyName     = document.getElementById('new-key-name');
 const createKeyBtn   = document.getElementById('create-key-btn');
@@ -36,36 +19,10 @@ const keyModalCopy   = document.getElementById('key-modal-copy');
 const keyModalSave   = document.getElementById('key-modal-save');
 const keyModalBackdrop = document.getElementById('key-modal-backdrop');
 
-// ── Stored key card ───────────────────────────────────────────
-storedKeyInput.value = getStoredKey();
-
-saveKeyBtn.addEventListener('click', () => {
-  const val = storedKeyInput.value.trim();
-  if (val) {
-    localStorage.setItem(API_KEY_STORAGE, val);
-  } else {
-    localStorage.removeItem(API_KEY_STORAGE);
-  }
-  keySaveStatus.textContent = 'Saved';
-  setTimeout(() => { keySaveStatus.textContent = ''; }, 2000);
-});
-
-clearKeyBtn.addEventListener('click', () => {
-  localStorage.removeItem(API_KEY_STORAGE);
-  storedKeyInput.value = '';
-  keySaveStatus.textContent = 'Cleared';
-  setTimeout(() => { keySaveStatus.textContent = ''; }, 2000);
-});
-
-// ── Key list ──────────────────────────────────────────────────
 async function loadKeys() {
   keysError.style.display = 'none';
   try {
-    const res = await fetch('/api/admin/keys', { headers: apiHeaders() });
-    if (res.status === 401) {
-      showError('Unauthorized — save your API key in the card above first.');
-      return;
-    }
+    const res = await fetch(apiURL('/api/admin/keys'));
     if (!res.ok) throw new Error(res.statusText);
     const { keys } = await res.json();
     renderKeys(keys || []);
@@ -113,21 +70,16 @@ function escHtml(s) {
     .replace(/"/g, '&quot;');
 }
 
-// ── Create key ────────────────────────────────────────────────
 createKeyBtn.addEventListener('click', async () => {
   createKeyBtn.disabled = true;
   createStatus.textContent = 'Creating…';
   const name = newKeyName.value.trim();
   try {
-    const res = await fetch('/api/admin/keys', {
+    const res = await fetch(apiURL('/api/admin/keys'), {
       method: 'POST',
-      headers: apiHeaders({ 'Content-Type': 'application/json' }),
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name }),
     });
-    if (res.status === 401) {
-      createStatus.textContent = 'Unauthorized — save your API key above first.';
-      return;
-    }
     if (!res.ok) throw new Error(res.statusText);
     const { raw } = await res.json();
     newKeyName.value = '';
@@ -141,13 +93,11 @@ createKeyBtn.addEventListener('click', async () => {
   }
 });
 
-// ── Delete key ────────────────────────────────────────────────
 async function deleteKey(id, name) {
   if (!confirm(`Delete key "${name}"?\n\nAny requests using it will immediately return 401.`)) return;
   try {
-    const res = await fetch(`/api/admin/keys/${id}`, {
+    const res = await fetch(apiURL(`/api/admin/keys/${id}`), {
       method: 'DELETE',
-      headers: apiHeaders(),
     });
     if (!res.ok && res.status !== 204) throw new Error(res.statusText);
     await loadKeys();
@@ -156,7 +106,8 @@ async function deleteKey(id, name) {
   }
 }
 
-// ── One-time key modal ────────────────────────────────────────
+window.deleteKey = deleteKey;
+
 function showKeyModal(raw) {
   keyModalValue.textContent = raw;
   keyModal.style.display = 'flex';
@@ -176,14 +127,12 @@ keyModalCopy.addEventListener('click', () => {
 
 keyModalSave.addEventListener('click', () => {
   const raw = keyModalValue.textContent;
-  localStorage.setItem(API_KEY_STORAGE, raw);
-  storedKeyInput.value = raw;
+  setCurrentAPIKey(raw);
   closeKeyModal();
-  keySaveStatus.textContent = 'Key saved to browser';
-  setTimeout(() => { keySaveStatus.textContent = ''; }, 3000);
+  loadKeys();
 });
 
 keyModalBackdrop.addEventListener('click', closeKeyModal);
 
-// ── Init ──────────────────────────────────────────────────────
+preserveKeyLinks();
 loadKeys();

@@ -17,9 +17,25 @@ type intiConfig struct {
 
 // summarizerSection holds the persisted summarizer configuration.
 type summarizerSection struct {
-	Provider string `toml:"provider"`
-	Model    string `toml:"model"`
-	APIKey   string `toml:"api_key"`
+	Provider         string            `toml:"provider"`
+	Model            string            `toml:"model"`
+	APIKey           string            `toml:"api_key"`
+	GeminiAPIKey     string            `toml:"gemini_api_key"`
+	GroqAPIKey       string            `toml:"groq_api_key"`
+	OpenRouterAPIKey string            `toml:"openrouter_api_key"`
+	GroqLimits       *storedRateLimits `toml:"groq_limits"`
+}
+
+type storedRateLimits struct {
+	LimitRequests     string `toml:"limit_requests" json:"limitRequests"`
+	LimitTokens       string `toml:"limit_tokens" json:"limitTokens"`
+	RemainingRequests string `toml:"remaining_requests" json:"remainingRequests"`
+	RemainingTokens   string `toml:"remaining_tokens" json:"remainingTokens"`
+	ResetRequests     string `toml:"reset_requests" json:"resetRequests"`
+	ResetTokens       string `toml:"reset_tokens" json:"resetTokens"`
+	CapturedAt        int64  `toml:"captured_at" json:"capturedAt"`
+	ResetRequestsAt   int64  `toml:"reset_requests_at" json:"resetRequestsAt"`
+	ResetTokensAt     int64  `toml:"reset_tokens_at" json:"resetTokensAt"`
 }
 
 // storedKey is a single hashed API key entry.

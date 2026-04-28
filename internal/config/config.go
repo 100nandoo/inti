@@ -13,7 +13,7 @@ type Config struct {
 	DefaultModel string
 	Port         int
 	Host         string
-	MasterKey    string
+	MainKey      string
 
 	SummarizerProvider string // "gemini" | "groq" | "openrouter"
 	GroqAPIKey         string
@@ -111,13 +111,18 @@ func Load() (*Config, error) {
 		openRouterModel = m
 	}
 
+	mainKey := os.Getenv("INTI_MAIN_KEY")
+	if mainKey == "" {
+		mainKey = os.Getenv("INTI_MASTER_KEY")
+	}
+
 	return &Config{
 		GeminiAPIKey:       key,
 		DefaultVoice:       voice,
 		DefaultModel:       model,
 		Port:               port,
 		Host:               host,
-		MasterKey:          os.Getenv("INTI_MASTER_KEY"),
+		MainKey:            mainKey,
 		SummarizerProvider: summarizerProvider,
 		GroqAPIKey:         os.Getenv("GROQ_API_KEY"),
 		GroqModel:          groqModel,

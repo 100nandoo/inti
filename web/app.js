@@ -86,6 +86,13 @@ const summarySpeakBtn  = document.getElementById('summary-speak-btn');
 const feed           = document.getElementById('feed');
 const feedEmpty      = document.getElementById('feed-empty');
 
+let summarizerConfig = {
+  provider: '',
+  model: '',
+  keys: { gemini: '', groq: '', openrouter: '' },
+  groqLimits: null,
+};
+
 
 let lastWavBlob  = null;
 let processing   = false;
@@ -249,7 +256,7 @@ async function uploadImagesForOCR(files) {
     const formData = new FormData();
     files.forEach(f => formData.append('files', f));
 
-    const res = await fetch('/api/ocr', { method: 'POST', headers: withAPIKey(), body: formData });
+    const res = await fetch(apiURL('/api/ocr'), { method: 'POST', body: formData });
     if (!res.ok) {
       const body = await res.json().catch(() => ({ error: res.statusText }));
       throw new Error(body.error || res.statusText);
@@ -277,7 +284,7 @@ async function uploadImagesForOCR(files) {
 
 async function loadModels() {
   try {
-    const res = await fetch('/api/models', { headers: withAPIKey() });
+    const res = await fetch(apiURL('/api/models'));
     if (!res.ok) return;
     const { models, default: defaultModel } = await res.json();
     modelSelect.innerHTML = '';
@@ -295,26 +302,7 @@ async function loadModels() {
 
 loadModels();
 
-// --- Summarizer settings (stored in localStorage by settings.html) ---
-
-const STORAGE_KEY = 'inti:summarizer';
-const API_KEY_STORAGE = 'inti:apiKey';
-
-function withAPIKey(headers = {}) {
-  const k = localStorage.getItem(API_KEY_STORAGE) || '';
-  return k ? { ...headers, 'X-API-Key': k } : headers;
-}
-
-function getSummarizerOverride() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-    const provider = saved.provider || '';
-    const apiKey = provider && saved.keys ? (saved.keys[provider] || '') : '';
-    return { provider, apiKey };
-  } catch {
-    return { provider: '', apiKey: '' };
-  }
-}
+// --- Summarizer settings ---
 
 const SUMMARIZER_MODELS = {
   gemini: [
@@ -381,9 +369,8 @@ function populateModelSelect(provider) {
 }
 
 function populateProviderSelect(serverProvider = '') {
-  const saved = (() => { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch { return {}; } })();
-  const keys = saved.keys || {};
-  const current = providerSelect.value || saved.provider || serverProvider || '';
+  const keys = summarizerConfig.keys || {};
+  const current = providerSelect.value || summarizerConfig.provider || serverProvider || '';
 
   const PROVIDERS = [
     { value: 'gemini',      label: 'Gemini' },
@@ -408,17 +395,30 @@ function populateProviderSelect(serverProvider = '') {
   populateModelSelect(providerSelect.value);
 }
 
-(async () => {
+async function loadSummarizerConfig() {
   let serverProvider = '';
   try {
-    const res = await fetch('/api/summarizer-config', { headers: withAPIKey() });
+    const res = await fetch(apiURL('/api/summarizer-config'));
     if (res.ok) {
       const data = await res.json();
-      serverProvider = data.provider || '';
+      summarizerConfig = {
+        provider: data.provider || '',
+        model: data.model || '',
+        keys: {
+          gemini: data.keys?.gemini || '',
+          groq: data.keys?.groq || '',
+          openrouter: data.keys?.openrouter || '',
+        },
+        groqLimits: data.groqLimits || null,
+      };
+      serverProvider = summarizerConfig.provider;
     }
   } catch {}
   populateProviderSelect(serverProvider);
-})();
+}
+
+preserveKeyLinks();
+loadSummarizerConfig();
 
 providerSelect.addEventListener('change', () => {
   populateModelSelect(providerSelect.value);
@@ -534,9 +534,9 @@ async function synthesizeText(text) {
   const item = addFeed('info', `"${truncate(text, 60)}"`, `${model} · ${voice} · synthesizing…`);
 
   try {
-    const res = await fetch('/api/speak', {
+    const res = await fetch(apiURL('/api/speak'), {
       method: 'POST',
-      headers: withAPIKey({ 'Content-Type': 'application/json' }),
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text, voice, model }),
     });
 
@@ -607,12 +607,10 @@ async function summarizeText(text, shouldSpeak) {
 
   try {
     const reqProvider = providerSelect.value;
-    const saved = (() => { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch { return {}; } })();
-    const apiKey = reqProvider && saved.keys ? (saved.keys[reqProvider] || '') : '';
-    const res = await fetch('/api/summarize', {
+    const res = await fetch(apiURL('/api/summarize'), {
       method: 'POST',
-      headers: withAPIKey({ 'Content-Type': 'application/json' }),
-      body: JSON.stringify({ text, instruction: '', provider: reqProvider, apiKey, model: sumModelSelect.value }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, instruction: '', provider: reqProvider, model: sumModelSelect.value }),
     });
 
     if (!res.ok) {
@@ -622,17 +620,12 @@ async function summarizeText(text, shouldSpeak) {
 
     const { summary, provider, model, rateLimits } = await res.json();
     if (rateLimits && provider === 'groq') {
-      try {
-        const now = Date.now();
-        const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-        stored.groqLimits = {
-          ...rateLimits,
-          capturedAt: now,
-          resetRequestsAt: now + parseGroqDuration(rateLimits.resetRequests),
-          resetTokensAt:   now + parseGroqDuration(rateLimits.resetTokens),
-        };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
-      } catch {}
+      summarizerConfig.groqLimits = {
+        ...rateLimits,
+        capturedAt: Date.now(),
+        resetRequestsAt: Date.now() + parseGroqDuration(rateLimits.resetRequests),
+        resetTokensAt: Date.now() + parseGroqDuration(rateLimits.resetTokens),
+      };
     }
     summaryText.innerHTML = renderMarkdown(summary || '');
     summaryResult.hidden = false;

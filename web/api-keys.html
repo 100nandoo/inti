@@ -33,30 +33,11 @@
 
     <main>
 
-      <!-- Your stored key (for making admin API calls) -->
-      <div class="card">
-        <div class="info-row">
-          <span class="pill">Your Access Key</span>
-          <span class="ocr-hint">Paste your API key here — stored in this browser only</span>
-        </div>
-        <div class="settings-form">
-          <div class="settings-field">
-            <label class="settings-label" for="stored-key-input">API Key</label>
-            <input type="password" id="stored-key-input" class="settings-key-input" placeholder="voc_…" autocomplete="off" />
-          </div>
-        </div>
-        <div class="settings-actions-row">
-          <button id="save-key-btn" class="btn-primary">Save</button>
-          <button id="clear-key-btn" class="btn-secondary">Clear</button>
-          <span id="key-save-status" class="status-text"></span>
-        </div>
-      </div>
-
       <!-- Manage keys -->
       <div class="card">
         <div class="info-row">
           <span class="pill">Manage Keys</span>
-          <span class="ocr-hint">Keys are stored server-side. Any valid key can authenticate all API requests.</span>
+          <span class="ocr-hint">Keys are stored server-side. This page requires a valid <code>?key=...</code> in the URL.</span>
         </div>
 
         <div class="settings-actions-row" style="margin-top:4px;">
@@ -66,7 +47,7 @@
         </div>
 
         <div id="setup-banner" class="settings-hint" style="display:none;color:var(--accent);margin-top:12px;">
-          No keys yet. If <code>INTI_MASTER_KEY</code> is set in your <code>.env</code>, paste it in "Your Access Key" above, then create keys here to share with others. Without a master key, the API is currently open to everyone.
+          No keys yet. Open this page with <code>?key=YOUR_INTI_MAIN_KEY</code> to create the first generated key.
         </div>
 
         <table class="keys-table" id="keys-table" style="display:none;">
@@ -101,11 +82,12 @@
       <code id="key-modal-value" class="key-display"></code>
       <div class="modal-actions">
         <button id="key-modal-copy" class="btn-secondary">Copy</button>
-        <button id="key-modal-save" class="btn-primary">Save &amp; Close</button>
+        <button id="key-modal-save" class="btn-primary">Use This Key</button>
       </div>
     </div>
   </div>
 
+  <script src="/auth.js"></script>
   <script src="/api-keys.js"></script>
 </body>
 </html>
