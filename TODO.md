@@ -4,8 +4,6 @@
 
 ### High
 
-- combine extension repo with this
-
 ### Medium
 
 - add button to adjust text size of summary result
@@ -33,3 +31,4 @@
 ## Done
 
 - Rename vocalize to inti
+- combine extension repo with this

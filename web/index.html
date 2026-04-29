@@ -103,6 +103,30 @@
               </svg>
               <span id="summary-copy-label">Copy</span>
             </button>
+            <div class="split-button" id="summary-download-group">
+              <button id="summary-download-btn" class="btn-secondary split-button-main">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M19 9h-4V3H9v6H5l7 7 7-7zm-8 2V5h2v6h1.17L12 13.17 9.83 11H11zm-6 8h14v2H5v-2z"/>
+                </svg>
+                Download
+              </button>
+              <button
+                id="summary-download-toggle"
+                class="btn-secondary split-button-toggle"
+                aria-haspopup="menu"
+                aria-expanded="false"
+                aria-controls="summary-download-menu"
+                title="Choose download format"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M7 10l5 5 5-5z"/>
+                </svg>
+              </button>
+              <div id="summary-download-menu" class="split-menu" role="menu" hidden>
+                <button type="button" class="split-menu-item" data-format="txt" role="menuitem">Download .txt</button>
+                <button type="button" class="split-menu-item" data-format="md" role="menuitem">Download .md</button>
+              </div>
+            </div>
             <button id="summary-speak-btn" class="btn-primary">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M8 5v14l11-7z"/>

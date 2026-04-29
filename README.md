@@ -28,8 +28,8 @@ Text-to-speech powered by Google Gemini, with a modern web UI and an interactive
 ## Features
 
 - **Web UI** — dark interface with model & voice dropdowns, gender filter, waveform indicator, and Opus download
-- **Image OCR** — drag-and-drop or browse to upload images (multi-file supported); extracted text can be synthesized or summarized in one click
-- **Summarizer** — summarize text with Gemini, Groq (free tier), or OpenRouter (free models); results rendered as Markdown; provider and API keys configurable in the Settings page without restarting the server
+- **Image OCR** — drag-and-drop or browse to upload images (multi-file supported); extracted text can be summarized, spoken, copied, or downloaded from the OCR workflow
+- **Summarizer** — summarize text with Gemini, Groq (free tier), or OpenRouter (free models); results rendered as Markdown with copy, speak, and split-button download actions for `.txt` or `.md`; provider and API keys configurable in the Settings page without restarting the server
 - **Browser extension** — summarize article pages directly in Chrome desktop, Firefox desktop, and Firefox Android via the bundled `extension/` app
 - **Synthesis metadata** — activity feed shows word count, duration, voice, model, and summarizer model used
 - **API key authentication** — protect the server with a main key and issue per-user API keys via the built-in `/api-keys.html` management page
@@ -78,7 +78,9 @@ During development, `make dev` is the faster loop. It uses [Air](https://github.
 
 Choose a **model** and **voice** from the dropdowns, type your text, and hit **Synthesize**. Download the result with the **Download** button.
 
-To use OCR, drop or browse images in the **Image OCR** card. The extracted text appears in a copyable box — click **Synthesize** to convert it to speech, or **Summarize** to get a Markdown summary.
+To use OCR, drop or browse images in the **Image OCR** card. The extracted text appears in the main text box, where you can synthesize it directly or use **Summarize** / **Summarize + Speak** from the OCR action row.
+
+When a summary is shown, the summary action row lets you **Copy**, **Speak**, or **Download** it. The **Download** control is a split button: the main action downloads plain text (`.txt`), and the menu lets you choose Markdown (`.md`). Summary files use human-readable filenames such as `inti-summary-2026-04-29.txt`.
 
 To configure the summarizer provider and API key, click **Settings** in the top-right corner. To manage API keys for access control, click **API Keys**.
 

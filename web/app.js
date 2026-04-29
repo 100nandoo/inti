@@ -82,6 +82,10 @@ const summaryResult    = document.getElementById('summary-result');
 const summaryText      = document.getElementById('summary-text');
 const summaryCopyBtn   = document.getElementById('summary-copy-btn');
 const summaryCopyLabel = document.getElementById('summary-copy-label');
+const summaryDownloadGroup = document.getElementById('summary-download-group');
+const summaryDownloadBtn = document.getElementById('summary-download-btn');
+const summaryDownloadToggle = document.getElementById('summary-download-toggle');
+const summaryDownloadMenu = document.getElementById('summary-download-menu');
 const summarySpeakBtn  = document.getElementById('summary-speak-btn');
 const feed           = document.getElementById('feed');
 const feedEmpty      = document.getElementById('feed-empty');
@@ -99,6 +103,7 @@ let processing   = false;
 let stagedFiles  = [];
 let dragSrcIndex = null;
 let isPointerOverOcrCard = false;
+let summaryDownloadFormat = 'txt';
 
 // --- OCR drop zone ---
 
@@ -273,8 +278,7 @@ async function uploadImagesForOCR(files) {
     const { text } = await res.json();
     textInput.value = text || '';
     ocrResult.hidden = false;
-    summaryResult.hidden = true;
-    summaryText.innerHTML = '';
+    resetSummaryResult();
     stagedFiles = [];
     renderFileList();
 
@@ -521,6 +525,34 @@ summaryCopyBtn.addEventListener('click', async () => {
   }
 });
 
+summaryDownloadBtn.addEventListener('click', () => {
+  if (processing) return;
+  downloadSummaryByFormat(summaryDownloadFormat);
+});
+
+summaryDownloadToggle.addEventListener('click', (e) => {
+  e.stopPropagation();
+  if (summaryDownloadToggle.disabled) return;
+  toggleSummaryDownloadMenu();
+});
+
+summaryDownloadMenu.addEventListener('click', (e) => {
+  const item = e.target.closest('.split-menu-item');
+  if (!item) return;
+  const format = item.dataset.format;
+  if (!format) return;
+  summaryDownloadFormat = format;
+  closeSummaryDownloadMenu();
+  downloadSummaryByFormat(format);
+});
+
+summaryDownloadGroup.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    closeSummaryDownloadMenu();
+    summaryDownloadToggle.focus();
+  }
+});
+
 summarySpeakBtn.addEventListener('click', async () => {
   const text = summaryText.innerText.trim();
   if (!text || processing) return;
@@ -636,7 +668,9 @@ async function summarizeText(text, shouldSpeak) {
       };
     }
     summaryText.innerHTML = renderMarkdown(summary || '');
+    summaryDownloadGroup.dataset.summary = summary || '';
     summaryResult.hidden = false;
+    syncSummaryActionState();
 
     const duration = ((performance.now() - startTime) / 1000).toFixed(1);
     const modelTag = model ? ` · ${model}` : (provider ? ` · ${provider}` : '');
@@ -690,6 +724,7 @@ function setProcessing(val) {
   actionSpeak.disabled        = val;
   actionDownload.disabled     = val;
   actionSummarize.disabled    = val;
+  syncSummaryActionState();
   if (!val) textInput.focus();
 }
 
@@ -706,9 +741,85 @@ function truncate(str, n) {
   return str.length > n ? str.slice(0, n) + '…' : str;
 }
 
+function resetSummaryResult() {
+  summaryResult.hidden = true;
+  summaryText.innerHTML = '';
+  summaryDownloadGroup.dataset.summary = '';
+  closeSummaryDownloadMenu();
+  syncSummaryActionState();
+}
+
+function syncSummaryActionState() {
+  const hasPlainText = summaryText.innerText.trim().length > 0;
+  const hasMarkdown = (summaryDownloadGroup.dataset.summary || '').trim().length > 0;
+  summaryCopyBtn.disabled = processing || !hasPlainText;
+  summarySpeakBtn.disabled = processing || !hasPlainText;
+  summaryDownloadBtn.disabled = processing || !hasPlainText;
+  summaryDownloadToggle.disabled = processing || (!hasPlainText && !hasMarkdown);
+  if (summaryDownloadBtn.disabled) {
+    closeSummaryDownloadMenu();
+  }
+}
+
+function downloadSummaryFile(content, ext, mimeType) {
+  const blob = new Blob([content], { type: `${mimeType};charset=utf-8` });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `inti-summary-${formatFilenameDate(new Date())}.${ext}`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function downloadSummaryByFormat(format) {
+  if (format === 'md') {
+    const md = summaryDownloadGroup.dataset.summary || '';
+    if (!md.trim()) return;
+    downloadSummaryFile(md, 'md', 'text/markdown');
+    return;
+  }
+
+  const text = summaryText.innerText.trim();
+  if (!text) return;
+  downloadSummaryFile(text, 'txt', 'text/plain');
+}
+
+function toggleSummaryDownloadMenu() {
+  if (summaryDownloadMenu.hidden) {
+    openSummaryDownloadMenu();
+    return;
+  }
+  closeSummaryDownloadMenu();
+}
+
+function openSummaryDownloadMenu() {
+  summaryDownloadMenu.hidden = false;
+  summaryDownloadGroup.classList.add('is-open');
+  summaryDownloadToggle.setAttribute('aria-expanded', 'true');
+}
+
+function closeSummaryDownloadMenu() {
+  summaryDownloadMenu.hidden = true;
+  summaryDownloadGroup.classList.remove('is-open');
+  summaryDownloadToggle.setAttribute('aria-expanded', 'false');
+}
+
+function formatFilenameDate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 function escHtml(str) {
   return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+
+document.addEventListener('click', (e) => {
+  if (!summaryDownloadGroup.contains(e.target)) {
+    closeSummaryDownloadMenu();
+  }
+});
 
 function parseGroqDuration(s) {
   if (!s) return 0;

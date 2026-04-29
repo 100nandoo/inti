@@ -159,7 +159,7 @@ Summarize text using a configured AI provider (Gemini, Groq, or OpenRouter). The
 }
 ```
 
-The `summary` field is Markdown-formatted text. `provider` and `model` reflect what was actually used.
+The `summary` field is Markdown-formatted text. `provider` and `model` reflect what was actually used. In the web UI, this Markdown is rendered for display, used directly for `.md` downloads, and converted to plain text for `.txt` downloads.
 
 **Errors**
 
