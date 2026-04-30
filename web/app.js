@@ -58,9 +58,18 @@ const dropZone       = document.getElementById('drop-zone');
 const fileInput      = document.getElementById('file-input');
 const fileStaging    = document.getElementById('file-staging');
 const fileList       = document.getElementById('file-list');
+const stagedCount    = document.getElementById('staged-count');
 const clearFilesBtn  = document.getElementById('clear-files-btn');
 const runOcrBtn      = document.getElementById('run-ocr-btn');
 const ocrResult      = document.getElementById('ocr-result');
+const ocrOutputText  = document.getElementById('ocr-output-text');
+const workspaceText  = document.getElementById('workspace-text');
+const ocrCount       = document.getElementById('ocr-count');
+const workspaceCount = document.getElementById('workspace-count');
+const summaryCount   = document.getElementById('summary-count');
+const ttsCount       = document.getElementById('tts-count');
+const useOcrBtn      = document.getElementById('use-ocr-btn');
+const clearWorkspaceBtn = document.getElementById('clear-workspace-btn');
 
 const textInput        = document.getElementById('text-input');
 const modelSelect      = document.getElementById('model-select');
@@ -190,6 +199,9 @@ function getImageFilesFromClipboard(clipboardData) {
 
 function renderFileList() {
   fileList.innerHTML = '';
+  if (stagedCount) {
+    stagedCount.textContent = `${stagedFiles.length} file${stagedFiles.length === 1 ? '' : 's'}`;
+  }
 
   stagedFiles.forEach((file, i) => {
     const item = document.createElement('li');
@@ -199,13 +211,31 @@ function renderFileList() {
 
     const url = URL.createObjectURL(file);
     item.innerHTML = `
-      <span class="drag-handle" title="Drag to reorder">⠿</span>
+      <span class="drag-handle" title="Drag to reorder">::</span>
       <img class="file-thumb" src="${url}" alt="" />
-      <span class="file-name" title="${escHtml(file.name)}">${escHtml(file.name)}</span>
-      <button class="file-remove" data-index="${i}" title="Remove">×</button>`;
+      <span class="file-info">
+        <span class="file-name" title="${escHtml(file.name)}">${escHtml(file.name)}</span>
+        <span class="file-meta">${formatFileSize(file.size)}</span>
+      </span>
+      <span class="file-ok" title="Ready">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20 6 9 17l-5-5"/>
+        </svg>
+      </span>
+      <button class="file-remove" data-index="${i}" title="Remove">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 6h18"/>
+          <path d="M8 6V4h8v2"/>
+          <path d="M19 6l-1 14H6L5 6"/>
+        </svg>
+      </button>`;
 
     const thumb = item.querySelector('img');
-    thumb.addEventListener('load', () => URL.revokeObjectURL(url));
+    thumb.addEventListener('load', () => {
+      const meta = item.querySelector('.file-meta');
+      meta.textContent = `${formatFileSize(file.size)} · ${thumb.naturalWidth} × ${thumb.naturalHeight}`;
+      URL.revokeObjectURL(url);
+    });
     thumb.addEventListener('click', () => {
       const previewUrl = URL.createObjectURL(file);
       openImgPreview(previewUrl);
@@ -259,6 +289,29 @@ runOcrBtn.addEventListener('click', () => {
   if (stagedFiles.length && !processing) uploadImagesForOCR([...stagedFiles]);
 });
 
+useOcrBtn?.addEventListener('click', () => {
+  const text = ocrOutputText.value.trim();
+  workspaceText.value = text;
+  if (text && !textInput.value.trim()) textInput.value = text;
+  updateTextMetrics();
+  submitBtn.disabled = !textInput.value.trim() || processing;
+});
+
+clearWorkspaceBtn?.addEventListener('click', () => {
+  workspaceText.value = '';
+  resetSummaryResult();
+  updateTextMetrics();
+});
+
+ocrOutputText?.addEventListener('input', () => {
+  updateTextMetrics();
+});
+
+workspaceText?.addEventListener('input', () => {
+  resetSummaryResult();
+  updateTextMetrics();
+});
+
 async function uploadImagesForOCR(files) {
   const label = files.length === 1 ? files[0].name : `${files.length} images`;
   dropZone.classList.add('ocr-loading');
@@ -276,9 +329,12 @@ async function uploadImagesForOCR(files) {
     }
 
     const { text } = await res.json();
+    ocrOutputText.value = text || '';
+    workspaceText.value = text || '';
     textInput.value = text || '';
     ocrResult.hidden = false;
     resetSummaryResult();
+    updateTextMetrics();
     stagedFiles = [];
     renderFileList();
 
@@ -498,16 +554,17 @@ textInput.addEventListener('keydown', (e) => {
 textInput.addEventListener('input', () => {
   lastWavBlob = null;
   submitBtn.disabled = !textInput.value.trim() || processing;
+  updateTextMetrics();
 });
 
 summarizeBtn.addEventListener('click', async () => {
-  const text = textInput.value.trim();
+  const text = workspaceText.value.trim();
   if (!text || processing) return;
   await summarizeText(text, false);
 });
 
 summarizeSpeakBtn.addEventListener('click', async () => {
-  const text = textInput.value.trim();
+  const text = workspaceText.value.trim();
   if (!text || processing) return;
   await summarizeText(text, true);
 });
@@ -558,7 +615,9 @@ summarySpeakBtn.addEventListener('click', async () => {
   if (!text || processing) return;
   textInput.value = text;
   lastWavBlob = null;
-  await synthesizeText(text);
+  updateTextMetrics();
+  submitBtn.disabled = false;
+  setStatus('Summary copied to Text to Speech.', 'success');
 });
 
 // --- Core ---
@@ -670,6 +729,7 @@ async function summarizeText(text, shouldSpeak) {
     summaryText.innerHTML = renderMarkdown(summary || '');
     summaryDownloadGroup.dataset.summary = summary || '';
     summaryResult.hidden = false;
+    updateTextMetrics();
     syncSummaryActionState();
 
     const duration = ((performance.now() - startTime) / 1000).toFixed(1);
@@ -679,6 +739,7 @@ async function summarizeText(text, shouldSpeak) {
 
     if (shouldSpeak) {
       textInput.value = summary;
+      updateTextMetrics();
       await synthesizeText(summary);
     }
   } catch (err) {
@@ -695,6 +756,7 @@ function addFeed(kind, label, meta) {
   feedEmpty?.remove();
   const item = document.createElement('div');
   item.className = `feed-item ${kind}`;
+  item.dataset.time = formatFeedTime(new Date());
   item.innerHTML = `
     <div class="feed-dot"></div>
     <div class="feed-content">
@@ -713,12 +775,16 @@ function updateFeedItem(item, kind, label, meta) {
 
 function setProcessing(val) {
   processing = val;
+  ocrOutputText.disabled       = val;
+  workspaceText.disabled       = val;
   textInput.disabled          = val;
   modelSelect.disabled        = val;
   genderFilter.disabled       = val;
   voiceSelect.disabled        = val;
   providerSelect.disabled     = val;
   sumModelSelect.disabled     = val;
+  if (useOcrBtn) useOcrBtn.disabled = val || !ocrOutputText.value.trim();
+  if (clearWorkspaceBtn) clearWorkspaceBtn.disabled = val || !workspaceText.value.trim();
   submitBtn.disabled          = val || !textInput.value.trim();
   actionSynthesize.disabled   = val;
   actionSpeak.disabled        = val;
@@ -742,16 +808,21 @@ function truncate(str, n) {
 }
 
 function resetSummaryResult() {
-  summaryResult.hidden = true;
+  summaryResult.hidden = false;
   summaryText.innerHTML = '';
   summaryDownloadGroup.dataset.summary = '';
   closeSummaryDownloadMenu();
+  updateTextMetrics();
   syncSummaryActionState();
 }
 
 function syncSummaryActionState() {
   const hasPlainText = summaryText.innerText.trim().length > 0;
   const hasMarkdown = (summaryDownloadGroup.dataset.summary || '').trim().length > 0;
+  if (useOcrBtn) useOcrBtn.disabled = processing || !ocrOutputText.value.trim();
+  if (clearWorkspaceBtn) clearWorkspaceBtn.disabled = processing || !workspaceText.value.trim();
+  summarizeBtn.disabled = processing || !workspaceText.value.trim();
+  summarizeSpeakBtn.disabled = processing || !workspaceText.value.trim();
   summaryCopyBtn.disabled = processing || !hasPlainText;
   summarySpeakBtn.disabled = processing || !hasPlainText;
   summaryDownloadBtn.disabled = processing || !hasPlainText;
@@ -809,6 +880,30 @@ function formatFilenameDate(date) {
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+}
+
+function formatFeedTime(date) {
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+function formatFileSize(bytes) {
+  if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB'];
+  let value = bytes;
+  let unit = 0;
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024;
+    unit += 1;
+  }
+  const precision = unit === 0 || value >= 10 ? 0 : 1;
+  return `${value.toFixed(precision)} ${units[unit]}`;
+}
+
+function updateTextMetrics() {
+  if (ocrCount) ocrCount.textContent = `${ocrOutputText.value.length} characters`;
+  if (workspaceCount) workspaceCount.textContent = `${workspaceText.value.length} characters`;
+  if (summaryCount) summaryCount.textContent = `${summaryText.innerText.trim().length} characters`;
+  if (ttsCount) ttsCount.textContent = `${textInput.value.length} characters`;
 }
 
 function escHtml(str) {
@@ -871,3 +966,7 @@ function inlineMarkdown(text) {
     .replace(/\*(.+?)\*/g,     '<em>$1</em>')
     .replace(/`(.+?)`/g,       '<code>$1</code>');
 }
+
+updateTextMetrics();
+syncSummaryActionState();
+submitBtn.disabled = !textInput.value.trim();

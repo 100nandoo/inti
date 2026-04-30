@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <title>Inti sun mark</title>
+  <g stroke="#c7953d" stroke-linecap="round" stroke-linejoin="round">
+    <path stroke-width="2.2" d="M32 5.5v7M32 51.5v7M5.5 32h7M51.5 32h7"/>
+    <path stroke-width="2.2" d="m13.3 13.3 5 5M45.7 45.7l5 5M50.7 13.3l-5 5M18.3 45.7l-5 5"/>
+    <path stroke-width="1.8" d="M32 2.5 34.1 12 32 15.5 29.9 12 32 2.5Z"/>
+    <path stroke-width="1.8" d="M32 61.5 29.9 52 32 48.5 34.1 52 32 61.5Z"/>
+    <path stroke-width="1.8" d="M2.5 32 12 29.9 15.5 32 12 34.1 2.5 32Z"/>
+    <path stroke-width="1.8" d="M61.5 32 52 34.1 48.5 32 52 29.9 61.5 32Z"/>
+    <path stroke-width="1.7" d="m10.7 8.5 8.2 5.2.9 3.9-3.9-.9-5.2-8.2Z"/>
+    <path stroke-width="1.7" d="m53.3 55.5-8.2-5.2-.9-3.9 3.9.9 5.2 8.2Z"/>
+    <path stroke-width="1.7" d="m55.5 10.7-5.2 8.2-3.9.9.9-3.9 8.2-5.2Z"/>
+    <path stroke-width="1.7" d="m8.5 53.3 5.2-8.2 3.9-.9-.9 3.9-8.2 5.2Z"/>
+    <circle cx="32" cy="32" r="18" stroke-width="1.5"/>
+    <circle cx="32" cy="32" r="12" stroke-width="1.6"/>
+    <circle cx="32" cy="32" r="5.2" stroke-width="1.7"/>
+    <path stroke-width="1.5" d="M32 16.5c3 5.2 5.2 8.6 10.4 15.5C37.2 38.9 35 42.3 32 47.5 29 42.3 26.8 38.9 21.6 32 26.8 25.1 29 21.7 32 16.5Z"/>
+    <path stroke-width="1.25" d="M32 21.8v20.4M21.8 32h20.4"/>
+    <path stroke-width="1.15" d="M24.8 24.8 39.2 39.2M39.2 24.8 24.8 39.2"/>
+    <path stroke-width="1.1" d="M26.8 10.2c1.5 2 2.8 3.6 5.2 6.2 2.4-2.6 3.7-4.2 5.2-6.2"/>
+    <path stroke-width="1.1" d="M26.8 53.8c1.5-2 2.8-3.6 5.2-6.2 2.4 2.6 3.7 4.2 5.2 6.2"/>
+    <path stroke-width="1.1" d="M10.2 37.2c2-1.5 3.6-2.8 6.2-5.2-2.6-2.4-4.2-3.7-6.2-5.2"/>
+    <path stroke-width="1.1" d="M53.8 37.2c-2-1.5-3.6-2.8-6.2-5.2 2.6-2.4 4.2-3.7 6.2-5.2"/>
+  </g>
+</svg>

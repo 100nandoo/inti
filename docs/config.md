@@ -59,6 +59,8 @@ INTI_MAIN_KEY=change_me_to_a_strong_secret
 
 Runtime settings changed via the web UI (summarizer provider, model) and API keys created via the API keys page are persisted to `inti.toml` on disk.
 
+The main page light/dark theme preference is client-side only and is stored in browser `localStorage` for the current origin under `inti-theme`.
+
 | OS | Default path |
 |----|-------------|
 | macOS | `~/Library/Application Support/inti/inti.toml` |
@@ -81,7 +83,7 @@ When deployed publicly (e.g. via Cloudflare Tunnel), set `INTI_MAIN_KEY` to prot
 
 - If `INTI_MAIN_KEY` is set — auth is enforced for HTML pages and every `/api/*` request.
 - If `INTI_MAIN_KEY` is not set — `INTI_MASTER_KEY` is checked as a fallback for backward compatibility.
-- Static assets such as CSS and JS are publicly accessible so protected HTML pages can load correctly.
+- Static assets such as CSS, JS, and the embedded SVG logo are publicly accessible so protected HTML pages can load correctly.
 
 **Bootstrapping with a main key:**
 

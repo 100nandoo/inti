@@ -1,6 +1,6 @@
 # Inti
 
-Text-to-speech powered by Google Gemini, with a modern web UI and an interactive terminal — all in a single Go binary.
+Text-to-speech powered by Google Gemini, with an OCR and summarization workspace, a browser extension, and an interactive terminal — all in a single Go binary.
 
 ## Table of Contents
 
@@ -27,8 +27,8 @@ Text-to-speech powered by Google Gemini, with a modern web UI and an interactive
 
 ## Features
 
-- **Web UI** — dark interface with model & voice dropdowns, gender filter, waveform indicator, and Opus download
-- **Image OCR** — drag-and-drop or browse to upload images (multi-file supported); extracted text can be summarized, spoken, copied, or downloaded from the OCR workflow
+- **Web UI** — parchment-inspired interface with a persisted light/dark theme toggle, organized into Import/OCR, Text Workspace, Text to Speech, and Activity panels
+- **Image OCR** — drag-and-drop or browse to upload images (multi-file supported); extracted text lands in an editable OCR output and can be sent into the workspace or TTS flow
 - **Summarizer** — summarize text with Gemini, Groq (free tier), or OpenRouter (free models); results rendered as Markdown with copy, speak, and split-button download actions for `.txt` or `.md`; provider and API keys configurable in the Settings page without restarting the server
 - **Browser extension** — summarize article pages directly in Chrome desktop, Firefox desktop, and Firefox Android via the bundled `extension/` app
 - **Synthesis metadata** — activity feed shows word count, duration, voice, model, and summarizer model used
@@ -76,13 +76,20 @@ make dev
 
 During development, `make dev` is the faster loop. It uses [Air](https://github.com/air-verse/air) with the repo's `.air.toml` to rebuild into `./tmp/inti` and restart `serve` automatically when watched files change.
 
-Choose a **model** and **voice** from the dropdowns, type your text, and hit **Synthesize**. Download the result with the **Download** button.
+The web UI is split into four panels:
 
-To use OCR, drop or browse images in the **Image OCR** card. The extracted text appears in the main text box, where you can synthesize it directly or use **Summarize** / **Summarize + Speak** from the OCR action row.
+- **Import / OCR** — stage one or more images, extract text, and edit the OCR output.
+- **Text Workspace** — paste or import OCR text, choose a summarizer provider/model, and generate a Markdown summary.
+- **Text to Speech** — choose a TTS model, voice, and voice filter, then generate speech with optional auto-play or download.
+- **Activity** — review recent OCR, summarization, synthesis, and download events.
 
-When a summary is shown, the summary action row lets you **Copy**, **Speak**, or **Download** it. The **Download** control is a split button: the main action downloads plain text (`.txt`), and the menu lets you choose Markdown (`.md`). Summary files use human-readable filenames such as `inti-summary-2026-04-29.txt`.
+To use OCR, drop or browse images in **Import / OCR**. The extracted text appears in **OCR Output**, is copied into **Text Workspace**, and is also available in **Text to Speech** for direct synthesis.
+
+When a summary is shown, the summary action row lets you **Copy**, **Use Summary for TTS**, or **Download** it. The **Download** control is a split button: the main action downloads plain text (`.txt`), and the menu lets you choose Markdown (`.md`). Summary files use human-readable filenames such as `inti-summary-2026-04-29.txt`.
 
 To configure the summarizer provider and API key, click **Settings** in the top-right corner. To manage API keys for access control, click **API Keys**.
+
+Use the **Light** / **Dark** toggle beside **Settings** to switch themes. The preference is stored in the browser for the current origin.
 
 Flags: `--port 3000`, `--host 0.0.0.0`
 
@@ -253,7 +260,7 @@ The web UI expects the key in the page URL as `?key=...`.
 │   ├── ocr/                   # Tesseract OCR wrapper
 │   ├── pdf/                   # PDF-to-image converter (go-fitz/MuPDF)
 │   └── server/                # HTTP server, REST handlers, API key auth middleware
-└── web/                       # Embedded frontend (HTML/CSS/JS, settings, API keys page)
+└── web/                       # Embedded frontend (HTML/CSS/JS, shared theme script, logo SVG, settings, API keys page)
 ```
 
 ## Requirements

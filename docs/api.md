@@ -73,6 +73,8 @@ mpv hello.opus
 
 Extract text from one or more uploaded images using Tesseract OCR.
 
+In the web UI, this endpoint powers the **Import / OCR** panel. Returned text is placed into the editable OCR output, copied into the **Text Workspace**, and made available to the **Text to Speech** panel for direct synthesis.
+
 **Request**
 
 `Content-Type: multipart/form-data`
@@ -159,7 +161,7 @@ Summarize text using a configured AI provider (Gemini, Groq, or OpenRouter). The
 }
 ```
 
-The `summary` field is Markdown-formatted text. `provider` and `model` reflect what was actually used. In the web UI, this Markdown is rendered for display, used directly for `.md` downloads, and converted to plain text for `.txt` downloads.
+The `summary` field is Markdown-formatted text. `provider` and `model` reflect what was actually used. In the web UI, this endpoint powers the **Text Workspace** summary area; Markdown is rendered for display, used directly for `.md` downloads, converted to plain text for `.txt` downloads, and can be copied into **Text to Speech** with **Use Summary for TTS**.
 
 **Errors**
 

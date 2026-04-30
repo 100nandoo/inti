@@ -147,6 +147,17 @@ Optionally synthesizes the extracted text with TTS using `--speak`.
 
 Starts an HTTP server serving the web UI at `http://localhost:8282`. `GEMINI_API_KEY` is only required if you use TTS; summarization works with Groq or OpenRouter keys alone.
 
+The web UI is organized into four panels:
+
+- **Import / OCR** — stage one or more images, extract text, and edit the OCR output.
+- **Text Workspace** — paste or import OCR text, choose a summarizer provider/model, and generate a Markdown summary.
+- **Text to Speech** — choose a TTS model, voice, and voice filter, then generate speech with optional auto-play or download.
+- **Activity** — review recent OCR, summarization, synthesis, and download events.
+
+Use the **Light** / **Dark** toggle beside **Settings** to switch themes. The preference is stored in the browser for the current origin.
+
+Because the frontend is embedded into the Go binary, rebuild and restart the server after changing files in `web/`.
+
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--port <n>` | `8282` (or `$PORT`) | Port to listen on |
