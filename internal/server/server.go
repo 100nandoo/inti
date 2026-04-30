@@ -155,5 +155,5 @@ func Start(cfg *config.Config, webFS embed.FS) error {
 	mux.Handle("/", http.FileServer(http.FS(webRoot)))
 
 	addr := fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)
-	return http.ListenAndServe(addr, requireAPIKey(cfg.MainKey, ks, unauthorizedHTML, mux))
+	return http.ListenAndServe(addr, securityHeaders(requireAPIKey(cfg.MainKey, ks, unauthorizedHTML, mux)))
 }

@@ -1,11 +1,13 @@
 package server
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -154,6 +156,28 @@ type ocrResponse struct {
 	Text string `json:"text"`
 }
 
+func isDisallowedSVGUpload(filename, contentType string, data []byte) bool {
+	if strings.EqualFold(contentType, "image/svg+xml") {
+		return true
+	}
+	ext := strings.ToLower(filepath.Ext(filename))
+	if ext == ".svg" || ext == ".svgz" {
+		return true
+	}
+
+	trimmed := bytes.TrimSpace(data)
+	if len(trimmed) == 0 {
+		return false
+	}
+	sniffLen := len(trimmed)
+	if sniffLen > 512 {
+		sniffLen = 512
+	}
+	snippet := strings.ToLower(string(trimmed[:sniffLen]))
+	return strings.HasPrefix(snippet, "<svg") ||
+		strings.HasPrefix(snippet, "<?xml") && strings.Contains(snippet, "<svg")
+}
+
 func handleOCR() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -187,6 +211,10 @@ func handleOCR() http.HandlerFunc {
 			f.Close()
 			if err != nil {
 				writeJSON(w, http.StatusInternalServerError, errResponse{"read file: " + err.Error()})
+				return
+			}
+			if isDisallowedSVGUpload(fh.Filename, fh.Header.Get("Content-Type"), imageBytes) {
+				writeJSON(w, http.StatusBadRequest, errResponse{"svg uploads are not allowed"})
 				return
 			}
 			text, err := ocr.ExtractText(imageBytes)

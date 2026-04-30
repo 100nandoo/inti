@@ -5,6 +5,8 @@ import (
 	"strings"
 )
 
+const contentSecurityPolicy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; media-src 'self' blob: data:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+
 func authKey(r *http.Request) string {
 	raw := r.Header.Get("X-API-Key")
 	if raw == "" {
@@ -39,6 +41,18 @@ func requireAPIKey(mainKey string, store *apiKeyStore, unauthorizedHTML []byte, 
 			writeUnauthorized(w, r, unauthorizedHTML, "Invalid API key")
 			return
 		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func securityHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Security-Policy", contentSecurityPolicy)
+		w.Header().Set("Referrer-Policy", "no-referrer")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("X-Frame-Options", "DENY")
+		w.Header().Set("Cross-Origin-Opener-Policy", "same-origin")
+		w.Header().Set("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
 		next.ServeHTTP(w, r)
 	})
 }

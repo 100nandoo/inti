@@ -113,6 +113,7 @@ let stagedFiles  = [];
 let dragSrcIndex = null;
 let isPointerOverOcrCard = false;
 let summaryDownloadFormat = 'txt';
+const allowedImageMimeTypes = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/tiff']);
 
 // --- OCR drop zone ---
 
@@ -128,7 +129,7 @@ dropZone.addEventListener('dragleave', () => {
 dropZone.addEventListener('drop', (e) => {
   e.preventDefault();
   dropZone.classList.remove('drag-active');
-  const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+  const files = filterAllowedImageFiles(Array.from(e.dataTransfer.files));
   if (files.length) addStagedFiles(files);
 });
 
@@ -150,7 +151,7 @@ document.addEventListener('paste', (e) => {
 });
 
 fileInput.addEventListener('change', () => {
-  const files = Array.from(fileInput.files);
+  const files = filterAllowedImageFiles(Array.from(fileInput.files));
   if (files.length) addStagedFiles(files);
   fileInput.value = '';
 });
@@ -180,7 +181,7 @@ function getImageFilesFromClipboard(clipboardData) {
   if (!clipboardData) return [];
 
   const itemFiles = Array.from(clipboardData.items || [])
-    .filter(item => item.kind === 'file' && item.type.startsWith('image/'))
+    .filter(item => item.kind === 'file' && isAllowedImageType(item.type))
     .map((item, index) => {
       const file = item.getAsFile();
       if (!file) return null;
@@ -194,7 +195,36 @@ function getImageFilesFromClipboard(clipboardData) {
 
   if (itemFiles.length) return itemFiles;
 
-  return Array.from(clipboardData.files || []).filter(file => file.type.startsWith('image/'));
+  return filterAllowedImageFiles(Array.from(clipboardData.files || []));
+}
+
+function isAllowedImageType(type) {
+  return allowedImageMimeTypes.has(type);
+}
+
+function isAllowedImageFile(file) {
+  if (!file || !file.type) return false;
+  return isAllowedImageType(file.type);
+}
+
+function filterAllowedImageFiles(files) {
+  const allowed = [];
+  let rejected = 0;
+
+  files.forEach((file) => {
+    if (isAllowedImageFile(file)) {
+      allowed.push(file);
+    } else if (file?.type?.startsWith('image/') || /\.svgz?$/i.test(file?.name || '')) {
+      rejected += 1;
+    }
+  });
+
+  if (rejected) {
+    const suffix = rejected === 1 ? '' : 's';
+    setStatus(`Rejected ${rejected} unsupported image file${suffix}. SVG uploads are not allowed.`, 'error');
+  }
+
+  return allowed;
 }
 
 function renderFileList() {

@@ -40,20 +40,28 @@ function renderKeys(keys) {
     keysEmpty.style.display   = 'none';
     setupBanner.style.display = 'none';
     keysTable.style.display   = 'table';
-    keysBody.innerHTML = keys.map(k => `
-      <tr>
+    keysBody.innerHTML = '';
+    keys.forEach((k) => {
+      const row = document.createElement('tr');
+      row.innerHTML = `
         <td>${escHtml(k.name)}</td>
         <td><span class="key-prefix">${escHtml(k.prefix)}…</span></td>
         <td>${formatDate(k.createdAt)}</td>
         <td>${formatDate(k.lastUsedAt)}</td>
-        <td>
-          <button class="btn-secondary" style="font-size:12px;padding:4px 10px;"
-                  onclick="deleteKey('${escHtml(k.id)}', '${escHtml(k.name)}')">
-            Delete
-          </button>
-        </td>
-      </tr>
-    `).join('');
+        <td></td>
+      `;
+
+      const actionsCell = row.lastElementChild;
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'btn-secondary';
+      deleteBtn.style.fontSize = '12px';
+      deleteBtn.style.padding = '4px 10px';
+      deleteBtn.textContent = 'Delete';
+      deleteBtn.addEventListener('click', () => deleteKey(k.id, k.name));
+      actionsCell.appendChild(deleteBtn);
+
+      keysBody.appendChild(row);
+    });
   }
 }
 
@@ -105,8 +113,6 @@ async function deleteKey(id, name) {
     showError('Delete failed: ' + e.message);
   }
 }
-
-window.deleteKey = deleteKey;
 
 function showKeyModal(raw) {
   keyModalValue.textContent = raw;
