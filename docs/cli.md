@@ -198,6 +198,18 @@ Converts each page of the PDF to a numbered PNG image.
 ./inti pdf report.pdf --output /tmp/pages
 ```
 
+### macOS Quick Action
+
+A Finder Quick Action bundle is included at `extras/macos/Inti PDF to Images.workflow`. It accepts selected PDFs in Finder and runs the `inti pdf` CLI for each one, writing images into a sibling folder named after the PDF file.
+
+The workflow includes its own shell wrapper under `Contents/Resources/run-inti-pdf-to-images.sh`. It prefers `INTI_BIN` when set, then `inti` from your `PATH`, then a built repo checkout if you run the bundled workflow directly from this repository.
+
+To install the Quick Action and refresh the `inti` symlink used by Finder:
+
+```sh
+./scripts/install-pdf-to-images-quick-action.sh
+```
+
 ---
 
 ## Interactive TUI
