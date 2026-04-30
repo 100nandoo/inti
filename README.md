@@ -89,7 +89,7 @@ When a summary is shown, the summary action row lets you **Copy**, **Use Summary
 
 To configure the summarizer provider and API key, click **Settings** in the top-right corner. To manage API keys for access control, click **API Keys**.
 
-Use the **Light** / **Dark** toggle beside **Settings** to switch themes. The preference is stored in the browser for the current origin.
+Use the **Light** / **Dark** toggle beside **Settings** to switch themes locally. To make a theme global for the web UI, open **Settings**, choose an Appearance theme, and save it to the server config.
 
 Flags: `--port 3000`, `--host 0.0.0.0`
 
@@ -156,6 +156,8 @@ POST /api/summarize          { "text": "...", "instruction"?, "provider"?, "apiK
                              → { "summary": "...", "provider": "...", "model": "..." }
 
 GET  /api/summarizer-config  → { "provider": "...", "model": "..." }
+GET  /api/theme-config       → { "theme": "light" | "dark" | "" }
+POST /api/theme-config       { "theme": "light" | "dark" | "" }
 GET  /api/voices             → { "voices": [...], "default": "Kore" }
 GET  /api/models             → { "models": [...], "default": "..." }
 

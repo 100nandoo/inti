@@ -55,6 +55,14 @@ type summarizerConfigResponse struct {
 	GroqLimits *storedRateLimits `json:"groqLimits,omitempty"`
 }
 
+type themeConfigRequest struct {
+	Theme string `json:"theme"`
+}
+
+type themeConfigResponse struct {
+	Theme string `json:"theme"`
+}
+
 type summarizeResponse struct {
 	Summary    string                 `json:"summary"`
 	Provider   string                 `json:"provider"`
@@ -338,6 +346,54 @@ func handleSummarizerConfig(asc *activeSumConfig, cfg *config.Config) http.Handl
 			writeJSON(w, http.StatusMethodNotAllowed, errResponse{"method not allowed"})
 		}
 	}
+}
+
+func handleThemeConfig() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			writeJSON(w, http.StatusOK, themeConfigResponse{Theme: loadThemeConfig()})
+		case http.MethodPost:
+			var req themeConfigRequest
+			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+				writeJSON(w, http.StatusBadRequest, errResponse{"invalid request body"})
+				return
+			}
+			if !isValidTheme(req.Theme) {
+				writeJSON(w, http.StatusBadRequest, errResponse{"invalid theme"})
+				return
+			}
+			if err := saveThemeConfig(req.Theme); err != nil {
+				writeJSON(w, http.StatusInternalServerError, errResponse{err.Error()})
+				return
+			}
+			writeJSON(w, http.StatusOK, themeConfigResponse{Theme: req.Theme})
+		default:
+			writeJSON(w, http.StatusMethodNotAllowed, errResponse{"method not allowed"})
+		}
+	}
+}
+
+func isValidTheme(theme string) bool {
+	return theme == "" || theme == "light" || theme == "dark"
+}
+
+func loadThemeConfig() string {
+	fileMu.Lock()
+	defer fileMu.Unlock()
+	vc := readIntiConfigUnlocked()
+	if !isValidTheme(vc.Appearance.Theme) {
+		return ""
+	}
+	return vc.Appearance.Theme
+}
+
+func saveThemeConfig(theme string) error {
+	fileMu.Lock()
+	defer fileMu.Unlock()
+	vc := readIntiConfigUnlocked()
+	vc.Appearance.Theme = theme
+	return writeIntiConfigUnlocked(vc)
 }
 
 func captureGroqLimits(rateLimits *summarizer.RateLimits) *storedRateLimits {

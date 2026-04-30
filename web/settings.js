@@ -2,6 +2,7 @@ const sumProviderSelect = document.getElementById('sum-provider-select');
 const keyGemini         = document.getElementById('key-gemini');
 const keyGroq           = document.getElementById('key-groq');
 const keyOpenRouter     = document.getElementById('key-openrouter');
+const appearanceThemeSelect = document.getElementById('appearance-theme-select');
 const sumSaveBtn        = document.getElementById('sum-save-btn');
 const sumClearBtn       = document.getElementById('sum-clear-btn');
 const sumSaveStatus     = document.getElementById('sum-save-status');
@@ -32,11 +33,20 @@ function applyConfig(config) {
   renderGroqUsage();
 }
 
+function applyThemeConfig(config) {
+  const theme = config.theme === 'light' || config.theme === 'dark' ? config.theme : '';
+  appearanceThemeSelect.value = theme;
+}
+
 async function load() {
   try {
-    const res = await fetch(apiURL('/api/summarizer-config'));
-    if (!res.ok) throw new Error('Could not load settings');
-    applyConfig(await res.json());
+    const [sumRes, themeRes] = await Promise.all([
+      fetch(apiURL('/api/summarizer-config')),
+      fetch(apiURL('/api/theme-config')),
+    ]);
+    if (!sumRes.ok || !themeRes.ok) throw new Error('Could not load settings');
+    applyConfig(await sumRes.json());
+    applyThemeConfig(await themeRes.json());
   } catch (err) {
     sumSaveStatus.textContent = err.message;
     sumSaveStatus.className = 'status-text error';
@@ -52,16 +62,28 @@ async function save() {
   };
 
   try {
-    const res = await fetch(apiURL('/api/summarizer-config'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ provider, model: '', keys }),
-    });
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({ error: res.statusText }));
-      throw new Error(body.error || res.statusText);
+    const [sumRes, themeRes] = await Promise.all([
+      fetch(apiURL('/api/summarizer-config'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider, model: '', keys }),
+      }),
+      fetch(apiURL('/api/theme-config'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ theme: appearanceThemeSelect.value }),
+      }),
+    ]);
+    if (!sumRes.ok) {
+      const body = await sumRes.json().catch(() => ({ error: sumRes.statusText }));
+      throw new Error(body.error || sumRes.statusText);
     }
-    applyConfig(await res.json());
+    if (!themeRes.ok) {
+      const body = await themeRes.json().catch(() => ({ error: themeRes.statusText }));
+      throw new Error(body.error || themeRes.statusText);
+    }
+    applyConfig(await sumRes.json());
+    applyThemeConfig(await themeRes.json());
     sumSaveStatus.textContent = 'Saved';
     sumSaveStatus.className = 'status-text';
   } catch (err) {
@@ -96,6 +118,18 @@ async function clearAll() {
   }
   setTimeout(() => { sumSaveStatus.textContent = ''; }, 2000);
 }
+
+appearanceThemeSelect.addEventListener('change', () => {
+  const theme = appearanceThemeSelect.value;
+  if (theme === 'light' || theme === 'dark') {
+    window.IntiTheme?.apply(theme);
+    window.IntiTheme?.persist(theme);
+  }
+});
+
+document.addEventListener('inti:theme-config', (event) => {
+  applyThemeConfig(event.detail || {});
+});
 
 sumSaveBtn.addEventListener('click', save);
 sumClearBtn.addEventListener('click', clearAll);

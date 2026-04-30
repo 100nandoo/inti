@@ -136,6 +136,7 @@ func Start(cfg *config.Config, webFS embed.FS) error {
 	mux.HandleFunc("/api/ocr", handleOCR())
 	mux.HandleFunc("/api/summarize", handleSummarize(sum, asc, cfg))
 	mux.HandleFunc("/api/summarizer-config", handleSummarizerConfig(asc, cfg))
+	mux.HandleFunc("/api/theme-config", handleThemeConfig())
 
 	// API key management routes
 	mux.HandleFunc("GET /api/admin/keys", handleAdminListKeys(ks))

@@ -217,6 +217,20 @@ body::before {
   line-height: 1;
 }
 
+.logo-badge {
+  align-self: center;
+  padding: 4px 8px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: 0;
+  background: color-mix(in srgb, var(--paper-3) 72%, transparent);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
 .header-nav {
   gap: 10px;
   flex-wrap: wrap;
@@ -1276,15 +1290,20 @@ select option {
   .header-settings-link,
   .theme-toggle {
     width: 34px;
+    min-width: 34px;
     height: 34px;
+    flex: 0 0 34px;
     justify-content: center;
     padding: 0;
     overflow: hidden;
-    color: transparent;
+    gap: 0;
+    font-size: 0;
   }
 
   .header-settings-link svg,
   .theme-toggle svg {
+    width: 16px;
+    height: 16px;
     color: var(--ink);
     flex: 0 0 auto;
   }
@@ -1315,6 +1334,45 @@ select option {
   .controls > *,
   .select-wrap {
     flex: 1 1 100%;
+  }
+
+  .staging-actions button,
+  .workspace-actions > button,
+  .summary-actions > button,
+  .summary-actions .split-button > button,
+  .controls > button {
+    width: 34px;
+    min-width: 34px;
+    height: 34px;
+    flex: 0 0 34px;
+    padding: 0;
+    overflow: hidden;
+    gap: 0;
+    font-size: 0;
+  }
+
+  .staging-actions button svg,
+  .workspace-actions > button svg,
+  .summary-actions > button svg,
+  .summary-actions .split-button > button svg,
+  .controls > button svg {
+    width: 16px;
+    height: 16px;
+    flex: 0 0 auto;
+  }
+
+  .summary-actions .split-button {
+    flex: 0 0 auto;
+  }
+
+  .summary-actions .split-button-main,
+  .summary-actions .split-button-toggle {
+    width: 34px;
+    min-width: 34px;
+  }
+
+  .generate-btn {
+    margin-left: 0;
   }
 
   .action-checkboxes {

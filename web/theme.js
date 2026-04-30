@@ -20,12 +20,27 @@
   function applyTheme(theme) {
     root.dataset.theme = theme;
     updateToggle(theme);
+    updateThemeSelect(theme);
   }
 
   function persistTheme(theme) {
     try {
       localStorage.setItem(THEME_STORAGE_KEY, theme);
     } catch {}
+  }
+
+  function apiPath(path) {
+    if (typeof apiURL === 'function') return apiURL(path);
+    const url = new URL(path, window.location.origin);
+    const key = new URLSearchParams(window.location.search).get('key') || '';
+    if (key) url.searchParams.set('key', key);
+    return url.toString();
+  }
+
+  function updateThemeSelect(theme = getActiveTheme()) {
+    const select = document.getElementById('appearance-theme-select');
+    if (!select || select.value === '') return;
+    select.value = theme === 'dark' ? 'dark' : 'light';
   }
 
   function updateToggle(theme = getActiveTheme()) {
@@ -53,14 +68,38 @@
     });
   }
 
+  async function loadServerTheme() {
+    try {
+      const res = await fetch(apiPath('/api/theme-config'));
+      if (!res.ok) return;
+      const config = await res.json();
+      if (config.theme === 'light' || config.theme === 'dark') {
+        applyTheme(config.theme);
+        persistTheme(config.theme);
+      }
+      window.IntiTheme.serverTheme = config.theme || '';
+      document.dispatchEvent(new CustomEvent('inti:theme-config', {
+        detail: { theme: window.IntiTheme.serverTheme },
+      }));
+    } catch {}
+  }
+
   const storedTheme = readStoredTheme();
   if (storedTheme) {
     root.dataset.theme = storedTheme;
   }
+
+  window.IntiTheme = {
+    apply: applyTheme,
+    persist: persistTheme,
+    active: getActiveTheme,
+    serverTheme: '',
+  };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initToggle, { once: true });
   } else {
     initToggle();
   }
+  loadServerTheme();
 })();

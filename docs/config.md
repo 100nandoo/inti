@@ -57,9 +57,14 @@ INTI_MAIN_KEY=change_me_to_a_strong_secret
 
 ## Config file location
 
-Runtime settings changed via the web UI (summarizer provider, model) and API keys created via the API keys page are persisted to `inti.toml` on disk.
+Runtime settings changed via the web UI (summarizer provider, model, appearance theme) and API keys created via the API keys page are persisted to `inti.toml` on disk.
 
-The main page light/dark theme preference is client-side only and is stored in browser `localStorage` for the current origin under `inti-theme`.
+The light/dark toggle still stores an immediate local preference in browser `localStorage` under `inti-theme`. When `[appearance] theme` is set in `inti.toml`, the server-saved theme overrides that local preference after the page loads.
+
+```toml
+[appearance]
+theme = "dark" # "light", "dark", or omitted/empty for browser default behavior
+```
 
 | OS | Default path |
 |----|-------------|

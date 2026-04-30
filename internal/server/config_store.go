@@ -12,6 +12,7 @@ import (
 // intiConfig is the top-level shape of inti.toml.
 type intiConfig struct {
 	Summarizer summarizerSection `toml:"summarizer"`
+	Appearance appearanceSection `toml:"appearance"`
 	APIKeys    []storedKey       `toml:"api_keys"`
 }
 
@@ -24,6 +25,11 @@ type summarizerSection struct {
 	GroqAPIKey       string            `toml:"groq_api_key"`
 	OpenRouterAPIKey string            `toml:"openrouter_api_key"`
 	GroqLimits       *storedRateLimits `toml:"groq_limits"`
+}
+
+// appearanceSection holds the persisted web UI appearance configuration.
+type appearanceSection struct {
+	Theme string `toml:"theme"`
 }
 
 type storedRateLimits struct {
