@@ -218,16 +218,10 @@ function renderFileList() {
         <span class="file-meta">${formatFileSize(file.size)}</span>
       </span>
       <span class="file-ok" title="Ready">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M20 6 9 17l-5-5"/>
-        </svg>
+        <span class="icon icon-check" aria-hidden="true"></span>
       </span>
       <button class="file-remove" data-index="${i}" title="Remove">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M3 6h18"/>
-          <path d="M8 6V4h8v2"/>
-          <path d="M19 6l-1 14H6L5 6"/>
-        </svg>
+        <span class="icon icon-trash" aria-hidden="true"></span>
       </button>`;
 
     const thumb = item.querySelector('img');

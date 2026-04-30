@@ -259,6 +259,41 @@ body::before {
   border-color: var(--accent);
 }
 
+.icon {
+  --icon-url: none;
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  flex: 0 0 auto;
+  background-color: currentColor;
+  mask-image: var(--icon-url);
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: contain;
+  -webkit-mask-image: var(--icon-url);
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  -webkit-mask-size: contain;
+}
+
+.icon-key { --icon-url: url("/icons/key.svg"); }
+.icon-settings { --icon-url: url("/icons/settings.svg"); }
+.icon-chevron-left { --icon-url: url("/icons/chevron-left.svg"); }
+.icon-sun { --icon-url: url("/icons/sun.svg"); }
+.icon-moon { --icon-url: url("/icons/moon.svg"); }
+.icon-upload-cloud { --icon-url: url("/icons/upload-cloud.svg"); }
+.icon-trash { --icon-url: url("/icons/trash.svg"); }
+.icon-bolt { --icon-url: url("/icons/bolt.svg"); }
+.icon-brackets-horizontal { --icon-url: url("/icons/brackets-horizontal.svg"); }
+.icon-x { --icon-url: url("/icons/x.svg"); }
+.icon-speaker-waves { --icon-url: url("/icons/speaker-waves.svg"); }
+.icon-copy { --icon-url: url("/icons/copy.svg"); }
+.icon-download { --icon-url: url("/icons/download.svg"); }
+.icon-chevron-down { --icon-url: url("/icons/chevron-down.svg"); }
+.icon-arrow-up { --icon-url: url("/icons/arrow-up.svg"); }
+.icon-speaker { --icon-url: url("/icons/speaker.svg"); }
+.icon-check { --icon-url: url("/icons/check.svg"); }
+
 .theme-icon {
   flex: 0 0 auto;
 }
@@ -527,7 +562,7 @@ textarea:disabled {
   transition: border-color .15s, color .15s, background .15s;
 }
 
-.drop-zone svg {
+.drop-zone-icon {
   width: 44px;
   height: 44px;
   color: var(--accent);
@@ -1300,8 +1335,8 @@ select option {
     font-size: 0;
   }
 
-  .header-settings-link svg,
-  .theme-toggle svg {
+  .header-settings-link .icon,
+  .theme-toggle .icon {
     width: 16px;
     height: 16px;
     color: var(--ink);
@@ -1351,11 +1386,11 @@ select option {
     font-size: 0;
   }
 
-  .staging-actions button svg,
-  .workspace-actions > button svg,
-  .summary-actions > button svg,
-  .summary-actions .split-button > button svg,
-  .controls > button svg {
+  .staging-actions button .icon,
+  .workspace-actions > button .icon,
+  .summary-actions > button .icon,
+  .summary-actions .split-button > button .icon,
+  .controls > button .icon {
     width: 16px;
     height: 16px;
     flex: 0 0 auto;
