@@ -1025,8 +1025,8 @@ select option {
 .split-menu {
   position: absolute;
   right: 0;
-  top: calc(100% + 5px);
-  z-index: 10;
+  bottom: calc(100% + 5px);
+  z-index: 30;
   display: flex;
   flex-direction: column;
   gap: 3px;
@@ -1036,6 +1036,10 @@ select option {
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-sm);
   box-shadow: 0 14px 32px var(--shadow);
+}
+
+.split-button.is-open {
+  z-index: 31;
 }
 
 .split-menu-item {
