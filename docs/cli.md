@@ -10,7 +10,6 @@ All subcommands share the same binary: `./inti`.
 - [`ocr` — Extract text from an image](#ocr--extract-text-from-an-image)
 - [`serve` — Start the web server](#serve--start-the-web-server)
 - [`pdf` — Convert PDF to images](#pdf--convert-pdf-to-images)
-- [Interactive TUI](#interactive-tui)
 - [Models](#models)
 - [Voices](#voices)
 
@@ -209,29 +208,6 @@ To install the Quick Action and refresh the `inti` symlink used by Finder:
 ```sh
 ./scripts/install-pdf-to-images-quick-action.sh
 ```
-
----
-
-## Interactive TUI
-
-Running `./inti` without any subcommand launches the Bubble Tea terminal UI. Requires `GEMINI_API_KEY`.
-
-```sh
-./inti
-```
-
-Press **Enter** on an empty prompt to open the command menu. Navigate with **↑ ↓**, select with **Enter**, dismiss with **Esc**. Use **↑ ↓** while typing to scroll the history.
-
-| Command | Description |
-|---------|-------------|
-| `speak <text>` | Synthesize and play |
-| `voice <name>` | Switch voice |
-| `model <name>` | Switch TTS model |
-| `export [path]` | Save last audio as Opus |
-| `status` | Show current config |
-| `clear` | Clear the history |
-| `help` | List commands |
-| `q` / `Ctrl+C` | Quit |
 
 ---
 

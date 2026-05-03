@@ -15,9 +15,6 @@ go build -o inti .
 ./inti serve                # http://localhost:8282
 ./inti serve --port 3000
 
-# Run interactive TUI
-./inti
-
 # One-shot CLI
 ./inti speak "Hello, world!"
 ./inti speak --voice Puck --model gemini-2.5-pro-preview-tts "Hello"
@@ -36,19 +33,20 @@ cp .env.example .env
 
 Single Go binary with web assets embedded via `go:embed` (see `embed.go`).
 
-**Entry flow:** `main.go` → `cmd/` (Cobra CLI) → three subcommands:
+**Entry flow:** `main.go` → `cmd/` (Cobra CLI) → subcommands:
 - `serve` — starts HTTP server (`internal/server/`)
 - `speak` — one-shot TTS to stdout/file/player (`cmd/speak.go`)
-- default (no subcommand) — launches Bubble Tea TUI (`internal/tui/`)
+- `summarize` — summarizes input text (`cmd/summarize.go`)
+- `ocr` — extracts text from images and can optionally synthesize it (`cmd/ocr.go`)
+- `pdf` — converts PDF pages to images (`cmd/pdf.go`)
 
 **Key packages:**
 - `internal/gemini/` — wraps `google.golang.org/genai`, calls the Gemini TTS API, detects rate-limit errors
 - `internal/audio/` — encodes PCM → Ogg Opus via `github.com/hraban/opus` (CGo, requires libopus), and invokes `mpv`/`ffplay`/`vlc` for playback
-- `internal/tui/` — Bubble Tea MVC: `model.go` (state), `update.go` (Elm-style messages), `view.go` (render), `messages.go` (custom Msg types)
 - `internal/server/` — `net/http` server; `handlers.go` exposes `POST /api/speak`, `GET /api/voices`, `GET /api/models`
 - `internal/config/` — loads `.env` + env vars, exposes typed config struct
 
-**Audio pipeline (TUI/CLI):** Gemini API returns raw PCM → `internal/audio/opus.go` wraps it in Ogg Opus container → written to temp file or exported path → player invoked via `exec.Command`.
+**Audio pipeline (CLI/server):** Gemini API returns raw PCM → `internal/audio/opus.go` wraps it in Ogg Opus container → written to temp file or exported path → player invoked via `exec.Command`.
 
 **Web frontend** (`web/`): vanilla HTML/CSS/JS, embedded into the binary. Communicates with the HTTP API only.
 

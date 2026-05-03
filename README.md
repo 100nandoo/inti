@@ -1,6 +1,6 @@
 # Inti
 
-Text-to-speech powered by Google Gemini, with an OCR and summarization workspace, a browser extension, and an interactive terminal — all in a single Go binary.
+Text-to-speech powered by Google Gemini, with an OCR and summarization workspace, a browser extension, and scriptable CLI/server workflows in a single Go binary.
 
 ## Table of Contents
 
@@ -11,7 +11,6 @@ Text-to-speech powered by Google Gemini, with an OCR and summarization workspace
   - [Web server](#web-server)
   - [Browser extension usage](#browser-extension-usage)
   - [One-shot CLI](#one-shot-cli)
-  - [Interactive TUI](#interactive-tui)
 - [API](#api)
 - [Models](#models)
 - [Voices](#voices)
@@ -33,7 +32,6 @@ Text-to-speech powered by Google Gemini, with an OCR and summarization workspace
 - **Browser extension** — summarize article pages directly in Chrome desktop, Firefox desktop, and Firefox Android via the bundled `extension/` app
 - **Synthesis metadata** — activity feed shows word count, duration, voice, model, and summarizer model used
 - **API key authentication** — protect the server with a main key and issue per-user API keys via the built-in `/api-keys.html` management page
-- **Interactive TUI** — Bubble Tea terminal UI with scrollable history and a command menu
 - **One-shot CLI** — pipe-friendly `speak`, `summarize`, and `ocr` subcommands for scripts and automation
 - **PDF converter** — convert PDF pages to numbered PNG images with the `pdf` subcommand
 - **Single binary** — web assets embedded via `go:embed`, no separate file serving
@@ -123,25 +121,6 @@ The browser extension uses your Inti summarization API to summarize the current 
 ```
 
 See [docs/cli.md](docs/cli.md) for the full flag reference.
-
-### Interactive TUI
-
-```sh
-./inti
-```
-
-Press **Enter** on an empty prompt to open the command menu. Navigate with **↑ ↓**, select with **Enter**, dismiss with **Esc**.
-
-| Command          | Description              |
-| ---------------- | ------------------------ |
-| `speak <text>`   | Synthesize and play      |
-| `voice <name>`   | Switch voice             |
-| `model <name>`   | Switch TTS model         |
-| `export [path]`  | Save last audio as Opus  |
-| `status`         | Show current config      |
-| `clear`          | Clear the history        |
-| `help`           | List commands            |
-| `q` / `Ctrl+C`   | Quit                     |
 
 ## API
 
@@ -258,7 +237,6 @@ The web UI expects the key in the page URL as `?key=...`.
 │   ├── gemini/                # Gemini TTS + summarization client
 │   ├── summarizer/            # Summarizer interface + Groq and OpenRouter clients
 │   ├── audio/                 # Opus encoder (Ogg container), platform audio player
-│   ├── tui/                   # Bubble Tea TUI (model, view, update)
 │   ├── ocr/                   # Tesseract OCR wrapper
 │   ├── pdf/                   # PDF-to-image converter (go-fitz/MuPDF)
 │   └── server/                # HTTP server, REST handlers, API key auth middleware
@@ -271,7 +249,7 @@ The web UI expects the key in the page URL as `?key=...`.
 - `libopus` and `libopusfile` (for building): `brew install opus opusfile` / `apt install libopus-dev libopusfile-dev`
 - `mupdf` (for PDF conversion): `brew install mupdf` / `apt install libmupdf-dev`
 - `tesseract` (for OCR): `brew install tesseract` / `apt install tesseract-ocr`
-- An Opus-capable audio player for the CLI/TUI `speak` and `export` commands: `mpv`, `ffplay`, or `vlc`
+- An Opus-capable audio player for the CLI `speak` and `ocr --speak` commands: `mpv`, `ffplay`, or `vlc`
   - macOS: `brew install mpv`
   - Linux: `apt install mpv` or `apt install ffmpeg`
 
