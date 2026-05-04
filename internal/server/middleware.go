@@ -3,6 +3,8 @@ package server
 import (
 	"net/http"
 	"strings"
+
+	"github.com/100nandoo/inti/internal/appstate"
 )
 
 const contentSecurityPolicy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; media-src 'self' blob: data:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
@@ -15,18 +17,18 @@ func authKey(r *http.Request) string {
 	return raw
 }
 
-func validateAPIKey(mainKey string, store *apiKeyStore, raw string) bool {
+func validateAPIKey(mainKey string, store *appstate.APIKeyStore, raw string) bool {
 	if mainKey != "" && raw == mainKey {
 		return true
 	}
-	id, ok := store.validate(raw)
+	id, ok := store.Validate(raw)
 	if ok {
-		go store.touchLastUsed(id)
+		go store.TouchLastUsed(id)
 	}
 	return ok
 }
 
-func requireAPIKey(mainKey string, store *apiKeyStore, unauthorizedHTML []byte, next http.Handler) http.Handler {
+func requireAPIKey(mainKey string, store *appstate.APIKeyStore, unauthorizedHTML []byte, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !requiresAuth(r) {
 			next.ServeHTTP(w, r)

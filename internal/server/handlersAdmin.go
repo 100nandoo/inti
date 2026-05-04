@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"time"
+
+	"github.com/100nandoo/inti/internal/appstate"
 )
 
 type keyListItem struct {
@@ -14,7 +16,7 @@ type keyListItem struct {
 	LastUsedAt *time.Time `json:"lastUsedAt,omitempty"`
 }
 
-func toListItem(k storedKey) keyListItem {
+func toListItem(k appstate.StoredKey) keyListItem {
 	return keyListItem{
 		ID:         k.ID,
 		Name:       k.Name,
@@ -24,13 +26,13 @@ func toListItem(k storedKey) keyListItem {
 	}
 }
 
-func handleAdminListKeys(store *apiKeyStore) http.HandlerFunc {
+func handleAdminListKeys(store *appstate.APIKeyStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
-		keys := store.list()
+		keys := store.List()
 		items := make([]keyListItem, len(keys))
 		for i, k := range keys {
 			items[i] = toListItem(k)
@@ -39,7 +41,7 @@ func handleAdminListKeys(store *apiKeyStore) http.HandlerFunc {
 	}
 }
 
-func handleAdminCreateKey(store *apiKeyStore) http.HandlerFunc {
+func handleAdminCreateKey(store *appstate.APIKeyStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -52,7 +54,7 @@ func handleAdminCreateKey(store *apiKeyStore) http.HandlerFunc {
 		if req.Name == "" {
 			req.Name = "Unnamed key"
 		}
-		entry, raw, err := store.create(req.Name)
+		entry, raw, err := store.Create(req.Name)
 		if err != nil {
 			writeJSON(w, http.StatusInternalServerError, errResponse{"failed to create key"})
 			return
@@ -64,7 +66,7 @@ func handleAdminCreateKey(store *apiKeyStore) http.HandlerFunc {
 	}
 }
 
-func handleAdminDeleteKey(store *apiKeyStore) http.HandlerFunc {
+func handleAdminDeleteKey(store *appstate.APIKeyStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodDelete {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -75,7 +77,7 @@ func handleAdminDeleteKey(store *apiKeyStore) http.HandlerFunc {
 			writeJSON(w, http.StatusBadRequest, errResponse{"missing key id"})
 			return
 		}
-		found, err := store.delete(id)
+		found, err := store.Delete(id)
 		if err != nil {
 			writeJSON(w, http.StatusInternalServerError, errResponse{"failed to delete key"})
 			return

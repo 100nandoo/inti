@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/100nandoo/inti/internal/appstate"
 	"github.com/100nandoo/inti/internal/audio"
 	"github.com/100nandoo/inti/internal/config"
 	"github.com/100nandoo/inti/internal/gemini"
@@ -51,10 +52,10 @@ type summarizeRequest struct {
 }
 
 type summarizerConfigResponse struct {
-	Provider   string            `json:"provider"`
-	Model      string            `json:"model"`
-	Keys       map[string]string `json:"keys"`
-	GroqLimits *storedRateLimits `json:"groqLimits,omitempty"`
+	Provider   string                     `json:"provider"`
+	Model      string                     `json:"model"`
+	Keys       map[string]string          `json:"keys"`
+	GroqLimits *appstate.StoredRateLimits `json:"groqLimits,omitempty"`
 }
 
 type themeConfigRequest struct {
@@ -231,7 +232,7 @@ func handleOCR() http.HandlerFunc {
 	}
 }
 
-func handleSummarize(serverSum summarizer.Summarizer, asc *activeSumConfig, cfg *config.Config) http.HandlerFunc {
+func handleSummarize(serverSum summarizer.Summarizer, asc *appstate.ActiveSummarizerConfig, cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			writeJSON(w, http.StatusMethodNotAllowed, errResponse{"method not allowed"})
@@ -265,7 +266,7 @@ func handleSummarize(serverSum summarizer.Summarizer, asc *activeSumConfig, cfg 
 			if overrideProvider == "" {
 				overrideProvider = cfg.SummarizerProvider
 			}
-			overrideAPIKey := asc.keyForProvider(overrideProvider)
+			overrideAPIKey := asc.KeyForProvider(overrideProvider)
 			var err error
 			s, err = summarizer.NewFromRequest(overrideProvider, overrideAPIKey, req.Model, cfg)
 			if err != nil {
@@ -276,7 +277,7 @@ func handleSummarize(serverSum summarizer.Summarizer, asc *activeSumConfig, cfg 
 				usedProvider = overrideProvider
 			}
 		} else {
-			activeProvider, activeModel, activeKeys, _ := asc.get()
+			activeProvider, activeModel, activeKeys, _ := asc.Get()
 			activeAPIKey := activeKeys[activeProvider]
 			if activeProvider != "" || activeAPIKey != "" || activeModel != "" {
 				var err error
@@ -314,9 +315,9 @@ func handleSummarize(serverSum summarizer.Summarizer, asc *activeSumConfig, cfg 
 			rateLimits = rl.GetLastRateLimits()
 			if rateLimits != nil && usedProvider == "groq" {
 				stored := captureGroqLimits(rateLimits)
-				provider, model, keys, _ := asc.get()
-				asc.setGroqLimits(stored)
-				if err := saveActiveConfig(provider, model, keys, stored); err != nil {
+				provider, model, keys, _ := asc.Get()
+				asc.SetGroqLimits(stored)
+				if err := appstate.SaveActiveSummarizerConfig(provider, model, keys, stored); err != nil {
 					_ = err
 				}
 			}
@@ -336,12 +337,12 @@ type summarizerConfigRequest struct {
 	Keys     map[string]string `json:"keys"`
 }
 
-func handleSummarizerConfig(asc *activeSumConfig, cfg *config.Config) http.HandlerFunc {
+func handleSummarizerConfig(asc *appstate.ActiveSummarizerConfig, cfg *config.Config) http.HandlerFunc {
 	validProviders := map[string]bool{"gemini": true, "groq": true, "openrouter": true, "mock": true, "": true}
 	return func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
-			provider, model, keys, groqLimits := asc.get()
+			provider, model, keys, groqLimits := asc.Get()
 			if model == "" {
 				model = modelForProvider(provider, cfg)
 			}
@@ -356,12 +357,12 @@ func handleSummarizerConfig(asc *activeSumConfig, cfg *config.Config) http.Handl
 				writeJSON(w, http.StatusBadRequest, errResponse{"invalid provider"})
 				return
 			}
-			_, _, currentKeys, groqLimits := asc.get()
+			_, _, currentKeys, groqLimits := asc.Get()
 			if req.Keys["groq"] == "" || req.Keys["groq"] != currentKeys["groq"] {
 				groqLimits = nil
 			}
-			asc.set(req.Provider, req.Model, req.Keys, groqLimits)
-			if err := saveActiveConfig(req.Provider, req.Model, req.Keys, groqLimits); err != nil {
+			asc.Set(req.Provider, req.Model, req.Keys, groqLimits)
+			if err := appstate.SaveActiveSummarizerConfig(req.Provider, req.Model, req.Keys, groqLimits); err != nil {
 				// non-fatal: config will still work in-memory this session
 				_ = err
 			}
@@ -380,7 +381,7 @@ func handleThemeConfig() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
-			writeJSON(w, http.StatusOK, themeConfigResponse{Theme: loadThemeConfig()})
+			writeJSON(w, http.StatusOK, themeConfigResponse{Theme: appstate.LoadTheme()})
 		case http.MethodPost:
 			var req themeConfigRequest
 			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -391,7 +392,7 @@ func handleThemeConfig() http.HandlerFunc {
 				writeJSON(w, http.StatusBadRequest, errResponse{"invalid theme"})
 				return
 			}
-			if err := saveThemeConfig(req.Theme); err != nil {
+			if err := appstate.SaveTheme(req.Theme); err != nil {
 				writeJSON(w, http.StatusInternalServerError, errResponse{err.Error()})
 				return
 			}
@@ -403,33 +404,15 @@ func handleThemeConfig() http.HandlerFunc {
 }
 
 func isValidTheme(theme string) bool {
-	return theme == "" || theme == "light" || theme == "dark"
+	return appstate.IsValidTheme(theme)
 }
 
-func loadThemeConfig() string {
-	fileMu.Lock()
-	defer fileMu.Unlock()
-	vc := readIntiConfigUnlocked()
-	if !isValidTheme(vc.Appearance.Theme) {
-		return ""
-	}
-	return vc.Appearance.Theme
-}
-
-func saveThemeConfig(theme string) error {
-	fileMu.Lock()
-	defer fileMu.Unlock()
-	vc := readIntiConfigUnlocked()
-	vc.Appearance.Theme = theme
-	return writeIntiConfigUnlocked(vc)
-}
-
-func captureGroqLimits(rateLimits *summarizer.RateLimits) *storedRateLimits {
+func captureGroqLimits(rateLimits *summarizer.RateLimits) *appstate.StoredRateLimits {
 	if rateLimits == nil {
 		return nil
 	}
 	now := time.Now().UnixMilli()
-	return &storedRateLimits{
+	return &appstate.StoredRateLimits{
 		LimitRequests:     rateLimits.LimitRequests,
 		LimitTokens:       rateLimits.LimitTokens,
 		RemainingRequests: rateLimits.RemainingRequests,

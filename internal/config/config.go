@@ -8,12 +8,13 @@ import (
 )
 
 type Config struct {
-	GeminiAPIKey string
-	DefaultVoice string
-	DefaultModel string
-	Port         int
-	Host         string
-	MainKey      string
+	GeminiAPIKey     string
+	DefaultVoice     string
+	DefaultModel     string
+	Port             int
+	Host             string
+	MainKey          string
+	TelegramBotToken string
 
 	SummarizerProvider string // "gemini" | "groq" | "openrouter"
 	GroqAPIKey         string
@@ -123,6 +124,7 @@ func Load() (*Config, error) {
 		Port:               port,
 		Host:               host,
 		MainKey:            mainKey,
+		TelegramBotToken:   os.Getenv("TELEGRAM_BOT_TOKEN"),
 		SummarizerProvider: summarizerProvider,
 		GroqAPIKey:         os.Getenv("GROQ_API_KEY"),
 		GroqModel:          groqModel,

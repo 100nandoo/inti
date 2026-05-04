@@ -72,6 +72,8 @@ make dev
 # Open http://localhost:8282
 ```
 
+If `TELEGRAM_BOT_TOKEN` is set, the same `serve` process also starts the Telegram bot automatically. Without that env var, `serve` keeps the current web-only behavior.
+
 During development, `make dev` is the faster loop. It uses [Air](https://github.com/air-verse/air) with the repo's `.air.toml` to rebuild into `./tmp/inti` and restart `serve` automatically when watched files change.
 
 The web UI is split into four panels:

@@ -146,6 +146,8 @@ Optionally synthesizes the extracted text with TTS using `--speak`.
 
 Starts an HTTP server serving the web UI at `http://localhost:8282`. `GEMINI_API_KEY` is only required if you use TTS; summarization works with Groq or OpenRouter keys alone.
 
+If `TELEGRAM_BOT_TOKEN` is set, `serve` also starts the Telegram bot in the same process. If the token is not set, `serve` remains web-only.
+
 The web UI is organized into four panels:
 
 - **Import / OCR** — stage one or more images, extract text, and edit the OCR output.
@@ -161,6 +163,10 @@ Because the frontend is embedded into the Go binary, rebuild and restart the ser
 |------|---------|-------------|
 | `--port <n>` | `8282` (or `$PORT`) | Port to listen on |
 | `--host <addr>` | `127.0.0.1` (or `$HOST`) | Address to bind to |
+
+Related env vars:
+
+- `TELEGRAM_BOT_TOKEN` — enable Telegram bot startup under `serve`
 
 **Examples**
 

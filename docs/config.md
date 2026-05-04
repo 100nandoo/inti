@@ -30,6 +30,7 @@ cp .env.example .env
 | `PORT` | No | `8282` | HTTP server port |
 | `HOST` | No | `127.0.0.1` | HTTP server bind address. Set to `0.0.0.0` to listen on all interfaces |
 | `INTI_CONFIG_DIR` | No | OS default | Override the directory where `inti.toml` is stored |
+| `TELEGRAM_BOT_TOKEN` | No | — | When set, `./inti serve` also starts the Telegram bot in the same process |
 | `SUMMARIZER_PROVIDER` | No | auto-detected | Active summarizer: `gemini`, `groq`, or `openrouter`. Auto-detected from available API keys if not set |
 | `GROQ_API_KEY` | No | — | Groq API key. Enables Groq as a summarizer provider |
 | `GROQ_MODEL` | No | `llama-3.3-70b-versatile` | Groq model to use for summarization |
@@ -51,13 +52,14 @@ INTI_MAIN_KEY=change_me_to_a_strong_secret
 # DEFAULT_MODEL=gemini-2.5-flash-preview-tts
 # PORT=8282
 # HOST=0.0.0.0
+# TELEGRAM_BOT_TOKEN=123456:telegram_bot_token
 ```
 
 ---
 
 ## Config file location
 
-Runtime settings changed via the web UI (summarizer provider, model, appearance theme) and API keys created via the API keys page are persisted to `inti.toml` on disk.
+Runtime settings changed via the web UI (summarizer provider, model, appearance theme), API keys created via the API keys page, and Telegram bot auth/session preferences are persisted to `inti.toml` on disk.
 
 The light/dark toggle still stores an immediate local preference in browser `localStorage` under `inti-theme`. When `[appearance] theme` is set in `inti.toml`, the server-saved theme overrides that local preference after the page loads.
 
