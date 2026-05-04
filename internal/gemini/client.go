@@ -28,7 +28,7 @@ func New(apiKey string) (*Client, error) {
 // optionally followed by whitespace.
 var sentenceRe = regexp.MustCompile(`[^.!?]*[.!?]+\s*`)
 
-// splitChunks splits text into chunks of 120–150 words, breaking at sentence boundaries.
+// splitChunks splits text into chunks of 60-90 words, breaking at sentence boundaries.
 func splitChunks(text string) []string {
 	sentences := sentenceRe.FindAllString(text, -1)
 	// capture any trailing fragment without a terminator
@@ -36,8 +36,8 @@ func splitChunks(text string) []string {
 		sentences = append(sentences, tail)
 	}
 
-	const minWords = 120
-	const maxWords = 150
+	const minWords = 60
+	const maxWords = 90
 
 	var chunks []string
 	var cur strings.Builder
@@ -45,7 +45,7 @@ func splitChunks(text string) []string {
 
 	for _, s := range sentences {
 		wc := len(strings.Fields(s))
-		// close current chunk before adding if we'd overshoot maxWords and already hit minWords
+		// Close the current chunk once it has reached the target size.
 		if wordCount >= minWords && wordCount+wc > maxWords {
 			chunks = append(chunks, strings.TrimSpace(cur.String()))
 			cur.Reset()
@@ -63,8 +63,8 @@ func splitChunks(text string) []string {
 }
 
 // GenerateSpeech returns raw PCM bytes (16-bit LE mono 24kHz) for the given text.
-// Long texts are split by blank lines and each paragraph is requested separately,
-// then the PCM streams are concatenated before returning.
+// Long texts are split into sentence-aligned chunks, each chunk is synthesized
+// separately, and the PCM streams are concatenated before returning.
 func (c *Client) GenerateSpeech(ctx context.Context, text, voice, model string) ([]byte, error) {
 	chunks := splitChunks(text)
 	if len(chunks) == 0 {

@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -40,6 +41,14 @@ var validModels = []string{
 
 const DefaultModelName = "gemini-3.1-flash-tts-preview"
 
+var placeholderSecretValues = map[string]struct{}{
+	"":                 {},
+	"put_api_key_here": {},
+	"your_api_key":     {},
+	"changeme":         {},
+	"change_me":        {},
+}
+
 func ValidVoices() []string { return validVoices }
 
 func IsValidVoice(name string) bool {
@@ -62,10 +71,29 @@ func IsValidModel(name string) bool {
 	return false
 }
 
+func loadSecret(names ...string) string {
+	for _, name := range names {
+		value := normalizeSecret(os.Getenv(name))
+		if value != "" {
+			return value
+		}
+	}
+	return ""
+}
+
+func normalizeSecret(value string) string {
+	value = strings.TrimSpace(value)
+	value = strings.Trim(value, `"'`)
+	if _, isPlaceholder := placeholderSecretValues[strings.ToLower(value)]; isPlaceholder {
+		return ""
+	}
+	return value
+}
+
 func Load() (*Config, error) {
 	_ = godotenv.Load()
 
-	key := os.Getenv("GEMINI_API_KEY")
+	key := loadSecret("GEMINI_API_KEY", "GOOGLE_API_KEY")
 
 	port := 8282
 	if p := os.Getenv("PORT"); p != "" {
@@ -95,9 +123,9 @@ func Load() (*Config, error) {
 		switch {
 		case key != "":
 			summarizerProvider = "gemini"
-		case os.Getenv("GROQ_API_KEY") != "":
+		case loadSecret("GROQ_API_KEY") != "":
 			summarizerProvider = "groq"
-		case os.Getenv("OPENROUTER_API_KEY") != "":
+		case loadSecret("OPENROUTER_API_KEY") != "":
 			summarizerProvider = "openrouter"
 		}
 	}
@@ -126,9 +154,9 @@ func Load() (*Config, error) {
 		MainKey:            mainKey,
 		TelegramBotToken:   os.Getenv("TELEGRAM_BOT_TOKEN"),
 		SummarizerProvider: summarizerProvider,
-		GroqAPIKey:         os.Getenv("GROQ_API_KEY"),
+		GroqAPIKey:         loadSecret("GROQ_API_KEY"),
 		GroqModel:          groqModel,
-		OpenRouterAPIKey:   os.Getenv("OPENROUTER_API_KEY"),
+		OpenRouterAPIKey:   loadSecret("OPENROUTER_API_KEY"),
 		OpenRouterModel:    openRouterModel,
 	}, nil
 }
