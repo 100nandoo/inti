@@ -4,9 +4,6 @@
 
 ### High
 
-- Update unauthorized page color
-- Fix settings content alignment
-
 ### Medium
 
 - add button to adjust text size of summary result
@@ -35,3 +32,5 @@
 
 - Rename vocalize to inti
 - combine extension repo with this
+- Update unauthorized page color
+- Fix settings content alignment
