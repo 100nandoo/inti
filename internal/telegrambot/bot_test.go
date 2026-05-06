@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/100nandoo/inti/internal/appstate"
+	tele "gopkg.in/telebot.v4"
 )
 
 func TestSupportedImageDocument(t *testing.T) {
@@ -64,5 +65,67 @@ func TestRequireSessionInvalidatesDeletedKey(t *testing.T) {
 	})
 	if _, ok := sessions.Authorized(100, store); ok {
 		t.Fatal("Authorized() = true with missing key id")
+	}
+}
+
+func TestActionMarkupUsesCopyButtonFirstForShortOCR(t *testing.T) {
+	menu := &tele.ReplyMarkup{}
+	svc := &Service{
+		btnSummary: menu.Data("Summarize", "inti_summarize"),
+		btnSpeak:   menu.Data("Speak", "inti_speak"),
+		btnBoth:    menu.Data("Summarize + Speak", "inti_both"),
+		btnShowOCR: menu.Data("Show OCR Text", "inti_show_ocr"),
+		btnClear:   menu.Data("Clear", "inti_clear"),
+	}
+
+	markup := svc.actionMarkup("short text", true)
+	if got := len(markup.InlineKeyboard); got != 2 {
+		t.Fatalf("expected 2 keyboard rows, got %d", got)
+	}
+	firstRow := markup.InlineKeyboard[0]
+	if len(firstRow) != 3 {
+		t.Fatalf("expected 3 buttons in first row, got %d", len(firstRow))
+	}
+	if firstRow[0].CopyText == nil {
+		t.Fatal("expected first button to be copy_text")
+	}
+	if firstRow[0].Text != "Copy OCR" {
+		t.Fatalf("copy button text = %q, want %q", firstRow[0].Text, "Copy OCR")
+	}
+}
+
+func TestActionMarkupUsesShowOCRFallbackForLongOCR(t *testing.T) {
+	menu := &tele.ReplyMarkup{}
+	svc := &Service{
+		btnSummary: menu.Data("Summarize", "inti_summarize"),
+		btnSpeak:   menu.Data("Speak", "inti_speak"),
+		btnBoth:    menu.Data("Summarize + Speak", "inti_both"),
+		btnShowOCR: menu.Data("Show OCR Text", "inti_show_ocr"),
+		btnClear:   menu.Data("Clear", "inti_clear"),
+	}
+
+	markup := svc.actionMarkup(strings.Repeat("a", telegramCopyTextLimit+1), true)
+	firstRow := markup.InlineKeyboard[0]
+	if firstRow[0].Text != "Show OCR Text" {
+		t.Fatalf("first button text = %q, want %q", firstRow[0].Text, "Show OCR Text")
+	}
+	if firstRow[0].CopyText != nil {
+		t.Fatal("expected fallback button instead of copy_text")
+	}
+}
+
+func TestSplitTelegramMessage(t *testing.T) {
+	text := "alpha\nbeta\ngamma\ndelta"
+	chunks := splitTelegramMessage(text, 10)
+	if len(chunks) < 2 {
+		t.Fatalf("expected multiple chunks, got %d", len(chunks))
+	}
+	for _, chunk := range chunks {
+		if len([]rune(chunk)) > 10 {
+			t.Fatalf("chunk %q exceeded limit", chunk)
+		}
+	}
+	if strings.Join(chunks, "\n") != text {
+		t.Fatalf("rejoined chunks = %q, want %q", strings.Join(chunks, "\n"), text)
 	}
 }

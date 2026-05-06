@@ -21,6 +21,8 @@ import (
 
 const workingTextTTL = 24 * time.Hour
 const pollTimeout = 10 * time.Second
+const telegramCopyTextLimit = 256
+const telegramMessageChunkLimit = 4000
 
 type Service struct {
 	bot        *tele.Bot
@@ -30,6 +32,7 @@ type Service struct {
 	btnSummary tele.Btn
 	btnSpeak   tele.Btn
 	btnBoth    tele.Btn
+	btnShowOCR tele.Btn
 	btnClear   tele.Btn
 }
 
@@ -70,6 +73,7 @@ func New(cfg *config.Config, state *appstate.RuntimeState) (*Service, error) {
 	btnSummary := menu.Data("Summarize", "inti_summarize")
 	btnSpeak := menu.Data("Speak", "inti_speak")
 	btnBoth := menu.Data("Summarize + Speak", "inti_both")
+	btnShowOCR := menu.Data("Show OCR Text", "inti_show_ocr")
 	btnClear := menu.Data("Clear", "inti_clear")
 	menu.Inline(menu.Row(btnSummary, btnSpeak), menu.Row(btnBoth, btnClear))
 
@@ -81,6 +85,7 @@ func New(cfg *config.Config, state *appstate.RuntimeState) (*Service, error) {
 		btnSummary: btnSummary,
 		btnSpeak:   btnSpeak,
 		btnBoth:    btnBoth,
+		btnShowOCR: btnShowOCR,
 		btnClear:   btnClear,
 	}
 	s.registerHandlers()
@@ -124,6 +129,7 @@ func (s *Service) registerHandlers() {
 	s.bot.Handle(&s.btnSummary, s.handleSummarizeAction)
 	s.bot.Handle(&s.btnSpeak, s.handleSpeakAction)
 	s.bot.Handle(&s.btnBoth, s.handleBothAction)
+	s.bot.Handle(&s.btnShowOCR, s.handleShowOCRAction)
 	s.bot.Handle(&s.btnClear, s.handleClearAction)
 }
 
@@ -313,6 +319,15 @@ func (s *Service) handleBothAction(c tele.Context) error {
 	return s.processSummary(c, true)
 }
 
+func (s *Service) handleShowOCRAction(c tele.Context) error {
+	c.Respond()
+	text, ok := s.working.Get(c.Chat().ID)
+	if !ok {
+		return c.Send("No working text loaded. Send text or an image first.")
+	}
+	return s.sendTextChunks(c.Chat(), text)
+}
+
 func (s *Service) handleClearAction(c tele.Context) error {
 	c.Respond()
 	s.working.Delete(c.Chat().ID)
@@ -391,6 +406,15 @@ func (s *Service) sendSpeech(c tele.Context, text string) error {
 	return nil
 }
 
+func (s *Service) sendTextChunks(chat *tele.Chat, text string) error {
+	for _, chunk := range splitTelegramMessage(text, telegramMessageChunkLimit) {
+		if _, err := s.bot.Send(chat, chunk); err != nil {
+			return fmt.Errorf("send text chunk: %w", err)
+		}
+	}
+	return nil
+}
+
 func (s *Service) requireSession(c tele.Context) (appstate.TelegramSession, bool, error) {
 	session, ok := s.state.TelegramSessions.Authorized(c.Chat().ID, s.state.APIKeys)
 	if ok {
@@ -451,15 +475,53 @@ func previewMessage(prefix, text string) string {
 
 func (s *Service) actionMarkup(copyText string, includeCopy bool) *tele.ReplyMarkup {
 	menu := &tele.ReplyMarkup{}
-	firstRow := []tele.Btn{s.btnSummary, s.btnSpeak}
-	if includeCopy && strings.TrimSpace(copyText) != "" {
-		firstRow = append(firstRow, menu.CopyText("Copy OCR", copyText))
+	firstRow := []tele.Btn{}
+	copyText = strings.TrimSpace(copyText)
+	if includeCopy && copyText != "" {
+		if len([]rune(copyText)) <= telegramCopyTextLimit {
+			firstRow = append(firstRow, menu.CopyText("Copy OCR", copyText))
+		} else {
+			firstRow = append(firstRow, s.btnShowOCR)
+		}
 	}
+	firstRow = append(firstRow, s.btnSummary, s.btnSpeak)
 	menu.Inline(
 		menu.Row(firstRow...),
 		menu.Row(s.btnBoth, s.btnClear),
 	)
 	return menu
+}
+
+func splitTelegramMessage(text string, limit int) []string {
+	text = strings.TrimSpace(text)
+	if text == "" {
+		return nil
+	}
+
+	runes := []rune(text)
+	var chunks []string
+	for len(runes) > 0 {
+		if len(runes) <= limit {
+			chunks = append(chunks, string(runes))
+			break
+		}
+
+		splitAt := limit
+		for i := limit; i >= limit/2; i-- {
+			if runes[i] == '\n' {
+				splitAt = i + 1
+				break
+			}
+		}
+		chunk := strings.TrimSpace(string(runes[:splitAt]))
+		if chunk == "" {
+			chunk = string(runes[:limit])
+			splitAt = limit
+		}
+		chunks = append(chunks, chunk)
+		runes = []rune(strings.TrimSpace(string(runes[splitAt:])))
+	}
+	return chunks
 }
 
 func isSupportedImageDocument(mimeType, fileName string) bool {
