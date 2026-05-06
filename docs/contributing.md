@@ -37,9 +37,9 @@ pnpm run icons   # generate placeholder icons (first time only)
 pnpm run dev
 ```
 
-Vite watches `src/` and rebuilds to `build/` on every change. To load the extension during development, run a full build first (see below) then reload the unpacked extension in your browser.
+WXT watches the extension entrypoints and rebuilds the active browser target during development. For manual verification, rebuild when needed and reload the unpacked extension in your browser.
 
-For UI-only changes in the popup, sidebar, overlay, or options page, the main manual check is to rebuild and reload the unpacked extension for the target browser you changed.
+For UI-only changes in the popup, sidebar, overlay, or options page, the main manual check is to rebuild and reload the unpacked extension for the browser target you changed.
 
 ## Building
 
@@ -49,19 +49,19 @@ pnpm run build
 
 # Individual targets
 pnpm run build:chrome
-pnpm run build:firefox-desktop
-pnpm run build:firefox-android
+pnpm run build:firefox
 ```
 
-Output lands in `dist/{target}/` — load this folder as an unpacked extension in your browser.
+Output lands in `dist/chrome-mv3/` or `dist/firefox-mv2/` — load that folder as an unpacked extension in your browser.
 
 ## Packaging for release
 
 ```bash
 pnpm run package:chrome           # → dist/chrome.zip
-pnpm run package:firefox-desktop  # → dist/firefox-desktop.zip
-pnpm run package:firefox-android  # → dist/firefox-android.zip
+pnpm run package:firefox          # → dist/firefox.zip
 ```
+
+The Firefox package is built for one AMO listing that supports both Firefox desktop and Firefox for Android. Compatibility comes from a single manifest that declares both `browser_specific_settings.gecko` and `browser_specific_settings.gecko_android`.
 
 ## Project Structure
 
@@ -94,14 +94,10 @@ src/
     ├── storage.ts             # chrome.storage.local / browser.storage.local typed wrappers
     └── SettingsPanel.svelte   # In-extension settings panel (API URL, API key, theme)
 
-manifests/
-├── base.json                  # Shared MV3 manifest
-├── chrome.json                # Adds sidePanel
-├── firefox-desktop.json       # Adds sidebar_action
-└── firefox-android.json       # Adds gecko_android settings
+wxt.config.ts                  # Single manifest source of truth for Chrome + Firefox
 
 scripts/
-├── build-manifests.ts         # Deep-merges base + target overlay → dist/{target}/
+├── clean-firefox-dist.mjs     # Removes stale Firefox build output before WXT runs
 └── generate-icons.ts          # Generates placeholder PNG icons
 ```
 
@@ -114,7 +110,7 @@ Two separate Vite builds are intentional and should not be merged:
 | `vite.scripts.config.ts` | service worker, content script | ES, no exports | Firefox `background.scripts` must load classic-script-compatible output |
 | `vite.config.ts` | popup, sidebar, options (HTML) | ES module | HTML pages can use module output and shared chunks |
 
-The scripts build runs first with `emptyOutDir: true`. The pages build appends with `emptyOutDir: false`. Output lands in `build/`, then `scripts/build-manifests.ts` copies files into `dist/{target}/` and writes the final manifest.
+WXT generates the final manifest and entrypoint files directly in `dist/chrome-mv3/` and `dist/firefox-mv2/`. The Firefox build is cleaned first so stale output cannot leak across rebuilds.
 
 Firefox MV3 uses `background.scripts`, not `background.service_worker`. That means the background bundle cannot contain `import` or `export` syntax. The scripts build keeps the generated output compatible with that constraint.
 
@@ -157,12 +153,12 @@ The service worker routes by platform. Android skips `SUMMARY_READY` because the
 
 ## Manifest Strategy
 
-`manifests/base.json` intentionally excludes `background` because that field differs by target:
+`wxt.config.ts` is the only manifest source of truth.
 
-- Chrome uses `{ "service_worker": "background/service-worker.js" }`
-- Firefox targets use `{ "scripts": ["background/service-worker.js"] }`
-
-`scripts/build-manifests.ts` deep-merges the base manifest with the per-target overlay. Arrays are unioned without duplicates, nested objects recurse, and scalar values from the overlay win.
+- Chrome builds to MV3 with the side panel manifest entries.
+- Firefox builds to MV2 with one package that supports both desktop and Android.
+- Firefox compatibility is declared in one manifest via both `browser_specific_settings.gecko` and `browser_specific_settings.gecko_android`.
+- The Firefox package includes both `popup.html` and `sidebar.html` so the same AMO listing can serve desktop and Android.
 
 ## Settings and Storage
 
@@ -240,4 +236,4 @@ Any non-2xx response or network error sets the badge to `!` and broadcasts an `E
 | Extraction | `@mozilla/readability` |
 | State | `chrome.storage.local` |
 | Overlay isolation | Closed Shadow DOM |
-| Manifest | MV3 unified base + per-target overlays |
+| Manifest | WXT-generated from `wxt.config.ts` |

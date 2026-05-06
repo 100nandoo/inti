@@ -18,17 +18,18 @@ pnpm install --frozen-lockfile
 ## Build the Firefox desktop package submitted to AMO
 
 ```bash
-pnpm run build:firefox-desktop
-pnpm run package:firefox-desktop
+pnpm run build:firefox
+pnpm run package:firefox
 ```
 
-The built Firefox extension is written to `dist/firefox-mv2/` and the packaged archive is written to `dist/firefox-desktop.zip`.
+The built Firefox extension is written to `dist/firefox-mv2/` and the packaged archive is written to `dist/firefox.zip`.
+
+This Firefox package is intended for a single AMO listing that supports both Firefox desktop and Firefox for Android.
 
 ## Other available targets
 
 ```bash
 pnpm run build:chrome
-pnpm run build:firefox-android
 ```
 
 ## Notes

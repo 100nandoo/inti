@@ -9,7 +9,6 @@ const zipPath = join(distDir, 'amo-source.zip');
 
 const entries = [
   'src',
-  'manifests',
   'scripts',
   'AMO-SOURCE-README.md',
   'package.json',

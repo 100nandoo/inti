@@ -7,8 +7,6 @@ const icons = {
   128: 'icon128.png',
 };
 
-const firefoxTarget = process.env.INTI_FIREFOX_TARGET ?? 'desktop';
-
 export default defineConfig({
   srcDir: 'src',
   entrypointsDir: 'entrypoints',
@@ -19,14 +17,6 @@ export default defineConfig({
     'build:manifestGenerated': (wxt, manifest) => {
       if (wxt.config.browser !== 'firefox') {
         return;
-      }
-
-      if (process.env.INTI_FIREFOX_TARGET !== 'desktop') {
-        return;
-      }
-
-      if ('browser_action' in manifest && manifest.browser_action) {
-        delete manifest.browser_action.default_popup;
       }
     },
   },
@@ -121,13 +111,9 @@ export default defineConfig({
             },
             strict_min_version: '140.0',
           },
-          ...(firefoxTarget === 'android'
-            ? {
-                gecko_android: {
-                  strict_min_version: '142.0',
-                },
-              }
-            : {}),
+          gecko_android: {
+            strict_min_version: '142.0',
+          },
         }
       : undefined,
     sidebar_action: browser === 'firefox'

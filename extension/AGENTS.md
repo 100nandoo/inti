@@ -16,8 +16,9 @@ pnpm run icons
 pnpm run dev
 pnpm run build
 pnpm run build:chrome
-pnpm run build:firefox-desktop
-pnpm run build:firefox-android
+pnpm run build:firefox
+pnpm run package:firefox
+pnpm run package:amo-source
 ```
 
 ## Critical Constraints
@@ -25,4 +26,4 @@ pnpm run build:firefox-android
 - The project intentionally uses two Vite configs. Do not merge `vite.config.ts` and `vite.scripts.config.ts`.
 - Firefox background scripts must remain classic-script compatible.
 - Persistent state belongs in extension storage, never page `localStorage`.
-- There is no automated test suite. Verify changes by rebuilding and loading the unpacked target from `dist/{target}/`.
+- There is no automated test suite. Verify changes by rebuilding and loading the unpacked target from `dist/chrome-mv3/` or `dist/firefox-mv2/`.

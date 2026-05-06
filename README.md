@@ -99,9 +99,9 @@ The same summarization backend can also be used by the browser extension in [`ex
 
 The browser extension uses your Inti summarization API to summarize the current article page:
 
-- Toolbar: click the Inti toolbar button to summarize the page and open the result in the side UI, or as an overlay on Firefox Android.
+- Toolbar: click the Inti toolbar button to open the extension UI and start a summary for the current page.
 - Context menu: right-click the page and choose **Summarize Page with Inti** to start the same summary flow.
-- Sidebar: open the Inti side panel or sidebar and click **Summarize Article** to summarize the active page from the persistent side UI.
+- Side UI: use the Chrome side panel or Firefox sidebar to summarize the active page from the persistent extension UI.
 
 ### One-shot CLI
 
@@ -269,13 +269,13 @@ Download the latest extension release from the repository [Releases](../../relea
 
 1. Open `chrome://extensions`
 2. Enable **Developer mode**
-3. Click **Load unpacked** and select the `chrome/` folder from the release zip
+3. Extract `chrome.zip` and select the extracted extension folder containing `manifest.json`
 
 #### Firefox Desktop
 
 1. Open `about:debugging#/runtime/this-firefox`
 2. Click **Load Temporary Add-on**
-3. Select `manifest.json` from the `firefox-desktop/` folder
+3. Extract `firefox.zip` and select its `manifest.json`
 
 #### Firefox Android
 
@@ -283,7 +283,7 @@ Download the latest extension release from the repository [Releases](../../relea
 2. Open **Settings -> About Firefox** and tap the version number five times to enable debug mode
 3. On desktop Firefox, open `about:debugging#/setup` and connect the Android device over USB
 4. Select the device and click **Load Temporary Add-on**
-5. Select `manifest.json` from the `firefox-android/` folder
+5. Extract `firefox.zip` and select its `manifest.json`
 
 ### Extension Setup
 
