@@ -20,7 +20,6 @@ services:
       - ./.env:/app/.env
       # Optional: mount web directory for development
       # - ./web:/app/web
-    restart: unless-stopped
     healthcheck:
       test:
         [

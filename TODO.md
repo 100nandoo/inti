@@ -4,6 +4,9 @@
 
 ### High
 
+- Update unauthorized page color
+- Fix settings content alignment
+
 ### Medium
 
 - add button to adjust text size of summary result
