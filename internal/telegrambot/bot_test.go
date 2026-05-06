@@ -52,6 +52,22 @@ func TestPreviewMessageTruncates(t *testing.T) {
 	}
 }
 
+func TestOCRPreviewMessageTruncatesToThreeLines(t *testing.T) {
+	msg := ocrPreviewMessage("line 1\nline 2\nline 3\nline 4")
+	want := "OCR complete:\n\nline 1\nline 2\nline 3\n…"
+	if msg != want {
+		t.Fatalf("ocrPreviewMessage() = %q, want %q", msg, want)
+	}
+}
+
+func TestOCRPreviewMessageKeepsShortText(t *testing.T) {
+	msg := ocrPreviewMessage("line 1\nline 2")
+	want := "OCR complete:\n\nline 1\nline 2"
+	if msg != want {
+		t.Fatalf("ocrPreviewMessage() = %q, want %q", msg, want)
+	}
+}
+
 func TestRequireSessionInvalidatesDeletedKey(t *testing.T) {
 	store := &appstate.APIKeyStore{}
 	sessions := &appstate.TelegramSessionStore{}

@@ -265,7 +265,7 @@ func (s *Service) handlePhoto(c tele.Context) error {
 		return c.Send("No text found in the image.")
 	}
 	s.working.Set(c.Chat().ID, text)
-	return c.Send(previewMessage("OCR complete", text), s.actionMarkup(text, true))
+	return c.Send(ocrPreviewMessage(text), s.actionMarkup(text, true))
 }
 
 func (s *Service) handleDocument(c tele.Context) error {
@@ -297,7 +297,7 @@ func (s *Service) handleDocument(c tele.Context) error {
 		return c.Send("No text found in the image.")
 	}
 	s.working.Set(c.Chat().ID, text)
-	return c.Send(previewMessage("OCR complete", text), s.actionMarkup(text, true))
+	return c.Send(ocrPreviewMessage(text), s.actionMarkup(text, true))
 }
 
 func (s *Service) handleSummarizeAction(c tele.Context) error {
@@ -471,6 +471,25 @@ func previewMessage(prefix, text string) string {
 		text = text[:500] + "…"
 	}
 	return prefix + ":\n\n" + text
+}
+
+func ocrPreviewMessage(text string) string {
+	const maxPreviewLines = 3
+
+	text = strings.TrimSpace(text)
+	if text == "" {
+		return "OCR complete:"
+	}
+
+	lines := strings.Split(text, "\n")
+	if len(lines) > maxPreviewLines {
+		text = strings.Join(lines[:maxPreviewLines], "\n")
+		text = strings.TrimRight(text, " \t\r\n") + "\n…"
+	} else if len(text) > 500 {
+		text = text[:500] + "…"
+	}
+
+	return "OCR complete:\n\n" + text
 }
 
 func (s *Service) actionMarkup(copyText string, includeCopy bool) *tele.ReplyMarkup {
