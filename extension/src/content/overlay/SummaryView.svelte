@@ -1,11 +1,12 @@
 <script lang="ts">
   import type { SummaryData } from "../../shared/types.js";
-  import { marked } from "marked";
+  import { renderMarkdownFragment } from "../../shared/render-markdown.js";
 
   let { summary }: { summary: SummaryData } = $props();
 
   let copied = $state(false);
   let copyTimeout: ReturnType<typeof setTimeout> | null = null;
+  let markdownContainer: HTMLDivElement | null = null;
 
   const formattedDate = $derived(
     new Date(summary.timestamp).toLocaleString(undefined, {
@@ -14,10 +15,6 @@
       hour: "2-digit",
       minute: "2-digit",
     }),
-  );
-
-  const renderedSummary = $derived(
-    marked.parse(summary.summary, { async: false, breaks: true }) as string,
   );
 
   async function copyToClipboard() {
@@ -29,6 +26,14 @@
       copyTimeout = null;
     }, 2000);
   }
+
+  $effect(() => {
+    if (!markdownContainer) {
+      return;
+    }
+
+    markdownContainer.replaceChildren(renderMarkdownFragment(summary.summary));
+  });
 </script>
 
 <div class="summary">
@@ -39,8 +44,7 @@
       • {summary.provider ?? ""} • {summary.model ?? ""}
     {/if}
   </p>
-  <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-  <div class="md-body">{@html renderedSummary}</div>
+  <div class="md-body" bind:this={markdownContainer}></div>
   <button class="copy-btn" onclick={copyToClipboard}>
     {copied ? "✓ Copied!" : "Copy to clipboard"}
   </button>

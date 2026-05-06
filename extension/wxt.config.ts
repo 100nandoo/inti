@@ -7,6 +7,8 @@ const icons = {
   128: 'icon128.png',
 };
 
+const firefoxTarget = process.env.INTI_FIREFOX_TARGET ?? 'desktop';
+
 export default defineConfig({
   srcDir: 'src',
   entrypointsDir: 'entrypoints',
@@ -117,11 +119,15 @@ export default defineConfig({
             data_collection_permissions: {
               required: ['websiteContent'],
             },
-            strict_min_version: '113.0',
+            strict_min_version: '140.0',
           },
-          gecko_android: {
-            strict_min_version: '113.0',
-          },
+          ...(firefoxTarget === 'android'
+            ? {
+                gecko_android: {
+                  strict_min_version: '142.0',
+                },
+              }
+            : {}),
         }
       : undefined,
     sidebar_action: browser === 'firefox'

@@ -2,7 +2,7 @@
 
 import type { Message, ArticleData, SummaryData, Settings, SummaryResponse } from '../shared/types.js';
 import { getStorage, setStorage } from '../shared/storage.js';
-import { ignoreAsyncResult, runtimeSendMessage, tabsQuery, tabsSendMessage } from '../shared/webext.js';
+import { getSidePanelApi, ignoreAsyncResult, runtimeSendMessage, tabsQuery, tabsSendMessage } from '../shared/webext.js';
 import {
   STORAGE_KEY_LAST_SUMMARY,
   STORAGE_KEY_SETTINGS,
@@ -135,7 +135,7 @@ async function triggerFlow(tab: chrome.tabs.Tab, isAndroid: boolean) {
     return;
   }
 
-  if (!chrome.sidePanel) {
+  if (!getSidePanelApi()) {
     const sidebarAction = getSidebarAction();
     try {
       await Promise.resolve(sidebarAction?.open?.());
@@ -283,9 +283,10 @@ async function handleTriggerSummary(isAndroid: boolean, tabId?: number): Promise
 }
 
 async function openDesktopSidebar(tabId: number): Promise<boolean> {
-  if (chrome.sidePanel) {
+  const sidePanelApi = getSidePanelApi();
+  if (sidePanelApi?.open) {
     try {
-      await chrome.sidePanel.open({ tabId });
+      await sidePanelApi.open({ tabId });
       return true;
     } catch (error) {
       console.warn('Could not open Chrome side panel after summary completed', error);

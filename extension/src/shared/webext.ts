@@ -5,9 +5,24 @@ export function ignoreAsyncResult<T>(result: Promise<T> | void | undefined): voi
 }
 
 type ExtBrowser = typeof chrome;
+type SidePanelApi = {
+  open?: (options: { tabId: number }) => Promise<void> | void;
+};
 
 function getBrowserApi(): ExtBrowser {
   return ((globalThis as { browser?: ExtBrowser }).browser ?? chrome) as ExtBrowser;
+}
+
+export function getSidePanelApi(): SidePanelApi | undefined {
+  const maybeChrome = chrome as typeof chrome & Record<string, unknown>;
+  const sidePanel = maybeChrome['sidePanel'];
+
+  if (!sidePanel || typeof sidePanel !== 'object') {
+    return undefined;
+  }
+
+  const api = sidePanel as SidePanelApi;
+  return typeof api.open === 'function' ? api : undefined;
 }
 
 export async function runtimeSendMessage<T>(message: unknown): Promise<T | undefined> {
