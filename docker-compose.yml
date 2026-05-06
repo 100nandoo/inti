@@ -1,15 +1,14 @@
-version: '3.8'
+version: "3.8"
 
 services:
   inti:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: 100nandoo/inti:latest
+    container_name: inti
+    network_mode: host
+    restart: unless-stopped
     ports:
       - "8282:8282"
     environment:
-      # Load from .env file
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - INTI_CONFIG_DIR=/app/config
       - HOST=0.0.0.0
@@ -23,7 +22,15 @@ services:
       # - ./web:/app/web
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8282/"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--quiet",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8282/",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
