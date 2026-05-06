@@ -113,7 +113,10 @@ export default defineConfig({
     browser_specific_settings: browser === 'firefox'
       ? {
           gecko: {
-            id: 'inti@yourdomain.com',
+            id: '{7a9be4df-7dda-4820-a84e-7dfaae456204}',
+            data_collection_permissions: {
+              required: ['websiteContent'],
+            },
             strict_min_version: '113.0',
           },
           gecko_android: {

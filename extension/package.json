@@ -24,15 +24,17 @@
     "@resvg/resvg-js": "^2.6.2",
     "@types/chrome": "latest",
     "@types/mozilla-readability": "latest",
-    "@sveltejs/vite-plugin-svelte": "^4.0.0-next.6",
+    "@sveltejs/vite-plugin-svelte": "4.0.4",
     "svelte": "latest",
     "tsx": "latest",
     "typescript": "latest",
+    "vite": "5.4.21",
     "wxt": "0.19.29"
   },
   "pnpm": {
     "overrides": {
-      "@sveltejs/vite-plugin-svelte": "^4.0.0-next.6"
+      "@sveltejs/vite-plugin-svelte": "4.0.4",
+      "vite": "5.4.21"
     }
   }
 }
