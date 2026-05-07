@@ -106,6 +106,19 @@ let summarizerConfig = {
   groqLimits: null,
 };
 
+function applySummarizerConfig(data) {
+  summarizerConfig = {
+    provider: data.provider || '',
+    model: data.model || '',
+    keys: {
+      gemini: data.keys?.gemini || '',
+      groq: data.keys?.groq || '',
+      openrouter: data.keys?.openrouter || '',
+    },
+    groqLimits: data.groqLimits || null,
+  };
+}
+
 
 let lastWavBlob  = null;
 let processing   = false;
@@ -405,6 +418,10 @@ async function populateModelSelect(provider, selectedModel = '') {
   );
 }
 
+function selectedSummarizerModel(provider) {
+  return provider === 'openrouter' ? '' : sumModelSelect.value;
+}
+
 async function populateProviderSelect(serverProvider = '') {
   const keys = summarizerConfig.keys || {};
   const current = providerSelect.value || summarizerConfig.provider || serverProvider || '';
@@ -438,27 +455,50 @@ async function loadSummarizerConfig() {
     const res = await fetch(apiURL('/api/summarizer-config'));
     if (res.ok) {
       const data = await res.json();
-      summarizerConfig = {
-        provider: data.provider || '',
-        model: data.model || '',
-        keys: {
-          gemini: data.keys?.gemini || '',
-          groq: data.keys?.groq || '',
-          openrouter: data.keys?.openrouter || '',
-        },
-        groqLimits: data.groqLimits || null,
-      };
+      applySummarizerConfig(data);
       serverProvider = summarizerConfig.provider;
     }
   } catch {}
   await populateProviderSelect(serverProvider);
 }
 
+async function saveSummarizerConfigSelection(provider, model) {
+  const res = await fetch(apiURL('/api/summarizer-config'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      provider,
+      model,
+      keys: summarizerConfig.keys,
+    }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(body.error || res.statusText);
+  }
+  applySummarizerConfig(await res.json());
+}
+
 preserveKeyLinks();
 loadSummarizerConfig();
 
 providerSelect.addEventListener('change', async () => {
-  await populateModelSelect(providerSelect.value);
+  const provider = providerSelect.value;
+  await populateModelSelect(provider);
+  try {
+    await saveSummarizerConfigSelection(provider, selectedSummarizerModel(provider));
+  } catch (err) {
+    setStatus(err.message, 'error');
+  }
+});
+
+sumModelSelect.addEventListener('change', async () => {
+  const provider = providerSelect.value;
+  try {
+    await saveSummarizerConfigSelection(provider, selectedSummarizerModel(provider));
+  } catch (err) {
+    setStatus(err.message, 'error');
+  }
 });
 
 // --- Voice dropdown ---
@@ -678,7 +718,7 @@ async function summarizeText(text, shouldSpeak) {
     const res = await fetch(apiURL('/api/summarize'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, instruction: '', provider: reqProvider, model: sumModelSelect.value }),
+      body: JSON.stringify({ text, instruction: '', provider: reqProvider, model: selectedSummarizerModel(reqProvider) }),
     });
 
     if (!res.ok) {

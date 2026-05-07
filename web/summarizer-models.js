@@ -3,6 +3,7 @@ window.IntiSummarizerModels = (() => {
 
   async function get(provider) {
     if (!provider) return [];
+    if (provider === 'openrouter') return [];
     if (cache.has(provider)) return cache.get(provider);
 
     const request = fetch(`/summarizer-models/${provider}.json`).then(async (response) => {

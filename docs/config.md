@@ -35,7 +35,7 @@ cp .env.example .env
 | `GROQ_API_KEY` | No | — | Groq API key. Enables Groq as a summarizer provider |
 | `GROQ_MODEL` | No | `llama-3.3-70b-versatile` | Groq model to use for summarization |
 | `OPENROUTER_API_KEY` | No | — | OpenRouter API key. Enables OpenRouter as a summarizer provider |
-| `OPENROUTER_MODEL` | No | `google/gemma-3-27b-it:free` | OpenRouter model to use for summarization |
+| `OPENROUTER_MODEL` | No | `openrouter/free` | OpenRouter router to use for summarization; the app always uses the free router for OpenRouter |
 
 ### Example `.env`
 

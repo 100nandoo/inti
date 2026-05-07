@@ -18,6 +18,10 @@ let serverConfig = {
   groqLimits: null,
 };
 
+function selectedSummarizerModel(provider) {
+  return provider === 'openrouter' ? '' : sumModelSelect.value;
+}
+
 async function populateModelSelect(provider, selectedModel = '') {
   await window.IntiSummarizerModels.populateSelect(
     sumModelSelect,
@@ -80,7 +84,7 @@ async function save() {
       fetch(apiURL('/api/summarizer-config'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ provider, model: sumModelSelect.value, keys }),
+        body: JSON.stringify({ provider, model: selectedSummarizerModel(provider), keys }),
       }),
       fetch(apiURL('/api/theme-config'), {
         method: 'POST',

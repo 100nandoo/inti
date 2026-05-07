@@ -196,7 +196,7 @@ See [docs/api.md](docs/api.md) for the full reference with curl examples.
 | `GROQ_API_KEY`        | —                              | Required when provider is `groq`                               |
 | `GROQ_MODEL`          | `llama-3.3-70b-versatile`      | Groq model to use                                              |
 | `OPENROUTER_API_KEY`  | —                              | Required when provider is `openrouter`                         |
-| `OPENROUTER_MODEL`    | `google/gemma-3-27b-it:free`   | OpenRouter model to use (`:free` suffix = no credits consumed) |
+| `OPENROUTER_MODEL`    | `openrouter/free`              | OpenRouter model/router to use; `openrouter/free` tracks currently available free models |
 
 `SUMMARIZER_PROVIDER` is auto-detected if not set: uses `gemini` if `GEMINI_API_KEY` is present, then `groq` if `GROQ_API_KEY` is present, then `openrouter` if `OPENROUTER_API_KEY` is present.
 

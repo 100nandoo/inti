@@ -65,9 +65,6 @@ func newForProvider(provider, apiKeyOverride, modelOverride string, cfg *config.
 			return nil, fmt.Errorf("OPENROUTER_API_KEY required for provider 'openrouter'")
 		}
 		m := cfg.OpenRouterModel
-		if modelOverride != "" {
-			m = modelOverride
-		}
 		return &OpenRouterClient{apiKey: key, model: m}, nil
 
 	case "mock":

@@ -135,7 +135,7 @@ func Load() (*Config, error) {
 		groqModel = m
 	}
 
-	openRouterModel := "google/gemma-3-27b-it:free"
+	openRouterModel := "openrouter/free"
 	if m := os.Getenv("OPENROUTER_MODEL"); m != "" {
 		openRouterModel = m
 	}
