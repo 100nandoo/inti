@@ -4,6 +4,10 @@
 
 ### High
 
+- Add go to inti page on extension
+- options to select default download format
+- remove use ocr text from summarize card
+
 ### Medium
 
 - add button to adjust text size of summary result

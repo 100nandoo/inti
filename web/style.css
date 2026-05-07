@@ -1387,12 +1387,20 @@ select option {
   z-index: 31;
 }
 
-.split-menu-item {
+.split-menu .split-menu-item {
   width: 100%;
   justify-content: flex-start;
   min-height: 30px;
   background: transparent;
-  border-color: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.split-menu .split-menu-item:hover:not(:disabled),
+.split-menu .split-menu-item:focus-visible {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border: 0;
   box-shadow: none;
 }
 

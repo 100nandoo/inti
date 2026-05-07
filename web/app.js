@@ -68,7 +68,6 @@ const ocrCount       = document.getElementById('ocr-count');
 const workspaceCount = document.getElementById('workspace-count');
 const summaryCount   = document.getElementById('summary-count');
 const ttsCount       = document.getElementById('tts-count');
-const useOcrBtn      = document.getElementById('use-ocr-btn');
 const clearWorkspaceBtn = document.getElementById('clear-workspace-btn');
 
 const textInput        = document.getElementById('text-input');
@@ -329,14 +328,6 @@ clearFilesBtn.addEventListener('click', () => {
 
 runOcrBtn.addEventListener('click', () => {
   if (stagedFiles.length && !processing) uploadImagesForOCR([...stagedFiles]);
-});
-
-useOcrBtn?.addEventListener('click', () => {
-  const text = ocrOutputText.value.trim();
-  workspaceText.value = text;
-  if (text && !textInput.value.trim()) textInput.value = text;
-  updateTextMetrics();
-  submitBtn.disabled = !textInput.value.trim() || processing;
 });
 
 clearWorkspaceBtn?.addEventListener('click', () => {
@@ -792,7 +783,6 @@ function setProcessing(val) {
   voiceSelect.disabled        = val;
   providerSelect.disabled     = val;
   sumModelSelect.disabled     = val;
-  if (useOcrBtn) useOcrBtn.disabled = val || !ocrOutputText.value.trim();
   if (clearWorkspaceBtn) clearWorkspaceBtn.disabled = val || !workspaceText.value.trim();
   submitBtn.disabled          = val || !textInput.value.trim();
   actionSynthesize.disabled   = val;
@@ -828,7 +818,6 @@ function resetSummaryResult() {
 function syncSummaryActionState() {
   const hasPlainText = summaryText.innerText.trim().length > 0;
   const hasMarkdown = (summaryDownloadGroup.dataset.summary || '').trim().length > 0;
-  if (useOcrBtn) useOcrBtn.disabled = processing || !ocrOutputText.value.trim();
   if (clearWorkspaceBtn) clearWorkspaceBtn.disabled = processing || !workspaceText.value.trim();
   summarizeBtn.disabled = processing || !workspaceText.value.trim();
   summarizeSpeakBtn.disabled = processing || !workspaceText.value.trim();
