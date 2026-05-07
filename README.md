@@ -137,8 +137,8 @@ POST /api/summarize          { "text": "...", "instruction"?, "provider"?, "apiK
                              → { "summary": "...", "provider": "...", "model": "..." }
 
 GET  /api/summarizer-config  → { "provider": "...", "model": "..." }
-GET  /api/theme-config       → { "theme": "light" | "dark" | "" }
-POST /api/theme-config       { "theme": "light" | "dark" | "" }
+GET  /api/theme-config       → { "theme": "light" | "dark" | "minimal" | "minimal-dark" | "" }
+POST /api/theme-config       { "theme": "light" | "dark" | "minimal" | "minimal-dark" | "" }
 GET  /api/voices             → { "voices": [...], "default": "Kore" }
 GET  /api/models             → { "models": [...], "default": "..." }
 

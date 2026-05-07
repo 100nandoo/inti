@@ -1,11 +1,28 @@
 (() => {
   const THEME_STORAGE_KEY = 'inti-theme';
+  const THEMES = ['light', 'dark', 'minimal', 'minimal-dark'];
+  const THEME_LABELS = {
+    light: 'Light',
+    dark: 'Dark',
+    minimal: 'Minimal',
+    'minimal-dark': 'Minimal Dark',
+  };
   const root = document.documentElement;
+
+  function isKnownTheme(theme) {
+    return THEMES.includes(theme);
+  }
+
+  function nextTheme(theme) {
+    const currentIndex = THEMES.indexOf(theme);
+    if (currentIndex === -1) return THEMES[0];
+    return THEMES[(currentIndex + 1) % THEMES.length];
+  }
 
   function readStoredTheme() {
     try {
       const theme = localStorage.getItem(THEME_STORAGE_KEY);
-      return theme === 'light' || theme === 'dark' ? theme : '';
+      return isKnownTheme(theme) ? theme : '';
     } catch {
       return '';
     }
@@ -13,7 +30,7 @@
 
   function getActiveTheme() {
     const explicitTheme = root.dataset.theme;
-    if (explicitTheme === 'light' || explicitTheme === 'dark') return explicitTheme;
+    if (isKnownTheme(explicitTheme)) return explicitTheme;
     return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   }
 
@@ -40,7 +57,7 @@
   function updateThemeSelect(theme = getActiveTheme()) {
     const select = document.getElementById('appearance-theme-select');
     if (!select || select.value === '') return;
-    select.value = theme === 'dark' ? 'dark' : 'light';
+    select.value = isKnownTheme(theme) ? theme : '';
   }
 
   function updateToggle(theme = getActiveTheme()) {
@@ -48,8 +65,8 @@
     if (!toggle) return;
 
     const labelNode = document.getElementById('theme-toggle-label');
-    const nextTheme = theme === 'dark' ? 'light' : 'dark';
-    const label = nextTheme === 'dark' ? 'Dark' : 'Light';
+    const upcomingTheme = nextTheme(theme);
+    const label = THEME_LABELS[upcomingTheme] || 'Theme';
 
     if (labelNode) labelNode.textContent = label;
     toggle.setAttribute('aria-label', `Switch to ${label.toLowerCase()} theme`);
@@ -62,9 +79,9 @@
 
     updateToggle();
     toggle.addEventListener('click', () => {
-      const nextTheme = getActiveTheme() === 'dark' ? 'light' : 'dark';
-      applyTheme(nextTheme);
-      persistTheme(nextTheme);
+      const upcomingTheme = nextTheme(getActiveTheme());
+      applyTheme(upcomingTheme);
+      persistTheme(upcomingTheme);
     });
   }
 
@@ -73,7 +90,7 @@
       const res = await fetch(apiPath('/api/theme-config'));
       if (!res.ok) return;
       const config = await res.json();
-      if (config.theme === 'light' || config.theme === 'dark') {
+      if (isKnownTheme(config.theme)) {
         applyTheme(config.theme);
         persistTheme(config.theme);
       }

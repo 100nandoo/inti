@@ -249,7 +249,7 @@ func SaveTheme(theme string) error {
 }
 
 func IsValidTheme(theme string) bool {
-	return theme == "" || theme == "light" || theme == "dark"
+	return theme == "" || theme == "light" || theme == "dark" || theme == "minimal" || theme == "minimal-dark"
 }
 
 func LoadAPIKeyStore() *APIKeyStore {

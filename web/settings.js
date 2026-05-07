@@ -6,6 +6,7 @@ const appearanceThemeSelect = document.getElementById('appearance-theme-select')
 const sumSaveBtn        = document.getElementById('sum-save-btn');
 const sumClearBtn       = document.getElementById('sum-clear-btn');
 const sumSaveStatus     = document.getElementById('sum-save-status');
+const VALID_THEMES = new Set(['light', 'dark', 'minimal', 'minimal-dark']);
 
 let serverConfig = {
   provider: '',
@@ -34,7 +35,7 @@ function applyConfig(config) {
 }
 
 function applyThemeConfig(config) {
-  const theme = config.theme === 'light' || config.theme === 'dark' ? config.theme : '';
+  const theme = VALID_THEMES.has(config.theme) ? config.theme : '';
   appearanceThemeSelect.value = theme;
 }
 
@@ -121,7 +122,7 @@ async function clearAll() {
 
 appearanceThemeSelect.addEventListener('change', () => {
   const theme = appearanceThemeSelect.value;
-  if (theme === 'light' || theme === 'dark') {
+  if (VALID_THEMES.has(theme)) {
     window.IntiTheme?.apply(theme);
     window.IntiTheme?.persist(theme);
   }

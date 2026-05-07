@@ -117,11 +117,11 @@ func TestTelegramSessionStorePersistenceAndAuthorization(t *testing.T) {
 func TestThemePersistence(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("INTI_CONFIG_DIR", dir)
-	if err := SaveTheme("dark"); err != nil {
+	if err := SaveTheme("minimal-dark"); err != nil {
 		t.Fatalf("SaveTheme() error = %v", err)
 	}
-	if got := LoadTheme(); got != "dark" {
-		t.Fatalf("LoadTheme() = %q, want dark", got)
+	if got := LoadTheme(); got != "minimal-dark" {
+		t.Fatalf("LoadTheme() = %q, want minimal-dark", got)
 	}
 	if _, err := os.Stat(filepath.Join(dir, "inti.toml")); err != nil {
 		t.Fatalf("expected inti.toml to exist: %v", err)
