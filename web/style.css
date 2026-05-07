@@ -311,15 +311,32 @@ main:not(.main-grid) {
 }
 
 .logo-icon {
+  position: relative;
   width: 42px;
   height: 42px;
   filter: drop-shadow(0 1px 0 rgba(255, 255, 255, .28));
 }
 
 .logo-icon img {
+  position: absolute;
+  inset: 0;
   display: block;
   width: 100%;
   height: 100%;
+}
+
+.logo-icon-light {
+  display: none;
+}
+
+:root[data-theme="light"] .logo-icon-dark,
+:root[data-theme="minimal"] .logo-icon-dark {
+  display: none;
+}
+
+:root[data-theme="light"] .logo-icon-light,
+:root[data-theme="minimal"] .logo-icon-light {
+  display: block;
 }
 
 .logo-name {
@@ -439,34 +456,19 @@ main:not(.main-grid) {
 .icon-arrow-up { --icon-url: url("/icons/arrow-up.svg"); }
 .icon-speaker { --icon-url: url("/icons/speaker.svg"); }
 .icon-check { --icon-url: url("/icons/check.svg"); }
+.icon-minimal { --icon-url: url("/icons/minimal.svg"); }
+.icon-minimal-dark { --icon-url: url("/icons/minimal-dark.svg"); }
 
 .theme-icon {
+  display: none;
   flex: 0 0 auto;
 }
 
-.theme-icon-light,
-:root[data-theme="light"] .theme-icon-light,
-:root[data-theme="dark"] .theme-icon-dark {
-  display: none;
-}
-
-.theme-icon-dark {
+.theme-toggle[data-upcoming-theme="light"] .theme-icon-light,
+.theme-toggle[data-upcoming-theme="dark"] .theme-icon-dark,
+.theme-toggle[data-upcoming-theme="minimal"] .theme-icon-minimal,
+.theme-toggle[data-upcoming-theme="minimal-dark"] .theme-icon-minimal-dark {
   display: block;
-}
-
-:root[data-theme="light"] .theme-icon-dark,
-:root[data-theme="dark"] .theme-icon-light {
-  display: block;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme]) .theme-icon-light {
-    display: block;
-  }
-
-  :root:not([data-theme]) .theme-icon-dark {
-    display: none;
-  }
 }
 
 .main-grid {
@@ -487,24 +489,6 @@ main:not(.main-grid) {
   border-radius: var(--radius);
   box-shadow: var(--panel-shadow), inset 0 0 0 1px rgba(255, 255, 255, .14);
   overflow: hidden;
-}
-
-.panel::before,
-.panel::after {
-  content: "";
-  position: absolute;
-  pointer-events: none;
-  border: 1px solid var(--line);
-  border-radius: calc(var(--radius) - 2px);
-}
-
-.panel::before {
-  inset: 5px;
-}
-
-.panel::after {
-  inset: 9px;
-  opacity: .35;
 }
 
 .panel > * {
@@ -528,20 +512,6 @@ main:not(.main-grid) {
   border-color: rgba(136, 170, 181, .14);
   box-shadow: 0 20px 40px rgba(0, 0, 0, .22);
   backdrop-filter: blur(14px);
-}
-
-:root[data-theme="minimal"] .panel::before,
-:root[data-theme="minimal"] .panel::after,
-:root[data-theme="minimal"] .card::before,
-:root[data-theme="minimal"] .card::after {
-  border-color: rgba(88, 121, 133, .07);
-}
-
-:root[data-theme="minimal-dark"] .panel::before,
-:root[data-theme="minimal-dark"] .panel::after,
-:root[data-theme="minimal-dark"] .card::before,
-:root[data-theme="minimal-dark"] .card::after {
-  border-color: rgba(136, 170, 181, .10);
 }
 
 :root[data-theme="minimal"] .ornament,
@@ -1214,24 +1184,6 @@ select option {
   box-shadow: var(--panel-shadow), inset 0 0 0 1px rgba(255, 255, 255, .14);
   backdrop-filter: blur(6px);
   overflow: hidden;
-}
-
-.card::before,
-.card::after {
-  content: "";
-  position: absolute;
-  pointer-events: none;
-  border: 1px solid var(--line);
-  border-radius: calc(var(--radius) - 2px);
-}
-
-.card::before {
-  inset: 5px;
-}
-
-.card::after {
-  inset: 9px;
-  opacity: .35;
 }
 
 .card > * {

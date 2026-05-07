@@ -46,6 +46,25 @@
     } catch {}
   }
 
+  async function persistServerTheme(theme) {
+    try {
+      const res = await fetch(apiPath('/api/theme-config'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ theme }),
+      });
+      if (!res.ok) return false;
+
+      window.IntiTheme.serverTheme = theme;
+      document.dispatchEvent(new CustomEvent('inti:theme-config', {
+        detail: { theme },
+      }));
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   function apiPath(path) {
     if (typeof apiURL === 'function') return apiURL(path);
     const url = new URL(path, window.location.origin);
@@ -68,6 +87,7 @@
     const upcomingTheme = nextTheme(theme);
     const label = THEME_LABELS[upcomingTheme] || 'Theme';
 
+    toggle.dataset.upcomingTheme = upcomingTheme;
     if (labelNode) labelNode.textContent = label;
     toggle.setAttribute('aria-label', `Switch to ${label.toLowerCase()} theme`);
     toggle.title = `Switch to ${label.toLowerCase()} theme`;
@@ -82,6 +102,7 @@
       const upcomingTheme = nextTheme(getActiveTheme());
       applyTheme(upcomingTheme);
       persistTheme(upcomingTheme);
+      persistServerTheme(upcomingTheme);
     });
   }
 
@@ -109,6 +130,7 @@
   window.IntiTheme = {
     apply: applyTheme,
     persist: persistTheme,
+    persistServer: persistServerTheme,
     active: getActiveTheme,
     serverTheme: '',
   };
