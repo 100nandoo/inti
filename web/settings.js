@@ -1,4 +1,6 @@
 const sumProviderSelect = document.getElementById('sum-provider-select');
+const sumModelField     = document.getElementById('sum-model-field');
+const sumModelSelect    = document.getElementById('sum-model-select');
 const keyGemini         = document.getElementById('key-gemini');
 const keyGroq           = document.getElementById('key-groq');
 const keyOpenRouter     = document.getElementById('key-openrouter');
@@ -16,6 +18,15 @@ let serverConfig = {
   groqLimits: null,
 };
 
+async function populateModelSelect(provider, selectedModel = '') {
+  await window.IntiSummarizerModels.populateSelect(
+    sumModelSelect,
+    sumModelField,
+    provider,
+    selectedModel,
+  );
+}
+
 function applyConfig(config) {
   serverConfig = {
     provider: config.provider || '',
@@ -29,6 +40,7 @@ function applyConfig(config) {
   };
 
   sumProviderSelect.value = serverConfig.provider;
+  void populateModelSelect(serverConfig.provider, serverConfig.model);
   keyGemini.value = serverConfig.keys.gemini;
   keyGroq.value = serverConfig.keys.groq;
   keyOpenRouter.value = serverConfig.keys.openrouter;
@@ -68,7 +80,7 @@ async function save() {
       fetch(apiURL('/api/summarizer-config'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ provider, model: '', keys }),
+        body: JSON.stringify({ provider, model: sumModelSelect.value, keys }),
       }),
       fetch(apiURL('/api/theme-config'), {
         method: 'POST',
@@ -131,6 +143,10 @@ appearanceThemeSelect.addEventListener('change', () => {
 
 document.addEventListener('inti:theme-config', (event) => {
   applyThemeConfig(event.detail || {});
+});
+
+sumProviderSelect.addEventListener('change', async () => {
+  await populateModelSelect(sumProviderSelect.value);
 });
 
 sumSaveBtn.addEventListener('click', save);

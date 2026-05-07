@@ -396,71 +396,16 @@ loadModels();
 
 // --- Summarizer settings ---
 
-const SUMMARIZER_MODELS = {
-  gemini: [
-    { value: '',                  label: 'Server default' },
-    { value: 'gemini-2.0-flash',  label: 'gemini-2.0-flash' },
-    { value: 'gemini-1.5-flash',  label: 'gemini-1.5-flash' },
-    { value: 'gemini-1.5-pro',    label: 'gemini-1.5-pro' },
-  ],
-  groq: [
-    { value: '',                                          label: 'Server default' },
-    { value: 'llama-3.3-70b-versatile',                  label: 'llama-3.3-70b-versatile' },
-    { value: 'llama-3.1-8b-instant',                     label: 'llama-3.1-8b-instant' },
-    { value: 'meta-llama/llama-4-scout-17b-16e-instruct', label: 'llama-4-scout-17b' },
-    { value: 'qwen/qwen3-32b',                           label: 'qwen3-32b' },
-    { value: 'groq/compound',                            label: 'compound' },
-    { value: 'groq/compound-mini',                       label: 'compound-mini' },
-    { value: 'openai/gpt-oss-120b',                      label: 'gpt-oss-120b' },
-    { value: 'openai/gpt-oss-20b',                       label: 'gpt-oss-20b' },
-    { value: 'allam-2-7b',                               label: 'allam-2-7b' },
-  ],
-  openrouter: [
-    { value: '',                                                    label: 'Server default' },
-    { value: 'google/gemma-3-27b-it:free',                         label: 'Gemma 3 27B (free)' },
-    { value: 'google/gemma-3-12b-it:free',                         label: 'Gemma 3 12B (free)' },
-    { value: 'google/gemma-3-4b-it:free',                          label: 'Gemma 3 4B (free)' },
-    { value: 'google/gemma-3n-e4b-it:free',                        label: 'Gemma 3n 4B (free)' },
-    { value: 'google/gemma-3n-e2b-it:free',                        label: 'Gemma 3n 2B (free)' },
-    { value: 'google/gemma-4-31b-it:free',                         label: 'Gemma 4 31B (free)' },
-    { value: 'google/gemma-4-26b-a4b-it:free',                     label: 'Gemma 4 26B A4B (free)' },
-    { value: 'meta-llama/llama-3.3-70b-instruct:free',             label: 'Llama 3.3 70B (free)' },
-    { value: 'meta-llama/llama-3.2-3b-instruct:free',              label: 'Llama 3.2 3B (free)' },
-    { value: 'qwen/qwen3-next-80b-a3b-instruct:free',              label: 'Qwen3 Next 80B (free)' },
-    { value: 'qwen/qwen3-coder:free',                              label: 'Qwen3 Coder (free)' },
-    { value: 'nvidia/nemotron-3-super-120b-a12b:free',             label: 'Nemotron 3 Super 120B (free)' },
-    { value: 'nvidia/nemotron-3-nano-30b-a3b:free',                label: 'Nemotron 3 Nano 30B (free)' },
-    { value: 'nvidia/nemotron-nano-9b-v2:free',                    label: 'Nemotron Nano 9B (free)' },
-    { value: 'nvidia/nemotron-nano-12b-v2-vl:free',                label: 'Nemotron Nano 12B VL (free)' },
-    { value: 'openai/gpt-oss-120b:free',                           label: 'gpt-oss-120b (free)' },
-    { value: 'openai/gpt-oss-20b:free',                            label: 'gpt-oss-20b (free)' },
-    { value: 'nousresearch/hermes-3-llama-3.1-405b:free',          label: 'Hermes 3 405B (free)' },
-    { value: 'minimax/minimax-m2.5:free',                          label: 'MiniMax M2.5 (free)' },
-    { value: 'arcee-ai/trinity-large-preview:free',                label: 'Trinity Large Preview (free)' },
-    { value: 'liquid/lfm-2.5-1.2b-instruct:free',                  label: 'LFM2.5 1.2B Instruct (free)' },
-    { value: 'liquid/lfm-2.5-1.2b-thinking:free',                  label: 'LFM2.5 1.2B Thinking (free)' },
-    { value: 'inclusionai/ling-2.6-flash:free',                    label: 'Ling 2.6 Flash (free)' },
-    { value: 'z-ai/glm-4.5-air:free',                              label: 'GLM 4.5 Air (free)' },
-    { value: 'cognitivecomputations/dolphin-mistral-24b-venice-edition:free', label: 'Dolphin Mistral 24B Venice (free)' },
-  ],
-  mock: [
-    { value: 'mock-model', label: 'Mock Model' },
-  ],
-};
-
-function populateModelSelect(provider) {
-  const models = SUMMARIZER_MODELS[provider] || [];
-  sumModelWrap.hidden = models.length === 0;
-  sumModelSelect.innerHTML = '';
-  models.forEach(({ value, label }) => {
-    const opt = document.createElement('option');
-    opt.value = value;
-    opt.textContent = label;
-    sumModelSelect.appendChild(opt);
-  });
+async function populateModelSelect(provider, selectedModel = '') {
+  await window.IntiSummarizerModels.populateSelect(
+    sumModelSelect,
+    sumModelWrap,
+    provider,
+    selectedModel,
+  );
 }
 
-function populateProviderSelect(serverProvider = '') {
+async function populateProviderSelect(serverProvider = '') {
   const keys = summarizerConfig.keys || {};
   const current = providerSelect.value || summarizerConfig.provider || serverProvider || '';
 
@@ -484,7 +429,7 @@ function populateProviderSelect(serverProvider = '') {
   if (current && [...providerSelect.options].some(o => o.value === current)) {
     providerSelect.value = current;
   }
-  populateModelSelect(providerSelect.value);
+  await populateModelSelect(providerSelect.value, summarizerConfig.model || '');
 }
 
 async function loadSummarizerConfig() {
@@ -506,14 +451,14 @@ async function loadSummarizerConfig() {
       serverProvider = summarizerConfig.provider;
     }
   } catch {}
-  populateProviderSelect(serverProvider);
+  await populateProviderSelect(serverProvider);
 }
 
 preserveKeyLinks();
 loadSummarizerConfig();
 
-providerSelect.addEventListener('change', () => {
-  populateModelSelect(providerSelect.value);
+providerSelect.addEventListener('change', async () => {
+  await populateModelSelect(providerSelect.value);
 });
 
 // --- Voice dropdown ---
