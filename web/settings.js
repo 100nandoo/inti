@@ -7,6 +7,7 @@ const sumSaveBtn        = document.getElementById('sum-save-btn');
 const sumClearBtn       = document.getElementById('sum-clear-btn');
 const sumSaveStatus     = document.getElementById('sum-save-status');
 const VALID_THEMES = new Set(['light', 'dark', 'minimal', 'minimal-dark']);
+const keyToggleButtons = document.querySelectorAll('.settings-key-toggle');
 
 let serverConfig = {
   provider: '',
@@ -134,9 +135,30 @@ document.addEventListener('inti:theme-config', (event) => {
 
 sumSaveBtn.addEventListener('click', save);
 sumClearBtn.addEventListener('click', clearAll);
+initKeyVisibilityToggles();
 
 preserveKeyLinks();
 load();
+
+function initKeyVisibilityToggles() {
+  keyToggleButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      const input = document.getElementById(button.dataset.target);
+      if (!input) return;
+
+      const showing = input.type === 'text';
+      const provider = button.dataset.provider || 'API';
+      const icon = button.querySelector('.icon');
+      input.type = showing ? 'password' : 'text';
+      button.setAttribute('aria-pressed', String(!showing));
+      button.setAttribute('aria-label', `${showing ? 'Show' : 'Hide'} ${provider} API key`);
+      if (icon) {
+        icon.classList.toggle('icon-eye', showing);
+        icon.classList.toggle('icon-eye-off', !showing);
+      }
+    });
+  });
+}
 
 function fmtDuration(ms) {
   if (ms <= 0) return 'now';

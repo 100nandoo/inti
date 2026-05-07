@@ -118,6 +118,7 @@ export default defineConfig({
       : undefined,
     sidebar_action: browser === 'firefox'
       ? {
+          default_icon: icons,
           default_panel: 'sidebar.html',
           default_title: 'Inti',
         }
