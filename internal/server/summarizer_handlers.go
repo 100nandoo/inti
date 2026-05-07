@@ -41,7 +41,7 @@ type summarizerConfigResponse struct {
 	GroqLimits *appstate.StoredRateLimits `json:"groqLimits,omitempty"`
 }
 
-func handleSummarize(serverSum summarizer.Summarizer, asc *appstate.ActiveSummarizerConfig, cfg *config.Config) http.HandlerFunc {
+func handleSummarize(asc *appstate.ActiveSummarizerConfig, cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			writeJSON(w, http.StatusMethodNotAllowed, errResponse{"method not allowed"})
@@ -68,39 +68,30 @@ func handleSummarize(serverSum summarizer.Summarizer, asc *appstate.ActiveSummar
 			return
 		}
 
-		s := serverSum
 		usedProvider := cfg.SummarizerProvider
+		requestedModel := ""
+		requestedAPIKey := ""
+
 		if req.Provider != "" || req.Model != "" {
-			overrideProvider := req.Provider
-			if overrideProvider == "" {
-				overrideProvider = cfg.SummarizerProvider
+			usedProvider = req.Provider
+			if usedProvider == "" {
+				usedProvider = cfg.SummarizerProvider
 			}
-			overrideModel := requestModelForProvider(overrideProvider, req.Model)
-			overrideAPIKey := asc.KeyForProvider(overrideProvider)
-			var err error
-			s, err = summarizer.NewFromRequest(overrideProvider, overrideAPIKey, overrideModel, cfg)
-			if err != nil {
-				writeJSON(w, http.StatusBadRequest, errResponse{err.Error()})
-				return
-			}
-			if overrideProvider != "" {
-				usedProvider = overrideProvider
-			}
+			requestedModel = requestModelForProvider(usedProvider, req.Model)
+			requestedAPIKey = asc.KeyForProvider(usedProvider)
 		} else {
 			activeProvider, activeModel, activeKeys, _ := asc.Get()
-			activeModel = requestModelForProvider(activeProvider, activeModel)
-			activeAPIKey := activeKeys[activeProvider]
-			if activeProvider != "" || activeAPIKey != "" || activeModel != "" {
-				var err error
-				s, err = summarizer.NewFromRequest(activeProvider, activeAPIKey, activeModel, cfg)
-				if err != nil {
-					writeJSON(w, http.StatusBadRequest, errResponse{err.Error()})
-					return
-				}
-				if activeProvider != "" {
-					usedProvider = activeProvider
-				}
+			if activeProvider != "" {
+				usedProvider = activeProvider
 			}
+			requestedModel = requestModelForProvider(usedProvider, activeModel)
+			requestedAPIKey = activeKeys[usedProvider]
+		}
+
+		s, err := summarizer.NewFromRequest(usedProvider, requestedAPIKey, requestedModel, cfg)
+		if err != nil {
+			writeJSON(w, http.StatusBadRequest, errResponse{err.Error()})
+			return
 		}
 		if s == nil {
 			writeJSON(w, http.StatusServiceUnavailable, errResponse{"no summarizer configured — set a provider and API key"})
@@ -117,9 +108,12 @@ func handleSummarize(serverSum summarizer.Summarizer, asc *appstate.ActiveSummar
 			return
 		}
 
-		usedModel := requestModelForProvider(usedProvider, req.Model)
+		usedModel := requestedModel
 		if usedModel == "" {
 			usedModel = modelForProvider(usedProvider, cfg)
+		}
+		if resolved, ok := s.(summarizer.ModelResolver); ok && resolved.ResolvedModel() != "" {
+			usedModel = resolved.ResolvedModel()
 		}
 		var rateLimits *summarizer.RateLimits
 		if rl, ok := s.(summarizer.RateLimiter); ok {

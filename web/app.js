@@ -127,6 +127,11 @@ let dragSrcIndex = null;
 let isPointerOverOcrCard = false;
 let summaryDownloadFormat = 'txt';
 const allowedImageMimeTypes = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/tiff']);
+const filenameDateFormatter = new Intl.DateTimeFormat('sv-SE', {
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
 
 // --- OCR drop zone ---
 
@@ -543,12 +548,7 @@ submitBtn.addEventListener('click', async () => {
   if (doSynthesize) await synthesizeText(text);
   if (doSpeak && lastWavBlob) await playAudio();
   if (doDownload && lastWavBlob) {
-    const url = URL.createObjectURL(lastWavBlob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `inti-${Date.now()}.opus`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadBlob(lastWavBlob, buildDownloadFilename(text, 'opus', 'inti-audio'));
     addFeed('ok', 'Downloaded', 'Opus file saved to your downloads folder');
   }
 });
@@ -843,12 +843,8 @@ function syncSummaryActionState() {
 
 function downloadSummaryFile(content, ext, mimeType) {
   const blob = new Blob([content], { type: `${mimeType};charset=utf-8` });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `inti-summary-${formatFilenameDate(new Date())}.${ext}`;
-  a.click();
-  URL.revokeObjectURL(url);
+  const summarySource = summaryDownloadGroup.dataset.summary || summaryText.innerText.trim();
+  downloadBlob(blob, buildDownloadFilename(summarySource, ext, 'inti-summary'));
 }
 
 function downloadSummaryByFormat(format) {
@@ -884,11 +880,68 @@ function closeSummaryDownloadMenu() {
   summaryDownloadToggle.setAttribute('aria-expanded', 'false');
 }
 
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function buildDownloadFilename(sourceText, ext, fallbackBase) {
+  const base = sanitizeFilename(extractTopicForFilename(sourceText));
+  if (base) return `${base}.${ext}`;
+  return `${fallbackBase}-${formatFilenameDate(new Date())}.${ext}`;
+}
+
+function extractTopicForFilename(text) {
+  if (!text) return '';
+
+  const lines = text
+    .split('\n')
+    .map(line => line.trim())
+    .filter(Boolean);
+
+  if (!lines.length) return '';
+
+  const heading = lines.find(line => /^#{1,6}\s+/.test(line));
+  if (heading) {
+    return cleanupFilenameSource(heading.replace(/^#{1,6}\s+/, ''));
+  }
+
+  for (const line of lines) {
+    const cleaned = cleanupFilenameSource(line);
+    if (cleaned) return cleaned;
+  }
+
+  return '';
+}
+
+function cleanupFilenameSource(text) {
+  return text
+    .replace(/^[-*]\s+/, '')
+    .replace(/^\d+\.\s+/, '')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/[*_`~>#]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 80)
+    .trim();
+}
+
+function sanitizeFilename(text) {
+  return text
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[_\s-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .toLowerCase();
+}
+
 function formatFilenameDate(date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  return filenameDateFormatter.format(date);
 }
 
 function formatFeedTime(date) {

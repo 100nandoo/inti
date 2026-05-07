@@ -9,7 +9,6 @@ import (
 	"github.com/100nandoo/inti/internal/appstate"
 	"github.com/100nandoo/inti/internal/config"
 	"github.com/100nandoo/inti/internal/gemini"
-	"github.com/100nandoo/inti/internal/summarizer"
 )
 
 func New(cfg *config.Config, webFS embed.FS, state *appstate.RuntimeState) (*http.Server, error) {
@@ -22,11 +21,6 @@ func New(cfg *config.Config, webFS embed.FS, state *appstate.RuntimeState) (*htt
 		}
 	}
 
-	sum, err := summarizer.New(cfg)
-	if err != nil {
-		sum = nil
-	}
-
 	if state == nil {
 		state = appstate.LoadRuntimeState(cfg)
 	}
@@ -36,7 +30,7 @@ func New(cfg *config.Config, webFS embed.FS, state *appstate.RuntimeState) (*htt
 	mux.HandleFunc("/api/voices", handleVoices(cfg))
 	mux.HandleFunc("/api/models", handleModels(cfg))
 	mux.HandleFunc("/api/ocr", handleOCR())
-	mux.HandleFunc("/api/summarize", handleSummarize(sum, state.ActiveSummarizer, cfg))
+	mux.HandleFunc("/api/summarize", handleSummarize(state.ActiveSummarizer, cfg))
 	mux.HandleFunc("/api/summarizer-config", handleSummarizerConfig(state.ActiveSummarizer, cfg))
 	mux.HandleFunc("/api/theme-config", handleThemeConfig())
 	mux.HandleFunc("GET /api/admin/keys", handleAdminListKeys(state.APIKeys))

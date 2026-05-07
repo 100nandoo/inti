@@ -13,6 +13,12 @@ type Summarizer interface {
 	Summarize(ctx context.Context, text, instruction string) (string, error)
 }
 
+// ModelResolver is optionally implemented by providers that can report the
+// concrete model returned by the upstream API for the last request.
+type ModelResolver interface {
+	ResolvedModel() string
+}
+
 // New returns the server-configured Summarizer based on cfg.SummarizerProvider.
 func New(cfg *config.Config) (Summarizer, error) {
 	return newForProvider(cfg.SummarizerProvider, "", "", cfg)

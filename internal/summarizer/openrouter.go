@@ -9,9 +9,12 @@ import (
 )
 
 type OpenRouterClient struct {
-	apiKey string
-	model  string
+	apiKey        string
+	model         string
+	resolvedModel string
 }
+
+func (c *OpenRouterClient) ResolvedModel() string { return c.resolvedModel }
 
 func (c *OpenRouterClient) Summarize(ctx context.Context, text, instruction string) (string, error) {
 	if instruction == "" {
@@ -52,6 +55,7 @@ func (c *OpenRouterClient) Summarize(ctx context.Context, text, instruction stri
 	}
 
 	var result struct {
+		Model   string `json:"model"`
 		Choices []struct {
 			Message struct {
 				Content string `json:"content"`
@@ -61,6 +65,7 @@ func (c *OpenRouterClient) Summarize(ctx context.Context, text, instruction stri
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return "", fmt.Errorf("decode response: %w", err)
 	}
+	c.resolvedModel = result.Model
 	if len(result.Choices) == 0 {
 		return "", fmt.Errorf("no choices in openrouter response")
 	}
