@@ -69,7 +69,7 @@ function syncSummaryActionState() {
 function downloadSummaryFile(content, ext, mimeType) {
   const blob = new Blob([content], { type: `${mimeType};charset=utf-8` });
   const sourceText = summaryDownloadGroup.dataset.summary || summaryText.innerText.trim();
-  downloadBlob(blob, buildDownloadFilename(sourceText, ext, 'inti-summary'));
+  downloadBlob(blob, buildDownloadFilename(sourceText, ext));
 }
 
 function downloadSummaryByFormat(format) {

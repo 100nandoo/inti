@@ -141,7 +141,7 @@ export function downloadGeneratedAudio(sourceText) {
   const { lastAudioBlob } = getState();
   if (!lastAudioBlob) return false;
 
-  downloadBlob(lastAudioBlob, buildDownloadFilename(sourceText, 'opus', 'inti-audio'));
+  downloadBlob(lastAudioBlob, buildDownloadFilename(sourceText, 'opus'));
   addFeed('ok', 'Downloaded', 'Opus file saved to your downloads folder');
   return true;
 }

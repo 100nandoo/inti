@@ -12,6 +12,14 @@ export function cleanupFilenameSource(text) {
     .trim();
 }
 
+function limitFilenameTitleWords(text, maxWords = 3) {
+  return text
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, maxWords)
+    .join(' ');
+}
+
 export function extractTopicForFilename(text) {
   if (!text) return '';
 
@@ -24,11 +32,11 @@ export function extractTopicForFilename(text) {
 
   const heading = lines.find((line) => /^#{1,6}\s+/.test(line));
   if (heading) {
-    return cleanupFilenameSource(heading.replace(/^#{1,6}\s+/, ''));
+    return limitFilenameTitleWords(cleanupFilenameSource(heading.replace(/^#{1,6}\s+/, '')));
   }
 
   for (const line of lines) {
-    const cleaned = cleanupFilenameSource(line);
+    const cleaned = limitFilenameTitleWords(cleanupFilenameSource(line));
     if (cleaned) return cleaned;
   }
 
@@ -40,16 +48,17 @@ export function sanitizeFilename(text) {
     .normalize('NFKD')
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^\w\s-]/g, '')
-    .replace(/[_\s-]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .toLowerCase();
+    .replace(/[_\s-]+/g, '_')
+    .replace(/^_+|_+$/g, '');
 }
 
-export function buildDownloadFilename(sourceText, ext, fallbackBase) {
-  const base = sanitizeFilename(extractTopicForFilename(sourceText));
-  if (base) {
-    return `${base}.${ext}`;
+export function buildDownloadFilename(sourceText, ext) {
+  const date = formatFilenameDate(new Date());
+  const title = sanitizeFilename(extractTopicForFilename(sourceText));
+
+  if (title) {
+    return `Inti_${date}_${title}.${ext}`;
   }
 
-  return `${fallbackBase}-${formatFilenameDate(new Date())}.${ext}`;
+  return `Inti_${date}.${ext}`;
 }
