@@ -3,6 +3,8 @@
   import { openOrFocusIntiPage } from './inti-url.js';
   import { getStorage, setStorage } from './storage.js';
   import { STORAGE_KEY_SETTINGS } from './constants.js';
+  import sunIconUrl from '../icons/sun.svg';
+  import moonIconUrl from '../icons/moon.svg';
 
   let { onclose }: { onclose?: () => void } = $props();
 
@@ -17,6 +19,10 @@
   const showOpenIntiPage = $derived(!onclose
     && navigator.userAgent.includes('Android')
     && navigator.userAgent.includes('Firefox'));
+
+  function maskIconStyle(iconUrl: string) {
+    return `mask-image: url("${iconUrl}"); -webkit-mask-image: url("${iconUrl}");`;
+  }
 
   $effect(() => {
     getStorage<Settings>(STORAGE_KEY_SETTINGS).then((stored) => {
@@ -109,9 +115,9 @@
         title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
       >
         {#if theme === 'dark'}
-          <span class="theme-icon theme-icon-sun" aria-hidden="true"></span>
+          <span class="theme-icon" style={maskIconStyle(sunIconUrl)} aria-hidden="true"></span>
         {:else}
-          <span class="theme-icon theme-icon-moon" aria-hidden="true"></span>
+          <span class="theme-icon" style={maskIconStyle(moonIconUrl)} aria-hidden="true"></span>
         {/if}
       </button>
       {#if onclose}
@@ -218,16 +224,6 @@
     -webkit-mask-repeat: no-repeat;
     -webkit-mask-position: center;
     -webkit-mask-size: contain;
-  }
-
-  .theme-icon-sun {
-    mask-image: url("../../../web/icons/sun.svg");
-    -webkit-mask-image: url("../../../web/icons/sun.svg");
-  }
-
-  .theme-icon-moon {
-    mask-image: url("../../../web/icons/moon.svg");
-    -webkit-mask-image: url("../../../web/icons/moon.svg");
   }
 
   .theme-toggle:hover {

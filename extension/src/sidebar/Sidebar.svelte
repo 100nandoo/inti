@@ -8,12 +8,18 @@
   import LoadingState from '../content/overlay/LoadingState.svelte';
   import ErrorState from '../content/overlay/ErrorState.svelte';
   import SettingsPanel from '../shared/SettingsPanel.svelte';
+  import openInNewIconUrl from '../icons/open-in-new.svg';
+  import settingsIconUrl from '../icons/settings.svg';
 
   let showSettings = $state(false);
   let settings = $state<Settings | null>(null);
   let uiState = $state<UIState>('idle');
   let summary = $state<SummaryData | null>(null);
   let errorMessage = $state('');
+
+  function maskIconStyle(iconUrl: string) {
+    return `mask-image: url("${iconUrl}"); -webkit-mask-image: url("${iconUrl}");`;
+  }
 
   $effect(() => {
     // Restore last summary from storage when sidebar opens
@@ -107,7 +113,7 @@
         title={settings?.apiUrl?.trim() ? 'Open Inti page' : 'Configure API URL first'}
         disabled={!settings?.apiUrl?.trim()}
       >
-        <span class="icon icon-open-in-new" aria-hidden="true"></span>
+        <span class="icon" style={maskIconStyle(openInNewIconUrl)} aria-hidden="true"></span>
       </button>
       <button
         class="icon-btn"
@@ -115,7 +121,7 @@
         aria-label="Settings"
         aria-pressed={showSettings}
       >
-        <span class="icon icon-settings" aria-hidden="true"></span>
+        <span class="icon" style={maskIconStyle(settingsIconUrl)} aria-hidden="true"></span>
       </button>
     </div>
   </header>
@@ -267,16 +273,6 @@
     -webkit-mask-repeat: no-repeat;
     -webkit-mask-position: center;
     -webkit-mask-size: contain;
-  }
-
-  .icon-open-in-new {
-    mask-image: url("../icons/open-in-new.svg");
-    -webkit-mask-image: url("../icons/open-in-new.svg");
-  }
-
-  .icon-settings {
-    mask-image: url("../../../web/icons/settings.svg");
-    -webkit-mask-image: url("../../../web/icons/settings.svg");
   }
 
   .summarize-btn {
