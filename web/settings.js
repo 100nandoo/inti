@@ -58,8 +58,8 @@ function applyThemeConfig(config) {
   appearanceThemeSelect.value = theme;
   const summaryDownloadFormat = VALID_SUMMARY_DOWNLOAD_FORMATS.has(config.summaryDownloadFormat)
     ? config.summaryDownloadFormat
-    : '';
-  summaryDownloadFormatSelect.value = summaryDownloadFormat;
+    : 'md';
+  summaryDownloadFormatSelect.value = summaryDownloadFormat || 'md';
 }
 
 async function load() {

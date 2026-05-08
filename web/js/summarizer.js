@@ -30,7 +30,7 @@ import { getSelectedSummarizerModel, getSelectedSummarizerProvider } from './pro
 
 let summarizeToSpeech = async () => {};
 let clearGeneratedAudio = () => {};
-let summaryDownloadFormat = 'txt';
+let summaryDownloadFormat = 'md';
 const VALID_SUMMARY_DOWNLOAD_FORMATS = new Set(['txt', 'md']);
 
 function parseGroqDuration(value) {
@@ -86,7 +86,7 @@ function downloadSummaryByFormat(format) {
 }
 
 function applySummaryDownloadFormat(format) {
-  summaryDownloadFormat = VALID_SUMMARY_DOWNLOAD_FORMATS.has(format) ? format : 'txt';
+  summaryDownloadFormat = VALID_SUMMARY_DOWNLOAD_FORMATS.has(format) ? format : 'md';
 }
 
 function openSummaryDownloadMenu() {
