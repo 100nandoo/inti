@@ -127,3 +127,17 @@ func TestThemePersistence(t *testing.T) {
 		t.Fatalf("expected inti.toml to exist: %v", err)
 	}
 }
+
+func TestSummaryDownloadFormatPersistence(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("INTI_CONFIG_DIR", dir)
+	if err := SaveSummaryDownloadFormat("md"); err != nil {
+		t.Fatalf("SaveSummaryDownloadFormat() error = %v", err)
+	}
+	if got := LoadSummaryDownloadFormat(); got != "md" {
+		t.Fatalf("LoadSummaryDownloadFormat() = %q, want md", got)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "inti.toml")); err != nil {
+		t.Fatalf("expected inti.toml to exist: %v", err)
+	}
+}

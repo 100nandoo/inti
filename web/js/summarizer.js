@@ -31,6 +31,7 @@ import { getSelectedSummarizerModel, getSelectedSummarizerProvider } from './pro
 let summarizeToSpeech = async () => {};
 let clearGeneratedAudio = () => {};
 let summaryDownloadFormat = 'txt';
+const VALID_SUMMARY_DOWNLOAD_FORMATS = new Set(['txt', 'md']);
 
 function parseGroqDuration(value) {
   if (!value) return 0;
@@ -82,6 +83,10 @@ function downloadSummaryByFormat(format) {
   const plainText = summaryText.innerText.trim();
   if (!plainText) return;
   downloadSummaryFile(plainText, 'txt', 'text/plain');
+}
+
+function applySummaryDownloadFormat(format) {
+  summaryDownloadFormat = VALID_SUMMARY_DOWNLOAD_FORMATS.has(format) ? format : 'txt';
 }
 
 function openSummaryDownloadMenu() {
@@ -182,8 +187,13 @@ export async function summarizeText(text, shouldSpeak) {
 export function initSummarizer({ synthesizeText, clearGeneratedAudio: clearAudio }) {
   summarizeToSpeech = synthesizeText;
   clearGeneratedAudio = clearAudio;
+  applySummaryDownloadFormat(window.IntiTheme?.summaryDownloadFormat);
 
   subscribeState(syncSummaryActionState);
+
+  document.addEventListener('inti:theme-config', (event) => {
+    applySummaryDownloadFormat(event.detail?.summaryDownloadFormat);
+  });
 
   clearWorkspaceBtn?.addEventListener('click', () => {
     workspaceText.value = '';

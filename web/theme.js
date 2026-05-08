@@ -57,7 +57,10 @@
 
       window.IntiTheme.serverTheme = theme;
       document.dispatchEvent(new CustomEvent('inti:theme-config', {
-        detail: { theme },
+        detail: {
+          theme,
+          summaryDownloadFormat: window.IntiTheme.summaryDownloadFormat || '',
+        },
       }));
       return true;
     } catch {
@@ -116,8 +119,12 @@
         persistTheme(config.theme);
       }
       window.IntiTheme.serverTheme = config.theme || '';
+      window.IntiTheme.summaryDownloadFormat = config.summaryDownloadFormat || '';
       document.dispatchEvent(new CustomEvent('inti:theme-config', {
-        detail: { theme: window.IntiTheme.serverTheme },
+        detail: {
+          theme: window.IntiTheme.serverTheme,
+          summaryDownloadFormat: window.IntiTheme.summaryDownloadFormat,
+        },
       }));
     } catch {}
   }
@@ -133,6 +140,7 @@
     persistServer: persistServerTheme,
     active: getActiveTheme,
     serverTheme: '',
+    summaryDownloadFormat: '',
   };
 
   if (document.readyState === 'loading') {

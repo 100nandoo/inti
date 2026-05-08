@@ -5,10 +5,12 @@ const keyGemini         = document.getElementById('key-gemini');
 const keyGroq           = document.getElementById('key-groq');
 const keyOpenRouter     = document.getElementById('key-openrouter');
 const appearanceThemeSelect = document.getElementById('appearance-theme-select');
+const summaryDownloadFormatSelect = document.getElementById('summary-download-format-select');
 const sumSaveBtn        = document.getElementById('sum-save-btn');
 const sumClearBtn       = document.getElementById('sum-clear-btn');
 const sumSaveStatus     = document.getElementById('sum-save-status');
 const VALID_THEMES = new Set(['light', 'dark', 'minimal', 'minimal-dark']);
+const VALID_SUMMARY_DOWNLOAD_FORMATS = new Set(['', 'txt', 'md']);
 const keyToggleButtons = document.querySelectorAll('.settings-key-toggle');
 
 let serverConfig = {
@@ -54,6 +56,10 @@ function applyConfig(config) {
 function applyThemeConfig(config) {
   const theme = VALID_THEMES.has(config.theme) ? config.theme : '';
   appearanceThemeSelect.value = theme;
+  const summaryDownloadFormat = VALID_SUMMARY_DOWNLOAD_FORMATS.has(config.summaryDownloadFormat)
+    ? config.summaryDownloadFormat
+    : '';
+  summaryDownloadFormatSelect.value = summaryDownloadFormat;
 }
 
 async function load() {
@@ -89,7 +95,10 @@ async function save() {
       fetch(apiURL('/api/theme-config'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ theme: appearanceThemeSelect.value }),
+        body: JSON.stringify({
+          theme: appearanceThemeSelect.value,
+          summaryDownloadFormat: summaryDownloadFormatSelect.value,
+        }),
       }),
     ]);
     if (!sumRes.ok) {

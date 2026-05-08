@@ -31,7 +31,8 @@ type SummarizerSection struct {
 }
 
 type AppearanceSection struct {
-	Theme string `toml:"theme"`
+	Theme                 string `toml:"theme"`
+	SummaryDownloadFormat string `toml:"summary_download_format"`
 }
 
 type TelegramSection struct {
@@ -248,8 +249,30 @@ func SaveTheme(theme string) error {
 	return writeConfigUnlocked(vc)
 }
 
+func LoadSummaryDownloadFormat() string {
+	fileMu.Lock()
+	defer fileMu.Unlock()
+	vc := readConfigUnlocked()
+	if !IsValidSummaryDownloadFormat(vc.Appearance.SummaryDownloadFormat) {
+		return ""
+	}
+	return vc.Appearance.SummaryDownloadFormat
+}
+
+func SaveSummaryDownloadFormat(format string) error {
+	fileMu.Lock()
+	defer fileMu.Unlock()
+	vc := readConfigUnlocked()
+	vc.Appearance.SummaryDownloadFormat = format
+	return writeConfigUnlocked(vc)
+}
+
 func IsValidTheme(theme string) bool {
 	return theme == "" || theme == "light" || theme == "dark" || theme == "minimal" || theme == "minimal-dark"
+}
+
+func IsValidSummaryDownloadFormat(format string) bool {
+	return format == "" || format == "txt" || format == "md"
 }
 
 func LoadAPIKeyStore() *APIKeyStore {

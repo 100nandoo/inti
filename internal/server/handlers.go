@@ -41,11 +41,13 @@ type errResponse struct {
 }
 
 type themeConfigRequest struct {
-	Theme string `json:"theme"`
+	Theme                 string `json:"theme"`
+	SummaryDownloadFormat string `json:"summaryDownloadFormat"`
 }
 
 type themeConfigResponse struct {
-	Theme string `json:"theme"`
+	Theme                 string `json:"theme"`
+	SummaryDownloadFormat string `json:"summaryDownloadFormat"`
 }
 
 func handleSpeak(g *gemini.Client, cfg *config.Config) http.HandlerFunc {
@@ -211,7 +213,10 @@ func handleThemeConfig() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
-			writeJSON(w, http.StatusOK, themeConfigResponse{Theme: appstate.LoadTheme()})
+			writeJSON(w, http.StatusOK, themeConfigResponse{
+				Theme:                 appstate.LoadTheme(),
+				SummaryDownloadFormat: appstate.LoadSummaryDownloadFormat(),
+			})
 		case http.MethodPost:
 			var req themeConfigRequest
 			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -222,11 +227,22 @@ func handleThemeConfig() http.HandlerFunc {
 				writeJSON(w, http.StatusBadRequest, errResponse{"invalid theme"})
 				return
 			}
+			if !isValidSummaryDownloadFormat(req.SummaryDownloadFormat) {
+				writeJSON(w, http.StatusBadRequest, errResponse{"invalid summary download format"})
+				return
+			}
 			if err := appstate.SaveTheme(req.Theme); err != nil {
 				writeJSON(w, http.StatusInternalServerError, errResponse{err.Error()})
 				return
 			}
-			writeJSON(w, http.StatusOK, themeConfigResponse{Theme: req.Theme})
+			if err := appstate.SaveSummaryDownloadFormat(req.SummaryDownloadFormat); err != nil {
+				writeJSON(w, http.StatusInternalServerError, errResponse{err.Error()})
+				return
+			}
+			writeJSON(w, http.StatusOK, themeConfigResponse{
+				Theme:                 req.Theme,
+				SummaryDownloadFormat: req.SummaryDownloadFormat,
+			})
 		default:
 			writeJSON(w, http.StatusMethodNotAllowed, errResponse{"method not allowed"})
 		}
@@ -235,6 +251,10 @@ func handleThemeConfig() http.HandlerFunc {
 
 func isValidTheme(theme string) bool {
 	return appstate.IsValidTheme(theme)
+}
+
+func isValidSummaryDownloadFormat(format string) bool {
+	return appstate.IsValidSummaryDownloadFormat(format)
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {

@@ -73,7 +73,7 @@
       <div class="card">
         <div class="info-row">
           <span class="pill">Appearance</span>
-          <span class="ocr-hint">Save the web UI theme in the server config</span>
+          <span class="ocr-hint">Save interface defaults in the server config</span>
         </div>
         <div class="settings-form">
           <div class="settings-field">
@@ -89,6 +89,19 @@
             </div>
             <p class="settings-hint">
               A saved server theme overrides each browser's local theme after the page loads.
+            </p>
+          </div>
+          <div class="settings-field">
+            <label class="settings-label" for="summary-download-format-select">Summary download format</label>
+            <div class="select-wrap">
+              <select id="summary-download-format-select" title="Default summary download format">
+                <option value="">Server default (.txt)</option>
+                <option value="txt">Plain text (.txt)</option>
+                <option value="md">Markdown (.md)</option>
+              </select>
+            </div>
+            <p class="settings-hint">
+              Sets the default format used by the Summary download button on the main page.
             </p>
           </div>
         </div>
