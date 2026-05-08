@@ -4,9 +4,7 @@
 
 ### High
 
-- Add go to inti page on extension
 - options to select default download format
-- remove use ocr text from summarize card
 
 ### Medium
 
@@ -38,3 +36,5 @@
 - combine extension repo with this
 - Update unauthorized page color
 - Fix settings content alignment
+- remove use ocr text from summarize card
+- Add go to inti page on extension

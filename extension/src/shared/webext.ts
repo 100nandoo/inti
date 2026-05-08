@@ -40,6 +40,21 @@ export async function tabsQuery(queryInfo: chrome.tabs.QueryInfo): Promise<chrom
   return api.tabs.query(queryInfo) as Promise<chrome.tabs.Tab[]>;
 }
 
+export async function tabsCreate(createProperties: chrome.tabs.CreateProperties): Promise<chrome.tabs.Tab> {
+  const api = getBrowserApi();
+  return api.tabs.create(createProperties) as Promise<chrome.tabs.Tab>;
+}
+
+export async function tabsUpdate(tabId: number, updateProperties: chrome.tabs.UpdateProperties): Promise<chrome.tabs.Tab> {
+  const api = getBrowserApi();
+  return api.tabs.update(tabId, updateProperties) as Promise<chrome.tabs.Tab>;
+}
+
+export async function windowsUpdate(windowId: number, updateInfo: chrome.windows.UpdateInfo): Promise<chrome.windows.Window> {
+  const api = getBrowserApi();
+  return api.windows.update(windowId, updateInfo) as Promise<chrome.windows.Window>;
+}
+
 export async function storageLocalGet<T>(key: string): Promise<T | null> {
   const api = getBrowserApi();
   const result = await api.storage.local.get(key);

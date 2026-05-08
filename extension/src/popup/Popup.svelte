@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { SummaryData, UIState, Message, Settings } from '../shared/types.js';
+  import { openOrFocusIntiPage } from '../shared/inti-url.js';
   import { getStorage } from '../shared/storage.js';
   import { getSidePanelApi, ignoreAsyncResult, runtimeSendMessage, tabsQuery } from '../shared/webext.js';
   import { STORAGE_KEY_LAST_SUMMARY, STORAGE_KEY_SETTINGS, STORAGE_KEY_UI_STATE } from '../shared/constants.js';
@@ -11,6 +12,7 @@
   const isAndroid = navigator.userAgent.includes('Android');
 
   let showSettings = $state(false);
+  let settings = $state<Settings | null>(null);
   let uiState = $state<UIState>('idle');
   let summary = $state<SummaryData | null>(null);
   let errorMessage = $state('');
@@ -26,6 +28,7 @@
       getStorage<SummaryData>(STORAGE_KEY_LAST_SUMMARY),
       getStorage<Settings>(STORAGE_KEY_SETTINGS),
     ]).then(([storedState, storedSummary, storedSettings]) => {
+      settings = storedSettings;
       applyTheme(storedSettings?.theme);
 
       if (storedState === 'loading') {
@@ -93,6 +96,7 @@
       const settingsChange = changes[STORAGE_KEY_SETTINGS];
       if (settingsChange) {
         const nextSettings = settingsChange.newValue as Settings | undefined;
+        settings = nextSettings ?? null;
         applyTheme(nextSettings?.theme);
       }
     }
@@ -130,6 +134,10 @@
       }
     }
   }
+
+  async function openIntiPage() {
+    await openOrFocusIntiPage(settings);
+  }
 </script>
 
 <div class="root">
@@ -145,10 +153,21 @@
       </button>
       <button
         class="icon-btn"
+        onclick={() => ignoreAsyncResult(openIntiPage())}
+        aria-label="Open Inti page"
+        title={settings?.apiUrl?.trim() ? 'Open Inti page' : 'Configure API URL first'}
+        disabled={!settings?.apiUrl?.trim()}
+      >
+        <span class="icon icon-open-in-new" aria-hidden="true"></span>
+      </button>
+      <button
+        class="icon-btn"
         onclick={() => (showSettings = !showSettings)}
         aria-label="Settings"
         aria-pressed={showSettings}
-      >⚙</button>
+      >
+        <span class="icon icon-settings" aria-hidden="true"></span>
+      </button>
     </div>
   </header>
 
@@ -283,9 +302,43 @@
     transition: color 0.15s;
   }
 
+  .icon-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+
   .icon-btn:hover,
   .icon-btn[aria-pressed="true"] {
     color: var(--accent);
+  }
+
+  .icon-btn:disabled:hover {
+    color: var(--text-muted);
+    border-color: var(--copy-btn-border);
+    background: var(--copy-btn-bg);
+  }
+
+  .icon {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    background-color: currentColor;
+    mask-repeat: no-repeat;
+    mask-position: center;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    -webkit-mask-size: contain;
+  }
+
+  .icon-open-in-new {
+    mask-image: url("../icons/open-in-new.svg");
+    -webkit-mask-image: url("../icons/open-in-new.svg");
+  }
+
+  .icon-settings {
+    mask-image: url("../../../web/icons/settings.svg");
+    -webkit-mask-image: url("../../../web/icons/settings.svg");
   }
 
   .summarize-btn {

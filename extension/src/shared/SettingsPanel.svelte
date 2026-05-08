@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Settings } from './types.js';
+  import { openOrFocusIntiPage } from './inti-url.js';
   import { getStorage, setStorage } from './storage.js';
   import { STORAGE_KEY_SETTINGS } from './constants.js';
 
@@ -65,8 +66,12 @@
     scheduleReset();
   }
 
-  function openIntiPage() {
-    window.location.assign(chrome.runtime.getURL('popup.html'));
+  async function openIntiPage() {
+    const tabSettings: Settings = {
+      apiUrl: apiUrl.trim() || savedApiUrl,
+      apiKey: apiKey.trim() || savedApiKey || undefined,
+    };
+    await openOrFocusIntiPage(tabSettings);
   }
 
   function handleInput() {
@@ -93,7 +98,7 @@
     <div class="header-main">
       <span class="panel-title">Settings</span>
       {#if showOpenIntiPage}
-        <button class="open-inti-btn" onclick={openIntiPage}>Open Inti</button>
+        <button class="open-inti-btn" onclick={() => void openIntiPage()} disabled={!apiUrl.trim() && !savedApiUrl}>Open Inti</button>
       {/if}
     </div>
     <div class="header-right">
@@ -216,13 +221,13 @@
   }
 
   .theme-icon-sun {
-    mask-image: url("../icons/theme-sun.svg");
-    -webkit-mask-image: url("../icons/theme-sun.svg");
+    mask-image: url("../../../web/icons/sun.svg");
+    -webkit-mask-image: url("../../../web/icons/sun.svg");
   }
 
   .theme-icon-moon {
-    mask-image: url("../icons/theme-moon.svg");
-    -webkit-mask-image: url("../icons/theme-moon.svg");
+    mask-image: url("../../../web/icons/moon.svg");
+    -webkit-mask-image: url("../../../web/icons/moon.svg");
   }
 
   .theme-toggle:hover {
