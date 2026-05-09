@@ -63,7 +63,7 @@ export default defineConfig({
   }),
   manifest: ({ browser }) => ({
     name: 'Inti',
-    version: '1.0.1',
+    version: '1.0.2',
     description: 'Summarize any article with AI',
     icons,
     permissions: [

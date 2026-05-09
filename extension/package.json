@@ -1,6 +1,6 @@
 {
   "name": "inti",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "type": "module",
   "packageManager": "pnpm@10.33.2",
   "scripts": {
@@ -10,6 +10,7 @@
     "build": "pnpm run build:chrome && pnpm run build:firefox",
     "build:chrome": "wxt build -b chrome --mv3",
     "build:firefox": "node scripts/clean-firefox-dist.mjs && wxt build -b firefox",
+    "version:bump": "node scripts/bump-version.mjs",
     "package:amo-source": "node scripts/package-amo-source.mjs",
     "package:chrome": "pnpm run build:chrome && cd dist/chrome-mv3 && zip -r ../chrome.zip .",
     "package:firefox": "pnpm run build:firefox && cd dist/firefox-mv2 && zip -r ../firefox.zip .",
