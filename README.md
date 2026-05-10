@@ -23,6 +23,7 @@ Text-to-speech powered by Google Gemini, with an OCR and summarization workspace
   - [Extension Setup](#extension-setup)
   - [Extension Usage](#extension-usage)
   - [Extension Keyboard Shortcuts](#extension-keyboard-shortcuts)
+- [Star History](#star-history)
 
 ## Features
 
@@ -312,3 +313,7 @@ The last summary and saved settings are restored the next time you open the exte
 
 - `Alt + Shift + S` (`Cmd + Shift + S` on Mac): summarize the current page
 - `Ctrl + Shift + Y` (`Cmd + Shift + Y` on Mac): toggle the Firefox desktop sidebar
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=100nandoo/inti&type=Date)](https://star-history.com/#100nandoo/inti&Date)
