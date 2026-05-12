@@ -1,15 +1,9 @@
 import test, { before, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import { JSDOM } from 'jsdom';
+import { renderAppShell } from '../../web-src/src/lib/app-shell.js';
 
-function loadWorkspaceShell() {
-  const svelteSource = readFileSync(new URL('../../web-src/src/App.svelte', import.meta.url), 'utf8');
-  const body = svelteSource.replace(/^<script>[\s\S]*?<\/script>\s*/, '').trim();
-  return `<!DOCTYPE html><html lang="en"><body>${body}</body></html>`;
-}
-
-const html = loadWorkspaceShell();
+const html = `<!DOCTYPE html><html lang="en"><body>${renderAppShell()}</body></html>`;
 
 let workspace;
 let summarizer;
