@@ -29,6 +29,7 @@ func New(cfg *config.Config, webFS embed.FS, state *appstate.RuntimeState) (*htt
 	mux.HandleFunc("/api/speak", handleSpeak(g, cfg))
 	mux.HandleFunc("/api/voices", handleVoices(cfg))
 	mux.HandleFunc("/api/models", handleModels(cfg))
+	mux.HandleFunc("/health", handleHealth())
 	mux.HandleFunc("/api/ocr", handleOCR())
 	mux.HandleFunc("/api/summarize", handleSummarize(state.ActiveSummarizer, cfg))
 	mux.HandleFunc("/api/summarizer-config", handleSummarizerConfig(state.ActiveSummarizer, cfg))

@@ -36,6 +36,10 @@ type modelsResponse struct {
 	Default string   `json:"default"`
 }
 
+type healthResponse struct {
+	Status string `json:"status"`
+}
+
 type errResponse struct {
 	Error string `json:"error"`
 }
@@ -127,6 +131,17 @@ func handleModels(cfg *config.Config) http.HandlerFunc {
 			Models:  config.ValidModels(),
 			Default: cfg.DefaultModel,
 		})
+	}
+}
+
+func handleHealth() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			writeJSON(w, http.StatusMethodNotAllowed, errResponse{"method not allowed"})
+			return
+		}
+
+		writeJSON(w, http.StatusOK, healthResponse{Status: "ok"})
 	}
 }
 
