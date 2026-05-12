@@ -1,4 +1,4 @@
-import { P as l, K as i, L as s } from "./dom-CESGoSUg.js";
+import { P as l, K as i, L as s } from "./dom.js";
 const o = [
   { name: "Zephyr", gender: "Female", characteristic: "Bright" },
   { name: "Puck", gender: "Male", characteristic: "Upbeat" },

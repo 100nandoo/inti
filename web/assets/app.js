@@ -1,1 +1,1 @@
-import "./main-BMiP1EDK.js";
+import "./main.js";

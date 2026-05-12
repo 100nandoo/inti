@@ -1,6 +1,6 @@
-import { d as l, f as c, o as u, c as T, r as y, i as D, a as M, b as m, s as R, e as C, g as U, h as j } from "./dom-CESGoSUg.js";
-import { s as g, e as k, a as x, u as $ } from "./feed-DrSayDY3.js";
-import { g as d, s as P, a as p, b as f, c as I, d as b, e as q } from "./workspace-C586LUwx.js";
+import { d as l, f as c, o as u, c as T, r as y, i as D, a as M, b as m, s as R, e as C, g as U, h as j } from "./dom.js";
+import { s as g, a as x, u as k, e as $ } from "./feed.js";
+import { g as d, s as P, a as p, b as f, c as b, d as I, e as q } from "./workspace.js";
 function O(e) {
   if (!Number.isFinite(e) || e <= 0) return "0 B";
   const a = ["B", "KB", "MB", "GB"];
@@ -101,7 +101,7 @@ function S() {
       <span class="drag-handle" title="Drag to reorder">::</span>
       <img class="file-thumb" src="${s}" alt="" />
       <span class="file-info">
-        <span class="file-name" title="${k(a.name)}">${k(a.name)}</span>
+        <span class="file-name" title="${$(a.name)}">${$(a.name)}</span>
         <span class="file-meta">${O(a.size)}</span>
       </span>
       <span class="file-ok" title="Ready">
@@ -118,7 +118,7 @@ function S() {
       const r = URL.createObjectURL(a);
       Q(r), C.addEventListener("load", () => URL.revokeObjectURL(r), { once: !0 });
     }), t.addEventListener("dragstart", (r) => {
-      I(n), r.dataTransfer.effectAllowed = "move", requestAnimationFrame(() => t.classList.add("dragging"));
+      q(n), r.dataTransfer.effectAllowed = "move", requestAnimationFrame(() => t.classList.add("dragging"));
     }), t.addEventListener("dragend", () => {
       t.classList.remove("dragging"), m.querySelectorAll(".file-item").forEach((r) => r.classList.remove("drag-over"));
     }), t.addEventListener("dragover", (r) => {
@@ -149,9 +149,9 @@ async function Y(e) {
       throw new Error(o.error || s.statusText);
     }
     const { text: i } = await s.json(), r = i || "";
-    q(Z(r)), g("OCR result ready for review.", "success"), f([]), $(n, "ok", `OCR: ${a}`, J(r));
+    I(Z(r)), g("OCR result ready for review.", "success"), f([]), k(n, "ok", `OCR: ${a}`, J(r));
   } catch (t) {
-    $(n, "fail", `OCR: ${a}`, t.message), g(t.message, "error");
+    k(n, "fail", `OCR: ${a}`, t.message), g(t.message, "error");
   } finally {
     l.classList.remove("ocr-loading"), b(!1), w();
   }
@@ -192,5 +192,6 @@ function ae() {
   }), (n = D) == null || n.addEventListener("click", E), (t = M) == null || t.addEventListener("click", E);
 }
 export {
-  ae as initOCR
+  ae as initOCR,
+  Y as uploadImagesForOCR
 };

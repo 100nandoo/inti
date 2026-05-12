@@ -9,7 +9,7 @@ export default defineConfig({
   plugins: [svelte()],
   build: {
     copyPublicDir: false,
-    emptyOutDir: false,
+    emptyOutDir: true,
     lib: {
       entry: resolve(__dirname, 'web-src/src/main.js'),
       fileName: () => 'app.js',
@@ -19,6 +19,7 @@ export default defineConfig({
     outDir: resolve(__dirname, 'web/assets'),
     rollupOptions: {
       output: {
+        chunkFileNames: '[name].js',
         assetFileNames: (assetInfo) => {
           if (assetInfo.name === 'app.css') return 'app.css';
           return '[name][extname]';

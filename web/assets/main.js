@@ -2375,13 +2375,13 @@ function kr(e, t) {
       { initTTS: d, synthesizeText: v },
       { initVoices: p }
     ] = await Promise.all([
-      import("./feed-DrSayDY3.js").then((h) => h.c),
-      import("./metrics-CLwihjC0.js"),
-      import("./ocr-_ZduCAgi.js"),
-      import("./providers-CUCu6-U8.js"),
-      import("./summarizer-DPp0390l.js"),
-      import("./tts-Cifn4IA3.js"),
-      import("./voices-CpAZtJg4.js")
+      import("./feed.js").then((h) => h.c),
+      import("./metrics.js"),
+      import("./ocr.js"),
+      import("./providers.js"),
+      import("./summarizer.js"),
+      import("./tts.js"),
+      import("./voices.js")
     ]);
     a(), o(), p(), f(), l({ synthesizeText: v }), d(), u();
   }), cr();

@@ -1,4 +1,4 @@
-import { f as a } from "./feed-DrSayDY3.js";
+import { f as a } from "./feed.js";
 function l(e) {
   return e.replace(/^[-*]\s+/, "").replace(/^\d+\.\s+/, "").replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").replace(/[*_`~>#]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 80).trim();
 }

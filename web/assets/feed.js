@@ -1,4 +1,4 @@
-import { V as r, W as c, X as d, Y as s } from "./dom-CESGoSUg.js";
+import { V as r, W as c, X as d, Y as s } from "./dom.js";
 const l = new Intl.DateTimeFormat("sv-SE", {
   year: "numeric",
   month: "2-digit",

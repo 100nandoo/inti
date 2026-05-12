@@ -1,6 +1,6 @@
-import { p as o, j as c, k as w } from "./dom-CESGoSUg.js";
-import { s as m } from "./feed-DrSayDY3.js";
-import { f as l, h as s, i as d, g as u, j as S } from "./workspace-C586LUwx.js";
+import { p as o, j as c, k as w } from "./dom.js";
+import { s as m } from "./feed.js";
+import { f as l, h as s, i as d, g as u, j as S } from "./workspace.js";
 const y = [
   { value: "gemini", label: "Gemini" },
   { value: "groq", label: "Groq" },
