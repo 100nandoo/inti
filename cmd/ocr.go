@@ -7,8 +7,7 @@ import (
 
 	"github.com/100nandoo/inti/internal/audio"
 	"github.com/100nandoo/inti/internal/config"
-	"github.com/100nandoo/inti/internal/gemini"
-	"github.com/100nandoo/inti/internal/ocr"
+	"github.com/100nandoo/inti/internal/textprocessing"
 	"github.com/spf13/cobra"
 )
 
@@ -17,6 +16,7 @@ var ocrCmd = &cobra.Command{
 	Short: "Extract text from one or more images and optionally synthesize it",
 	Args:  cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		processor := textprocessing.New(cfg)
 		var parts []string
 		for i, path := range args {
 			if len(args) > 1 {
@@ -30,11 +30,14 @@ var ocrCmd = &cobra.Command{
 				return fmt.Errorf("read %s: %w", path, err)
 			}
 
-			text, err := ocr.ExtractText(imageBytes)
+			result, err := processor.ExtractText(cmd.Context(), textprocessing.OCRRequest{ImageBytes: imageBytes})
 			if err != nil {
+				if textprocessing.IsNoTextFound(err) {
+					continue
+				}
 				return fmt.Errorf("ocr %s: %w", path, err)
 			}
-			parts = append(parts, text)
+			parts = append(parts, result.Text)
 		}
 
 		var combined []string
@@ -73,23 +76,23 @@ var ocrCmd = &cobra.Command{
 			return fmt.Errorf("invalid model %q, valid models: %v", model, config.ValidModels())
 		}
 
-		g, err := gemini.New(cfg.GeminiAPIKey)
-		if err != nil {
-			return fmt.Errorf("init gemini: %w", err)
-		}
-
 		fmt.Printf("synthesizing with voice %s (model: %s)...\n", voice, model)
-		pcm, err := g.GenerateSpeech(cmd.Context(), text, voice, model)
+		result, err := processor.SynthesizeSpeech(cmd.Context(), textprocessing.SpeechRequest{
+			Text:   text,
+			Voice:  voice,
+			Model:  model,
+			APIKey: cfg.GeminiAPIKey,
+		})
 		if err != nil {
-			if gemini.IsRateLimit(err) {
+			if textprocessing.IsRateLimited(err) {
 				return fmt.Errorf("rate limited — wait a moment and try again")
 			}
-			return fmt.Errorf("generate speech: %w", err)
+			return err
 		}
 
 		exportPath, _ := cmd.Flags().GetString("export")
 		if exportPath != "" {
-			if err := audio.WriteOpusFile(exportPath, pcm, 24000); err != nil {
+			if err := os.WriteFile(exportPath, result.Opus, 0o644); err != nil {
 				return fmt.Errorf("write opus: %w", err)
 			}
 			fmt.Printf("saved to %s\n", exportPath)
@@ -97,7 +100,7 @@ var ocrCmd = &cobra.Command{
 
 		if exportPath == "" || mustBool(cmd.Flags().GetBool("play")) {
 			fmt.Println("playing...")
-			if err := audio.Play(pcm); err != nil {
+			if err := audio.PlayOpus(result.Opus); err != nil {
 				return fmt.Errorf("play audio: %w", err)
 			}
 		}

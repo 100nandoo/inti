@@ -2,15 +2,14 @@ package server
 
 import (
 	"encoding/json"
-	"fmt"
+	"errors"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/100nandoo/inti/internal/appstate"
 	"github.com/100nandoo/inti/internal/config"
-	"github.com/100nandoo/inti/internal/gemini"
 	"github.com/100nandoo/inti/internal/summarizer"
+	"github.com/100nandoo/inti/internal/textprocessing"
 )
 
 type summarizeRequest struct {
@@ -41,7 +40,7 @@ type summarizerConfigResponse struct {
 	GroqLimits *appstate.StoredRateLimits `json:"groqLimits,omitempty"`
 }
 
-func handleSummarize(asc *appstate.ActiveSummarizerConfig, cfg *config.Config) http.HandlerFunc {
+func handleSummarize(asc *appstate.ActiveSummarizerConfig, cfg *config.Config, processor *textprocessing.Processor) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			writeJSON(w, http.StatusMethodNotAllowed, errResponse{"method not allowed"})
@@ -59,15 +58,6 @@ func handleSummarize(asc *appstate.ActiveSummarizerConfig, cfg *config.Config) h
 			return
 		}
 
-		if req.Mock {
-			writeJSON(w, http.StatusOK, summarizeResponse{
-				Summary:  fmt.Sprintf("This is a mock summary of the provided text.\n\nOriginal text length: %d characters.\nInstruction: %q", len(req.Text), req.Instruction),
-				Provider: "mock",
-				Model:    "mock-model",
-			})
-			return
-		}
-
 		usedProvider := cfg.SummarizerProvider
 		requestedModel := ""
 		requestedAPIKey := ""
@@ -77,61 +67,50 @@ func handleSummarize(asc *appstate.ActiveSummarizerConfig, cfg *config.Config) h
 			if usedProvider == "" {
 				usedProvider = cfg.SummarizerProvider
 			}
-			requestedModel = requestModelForProvider(usedProvider, req.Model)
+			requestedModel = summarizeRequestModelForProvider(usedProvider, req.Model)
 			requestedAPIKey = asc.KeyForProvider(usedProvider)
 		} else {
 			activeProvider, activeModel, activeKeys, _ := asc.Get()
 			if activeProvider != "" {
 				usedProvider = activeProvider
 			}
-			requestedModel = requestModelForProvider(usedProvider, activeModel)
+			requestedModel = summarizeRequestModelForProvider(usedProvider, activeModel)
 			requestedAPIKey = activeKeys[usedProvider]
 		}
 
-		s, err := summarizer.NewFromRequest(usedProvider, requestedAPIKey, requestedModel, cfg)
+		result, err := processor.Summarize(r.Context(), textprocessing.SummaryRequest{
+			Text:        req.Text,
+			Instruction: req.Instruction,
+			Provider:    usedProvider,
+			Model:       requestedModel,
+			APIKey:      requestedAPIKey,
+			Mock:        req.Mock,
+		})
 		if err != nil {
-			writeJSON(w, http.StatusBadRequest, errResponse{err.Error()})
-			return
-		}
-		if s == nil {
-			writeJSON(w, http.StatusServiceUnavailable, errResponse{"no summarizer configured — set a provider and API key"})
-			return
-		}
-
-		summary, err := s.Summarize(r.Context(), req.Text, req.Instruction)
-		if err != nil {
-			if gemini.IsRateLimit(err) || strings.Contains(err.Error(), "rate limited") {
+			if textprocessing.IsRateLimited(err) {
 				writeJSON(w, http.StatusTooManyRequests, errResponse{"rate limited — wait a moment and try again"})
+			} else if errors.Is(err, textprocessing.ErrSummarizerUnavailable) {
+				writeJSON(w, http.StatusBadRequest, errResponse{err.Error()})
 			} else {
 				writeJSON(w, http.StatusInternalServerError, errResponse{err.Error()})
 			}
 			return
 		}
 
-		usedModel := requestedModel
-		if usedModel == "" {
-			usedModel = modelForProvider(usedProvider, cfg)
-		}
-		if resolved, ok := s.(summarizer.ModelResolver); ok && resolved.ResolvedModel() != "" {
-			usedModel = resolved.ResolvedModel()
-		}
-		var rateLimits *summarizer.RateLimits
-		if rl, ok := s.(summarizer.RateLimiter); ok {
-			rateLimits = rl.GetLastRateLimits()
-			if rateLimits != nil && usedProvider == "groq" {
-				stored := captureGroqLimits(rateLimits)
-				provider, model, keys, _ := asc.Get()
-				asc.SetGroqLimits(stored)
-				if err := appstate.SaveActiveSummarizerConfig(provider, model, keys, stored); err != nil {
-					_ = err
-				}
+		if result.RateLimits != nil && result.Provider == "groq" {
+			stored := captureGroqLimits(result.RateLimits)
+			provider, model, keys, _ := asc.Get()
+			asc.SetGroqLimits(stored)
+			if err := appstate.SaveActiveSummarizerConfig(provider, model, keys, stored); err != nil {
+				_ = err
 			}
 		}
+
 		writeJSON(w, http.StatusOK, summarizeResponse{
-			Summary:    summary,
-			Provider:   usedProvider,
-			Model:      usedModel,
-			RateLimits: rateLimits,
+			Summary:    result.Summary,
+			Provider:   result.Provider,
+			Model:      result.Model,
+			RateLimits: result.RateLimits,
 		})
 	}
 }
@@ -221,7 +200,7 @@ func modelForProvider(provider string, cfg *config.Config) string {
 	}
 }
 
-func requestModelForProvider(provider, model string) string {
+func summarizeRequestModelForProvider(provider, model string) string {
 	if provider == "openrouter" {
 		return ""
 	}

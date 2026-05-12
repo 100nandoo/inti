@@ -2,10 +2,11 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/100nandoo/inti/internal/audio"
 	"github.com/100nandoo/inti/internal/config"
-	"github.com/100nandoo/inti/internal/gemini"
+	"github.com/100nandoo/inti/internal/textprocessing"
 	"github.com/spf13/cobra"
 )
 
@@ -35,22 +36,24 @@ var speakCmd = &cobra.Command{
 		if cfg.GeminiAPIKey == "" {
 			return fmt.Errorf("GEMINI_API_KEY is required for TTS — set it in your environment or .env file")
 		}
-		g, err := gemini.New(cfg.GeminiAPIKey)
-		if err != nil {
-			return fmt.Errorf("init gemini: %w", err)
-		}
+		processor := textprocessing.New(cfg)
 
 		fmt.Printf("synthesizing with voice %s (model: %s)...\n", voice, model)
-		pcm, err := g.GenerateSpeech(cmd.Context(), args[0], voice, model)
+		result, err := processor.SynthesizeSpeech(cmd.Context(), textprocessing.SpeechRequest{
+			Text:   args[0],
+			Voice:  voice,
+			Model:  model,
+			APIKey: cfg.GeminiAPIKey,
+		})
 		if err != nil {
-			if gemini.IsRateLimit(err) {
+			if textprocessing.IsRateLimited(err) {
 				return fmt.Errorf("rate limited — wait a moment and try again")
 			}
-			return fmt.Errorf("generate speech: %w", err)
+			return err
 		}
 
 		if exportPath != "" {
-			if err := audio.WriteOpusFile(exportPath, pcm, 24000); err != nil {
+			if err := os.WriteFile(exportPath, result.Opus, 0o644); err != nil {
 				return fmt.Errorf("write opus: %w", err)
 			}
 			fmt.Printf("saved to %s\n", exportPath)
@@ -58,7 +61,7 @@ var speakCmd = &cobra.Command{
 
 		if exportPath == "" || mustBool(cmd.Flags().GetBool("play")) {
 			fmt.Println("playing...")
-			if err := audio.Play(pcm); err != nil {
+			if err := audio.PlayOpus(result.Opus); err != nil {
 				return fmt.Errorf("play audio: %w", err)
 			}
 		}

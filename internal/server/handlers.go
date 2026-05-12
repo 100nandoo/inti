@@ -10,10 +10,9 @@ import (
 	"strings"
 
 	"github.com/100nandoo/inti/internal/appstate"
-	"github.com/100nandoo/inti/internal/audio"
 	"github.com/100nandoo/inti/internal/config"
 	"github.com/100nandoo/inti/internal/gemini"
-	"github.com/100nandoo/inti/internal/ocr"
+	"github.com/100nandoo/inti/internal/textprocessing"
 )
 
 type speakRequest struct {
@@ -54,7 +53,7 @@ type themeConfigResponse struct {
 	SummaryDownloadFormat string `json:"summaryDownloadFormat"`
 }
 
-func handleSpeak(g *gemini.Client, cfg *config.Config) http.HandlerFunc {
+func handleSpeak(g *gemini.Client, cfg *config.Config, processor *textprocessing.Processor) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if g == nil {
 			writeJSON(w, http.StatusServiceUnavailable, errResponse{"TTS unavailable — GEMINI_API_KEY not configured"})
@@ -94,9 +93,14 @@ func handleSpeak(g *gemini.Client, cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
-		pcm, err := g.GenerateSpeech(r.Context(), req.Text, voice, model)
+		result, err := processor.SynthesizeSpeech(r.Context(), textprocessing.SpeechRequest{
+			Text:   req.Text,
+			Voice:  voice,
+			Model:  model,
+			APIKey: cfg.GeminiAPIKey,
+		})
 		if err != nil {
-			if gemini.IsRateLimit(err) {
+			if textprocessing.IsRateLimited(err) {
 				writeJSON(w, http.StatusTooManyRequests, errResponse{"rate limited — wait a moment and try again"})
 			} else {
 				writeJSON(w, http.StatusInternalServerError, errResponse{err.Error()})
@@ -104,14 +108,8 @@ func handleSpeak(g *gemini.Client, cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
-		opusBytes, err := audio.EncodePCMToOpus(pcm, 24000)
-		if err != nil {
-			writeJSON(w, http.StatusInternalServerError, errResponse{err.Error()})
-			return
-		}
-
 		writeJSON(w, http.StatusOK, speakResponse{
-			Opus: base64.StdEncoding.EncodeToString(opusBytes),
+			Opus: base64.StdEncoding.EncodeToString(result.Opus),
 		})
 	}
 }
@@ -171,7 +169,7 @@ func isDisallowedSVGUpload(filename, contentType string, data []byte) bool {
 		strings.HasPrefix(snippet, "<?xml") && strings.Contains(snippet, "<svg")
 }
 
-func handleOCR() http.HandlerFunc {
+func handleOCR(processor *textprocessing.Processor) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			writeJSON(w, http.StatusMethodNotAllowed, errResponse{"method not allowed"})
@@ -210,14 +208,15 @@ func handleOCR() http.HandlerFunc {
 				writeJSON(w, http.StatusBadRequest, errResponse{"svg uploads are not allowed"})
 				return
 			}
-			text, err := ocr.ExtractText(imageBytes)
+			result, err := processor.ExtractText(r.Context(), textprocessing.OCRRequest{ImageBytes: imageBytes})
 			if err != nil {
+				if textprocessing.IsNoTextFound(err) {
+					continue
+				}
 				writeJSON(w, http.StatusInternalServerError, errResponse{err.Error()})
 				return
 			}
-			if text != "" {
-				parts = append(parts, text)
-			}
+			parts = append(parts, result.Text)
 		}
 
 		writeJSON(w, http.StatusOK, ocrResponse{Text: strings.Join(parts, "\n\n")})

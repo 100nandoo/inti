@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/100nandoo/inti/internal/summarizer"
+	"github.com/100nandoo/inti/internal/textprocessing"
 	"github.com/spf13/cobra"
 )
 
@@ -15,20 +15,24 @@ var summarizeCmd = &cobra.Command{
 		instruction, _ := cmd.Flags().GetString("instruction")
 		provider, _ := cmd.Flags().GetString("provider")
 		apiKey, _ := cmd.Flags().GetString("api-key")
-
-		s, err := summarizer.NewFromRequest(provider, apiKey, "", cfg)
-		if err != nil {
-			return fmt.Errorf("init summarizer: %w", err)
-		}
+		processor := textprocessing.New(cfg)
 
 		fmt.Println("summarizing…")
-		summary, err := s.Summarize(cmd.Context(), args[0], instruction)
+		result, err := processor.Summarize(cmd.Context(), textprocessing.SummaryRequest{
+			Text:        args[0],
+			Instruction: instruction,
+			Provider:    provider,
+			APIKey:      apiKey,
+		})
 		if err != nil {
-			return fmt.Errorf("summarize: %w", err)
+			if textprocessing.IsRateLimited(err) {
+				return fmt.Errorf("rate limited — wait a moment and try again")
+			}
+			return err
 		}
 
 		fmt.Println("\n--- Summary ---")
-		fmt.Println(summary)
+		fmt.Println(result.Summary)
 
 		return nil
 	},

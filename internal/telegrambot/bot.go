@@ -3,6 +3,7 @@ package telegrambot
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"path/filepath"
@@ -11,11 +12,8 @@ import (
 	"time"
 
 	"github.com/100nandoo/inti/internal/appstate"
-	"github.com/100nandoo/inti/internal/audio"
 	"github.com/100nandoo/inti/internal/config"
-	"github.com/100nandoo/inti/internal/gemini"
-	"github.com/100nandoo/inti/internal/ocr"
-	"github.com/100nandoo/inti/internal/summarizer"
+	"github.com/100nandoo/inti/internal/textprocessing"
 	tele "gopkg.in/telebot.v4"
 )
 
@@ -28,6 +26,7 @@ type Service struct {
 	bot        *tele.Bot
 	cfg        *config.Config
 	state      *appstate.RuntimeState
+	processor  *textprocessing.Processor
 	working    *workingTextStore
 	btnSummary tele.Btn
 	btnSpeak   tele.Btn
@@ -81,6 +80,7 @@ func New(cfg *config.Config, state *appstate.RuntimeState) (*Service, error) {
 		bot:        bot,
 		cfg:        cfg,
 		state:      state,
+		processor:  textprocessing.New(cfg),
 		working:    newWorkingTextStore(),
 		btnSummary: btnSummary,
 		btnSpeak:   btnSpeak,
@@ -257,13 +257,14 @@ func (s *Service) handlePhoto(c tele.Context) error {
 	if err != nil {
 		return fmt.Errorf("read photo: %w", err)
 	}
-	text, err := ocr.ExtractText(imageBytes)
+	result, err := s.processor.ExtractText(context.Background(), textprocessing.OCRRequest{ImageBytes: imageBytes})
 	if err != nil {
+		if textprocessing.IsNoTextFound(err) {
+			return c.Send("No text found in the image.")
+		}
 		return fmt.Errorf("ocr photo: %w", err)
 	}
-	if strings.TrimSpace(text) == "" {
-		return c.Send("No text found in the image.")
-	}
+	text := result.Text
 	s.working.Set(c.Chat().ID, text)
 	return c.Send(ocrPreviewMessage(text), s.actionMarkup(text, true))
 }
@@ -289,13 +290,14 @@ func (s *Service) handleDocument(c tele.Context) error {
 	if err != nil {
 		return fmt.Errorf("read document: %w", err)
 	}
-	text, err := ocr.ExtractText(imageBytes)
+	result, err := s.processor.ExtractText(context.Background(), textprocessing.OCRRequest{ImageBytes: imageBytes})
 	if err != nil {
+		if textprocessing.IsNoTextFound(err) {
+			return c.Send("No text found in the image.")
+		}
 		return fmt.Errorf("ocr document: %w", err)
 	}
-	if strings.TrimSpace(text) == "" {
-		return c.Send("No text found in the image.")
-	}
+	text := result.Text
 	s.working.Set(c.Chat().ID, text)
 	return c.Send(ocrPreviewMessage(text), s.actionMarkup(text, true))
 }
@@ -355,24 +357,16 @@ func (s *Service) processSummary(c tele.Context, speak bool) error {
 
 func (s *Service) summarize(c tele.Context, text string) (string, error) {
 	provider, model, keys, _ := s.state.ActiveSummarizer.Get()
-	var sum summarizer.Summarizer
-	var err error
-	if provider != "" || keys[provider] != "" || model != "" {
-		sum, err = summarizer.NewFromRequest(provider, keys[provider], model, s.cfg)
-	} else {
-		sum, err = summarizer.New(s.cfg)
-	}
+	result, err := s.processor.Summarize(context.Background(), textprocessing.SummaryRequest{
+		Text:     text,
+		Provider: provider,
+		Model:    model,
+		APIKey:   keys[provider],
+	})
 	if err != nil {
-		return "", fmt.Errorf("init summarizer: %w", err)
+		return "", err
 	}
-	if sum == nil {
-		return "", fmt.Errorf("no summarizer configured")
-	}
-	summary, err := sum.Summarize(context.Background(), text, "")
-	if err != nil {
-		return "", fmt.Errorf("summarize: %w", err)
-	}
-	return summary, nil
+	return result.Summary, nil
 }
 
 func (s *Service) sendSpeech(c tele.Context, text string) error {
@@ -380,23 +374,20 @@ func (s *Service) sendSpeech(c tele.Context, text string) error {
 	if !ok {
 		return c.Send("Not authenticated. Use /auth <inti_api_key>.")
 	}
-	if s.cfg.GeminiAPIKey == "" {
-		return c.Send("TTS unavailable: GEMINI_API_KEY is not configured.")
-	}
-	client, err := gemini.New(s.cfg.GeminiAPIKey)
+	result, err := s.processor.SynthesizeSpeech(context.Background(), textprocessing.SpeechRequest{
+		Text:   text,
+		Voice:  session.Voice,
+		Model:  session.Model,
+		APIKey: s.cfg.GeminiAPIKey,
+	})
 	if err != nil {
-		return fmt.Errorf("init gemini: %w", err)
+		if errors.Is(err, textprocessing.ErrTTSUnavailable) {
+			return c.Send("TTS unavailable: GEMINI_API_KEY is not configured.")
+		}
+		return err
 	}
-	pcm, err := client.GenerateSpeech(context.Background(), text, session.Voice, session.Model)
-	if err != nil {
-		return fmt.Errorf("generate speech: %w", err)
-	}
-	opusBytes, err := audio.EncodePCMToOpus(pcm, 24000)
-	if err != nil {
-		return fmt.Errorf("encode opus: %w", err)
-	}
-	voice := &tele.Voice{File: tele.FromReader(bytes.NewReader(opusBytes))}
-	audioFile := &tele.Audio{File: tele.FromReader(bytes.NewReader(opusBytes))}
+	voice := &tele.Voice{File: tele.FromReader(bytes.NewReader(result.Opus))}
+	audioFile := &tele.Audio{File: tele.FromReader(bytes.NewReader(result.Opus))}
 	if _, err := s.bot.Send(c.Chat(), voice); err != nil {
 		return fmt.Errorf("send voice note: %w", err)
 	}

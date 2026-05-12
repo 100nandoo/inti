@@ -11,6 +11,15 @@ const sampleRate = 24000
 
 // Play writes PCM to a temp Opus file and plays it via the platform audio player.
 func Play(pcm []byte) error {
+	opusData, err := EncodePCMToOpus(pcm, sampleRate)
+	if err != nil {
+		return fmt.Errorf("encode opus: %w", err)
+	}
+	return PlayOpus(opusData)
+}
+
+// PlayOpus writes an Opus file to a temp path and plays it via the platform audio player.
+func PlayOpus(opusData []byte) error {
 	player, args, err := platformPlayer()
 	if err != nil {
 		return err
@@ -21,13 +30,6 @@ func Play(pcm []byte) error {
 		return fmt.Errorf("create temp file: %w", err)
 	}
 	tmpPath := tmp.Name()
-
-	opusData, err := EncodePCMToOpus(pcm, sampleRate)
-	if err != nil {
-		tmp.Close()
-		os.Remove(tmpPath)
-		return fmt.Errorf("encode opus: %w", err)
-	}
 	if _, err := tmp.Write(opusData); err != nil {
 		tmp.Close()
 		os.Remove(tmpPath)
