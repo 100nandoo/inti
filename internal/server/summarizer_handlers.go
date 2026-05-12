@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/100nandoo/inti/internal/appstate"
 	"github.com/100nandoo/inti/internal/config"
+	"github.com/100nandoo/inti/internal/settings"
 	"github.com/100nandoo/inti/internal/summarizer"
 	"github.com/100nandoo/inti/internal/textprocessing"
 )
@@ -34,13 +34,13 @@ type summarizerConfigRequest struct {
 }
 
 type summarizerConfigResponse struct {
-	Provider   string                     `json:"provider"`
-	Model      string                     `json:"model"`
-	Keys       map[string]string          `json:"keys"`
-	GroqLimits *appstate.StoredRateLimits `json:"groqLimits,omitempty"`
+	Provider   string               `json:"provider"`
+	Model      string               `json:"model"`
+	Keys       map[string]string    `json:"keys"`
+	GroqLimits *settings.RateLimits `json:"groqLimits,omitempty"`
 }
 
-func handleSummarize(asc *appstate.ActiveSummarizerConfig, cfg *config.Config, processor *textprocessing.Processor) http.HandlerFunc {
+func handleSummarize(asc *settings.SummarizerSettings, cfg *config.Config, processor *textprocessing.Processor) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			writeJSON(w, http.StatusMethodNotAllowed, errResponse{"method not allowed"})
@@ -99,9 +99,7 @@ func handleSummarize(asc *appstate.ActiveSummarizerConfig, cfg *config.Config, p
 
 		if result.RateLimits != nil && result.Provider == "groq" {
 			stored := captureGroqLimits(result.RateLimits)
-			provider, model, keys, _ := asc.Get()
-			asc.SetGroqLimits(stored)
-			if err := appstate.SaveActiveSummarizerConfig(provider, model, keys, stored); err != nil {
+			if err := asc.StoreGroqLimits(stored); err != nil {
 				_ = err
 			}
 		}
@@ -115,7 +113,7 @@ func handleSummarize(asc *appstate.ActiveSummarizerConfig, cfg *config.Config, p
 	}
 }
 
-func handleSummarizerConfig(asc *appstate.ActiveSummarizerConfig, cfg *config.Config) http.HandlerFunc {
+func handleSummarizerConfig(asc *settings.SummarizerSettings, cfg *config.Config) http.HandlerFunc {
 	validProviders := map[string]bool{"gemini": true, "groq": true, "openrouter": true, "mock": true, "": true}
 	return func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
@@ -141,8 +139,7 @@ func handleSummarizerConfig(asc *appstate.ActiveSummarizerConfig, cfg *config.Co
 			if req.Keys["groq"] == "" || req.Keys["groq"] != currentKeys["groq"] {
 				groqLimits = nil
 			}
-			asc.Set(req.Provider, req.Model, req.Keys, groqLimits)
-			if err := appstate.SaveActiveSummarizerConfig(req.Provider, req.Model, req.Keys, groqLimits); err != nil {
+			if err := asc.Update(req.Provider, req.Model, req.Keys, groqLimits); err != nil {
 				// non-fatal: config will still work in-memory this session
 				_ = err
 			}
@@ -157,12 +154,12 @@ func handleSummarizerConfig(asc *appstate.ActiveSummarizerConfig, cfg *config.Co
 	}
 }
 
-func captureGroqLimits(rateLimits *summarizer.RateLimits) *appstate.StoredRateLimits {
+func captureGroqLimits(rateLimits *summarizer.RateLimits) *settings.RateLimits {
 	if rateLimits == nil {
 		return nil
 	}
 	now := time.Now().UnixMilli()
-	return &appstate.StoredRateLimits{
+	return &settings.RateLimits{
 		LimitRequests:     rateLimits.LimitRequests,
 		LimitTokens:       rateLimits.LimitTokens,
 		RemainingRequests: rateLimits.RemainingRequests,

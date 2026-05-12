@@ -11,8 +11,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/100nandoo/inti/internal/appstate"
 	"github.com/100nandoo/inti/internal/config"
+	"github.com/100nandoo/inti/internal/settings"
 	"github.com/100nandoo/inti/internal/textprocessing"
 	tele "gopkg.in/telebot.v4"
 )
@@ -25,7 +25,7 @@ const telegramMessageChunkLimit = 4000
 type Service struct {
 	bot        *tele.Bot
 	cfg        *config.Config
-	state      *appstate.RuntimeState
+	state      *settings.Runtime
 	processor  *textprocessing.Processor
 	working    *workingTextStore
 	btnSummary tele.Btn
@@ -49,7 +49,7 @@ func Enabled(cfg *config.Config) bool {
 	return cfg != nil && cfg.TelegramBotToken != ""
 }
 
-func New(cfg *config.Config, state *appstate.RuntimeState) (*Service, error) {
+func New(cfg *config.Config, state *settings.Runtime) (*Service, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("telegram bot config is required")
 	}
@@ -57,7 +57,7 @@ func New(cfg *config.Config, state *appstate.RuntimeState) (*Service, error) {
 		return nil, fmt.Errorf("TELEGRAM_BOT_TOKEN is required")
 	}
 	if state == nil {
-		state = appstate.LoadRuntimeState(cfg)
+		state = settings.LoadRuntime(cfg)
 	}
 
 	bot, err := tele.NewBot(tele.Settings{
@@ -150,7 +150,7 @@ func (s *Service) handleAuth(c tele.Context) error {
 	if !ok {
 		return c.Send("Invalid Inti API key.")
 	}
-	session, _ := s.state.TelegramSessions.Get(c.Chat().ID)
+	session, _ := s.state.Telegram.Get(c.Chat().ID)
 	session.ChatID = c.Chat().ID
 	if sender := c.Sender(); sender != nil {
 		session.UserID = sender.ID
@@ -162,7 +162,7 @@ func (s *Service) handleAuth(c tele.Context) error {
 	if session.Model == "" {
 		session.Model = s.cfg.DefaultModel
 	}
-	if err := s.state.TelegramSessions.Save(session); err != nil {
+	if err := s.state.Telegram.Save(session); err != nil {
 		return fmt.Errorf("save telegram session: %w", err)
 	}
 	go s.state.APIKeys.TouchLastUsed(keyID)
@@ -170,7 +170,7 @@ func (s *Service) handleAuth(c tele.Context) error {
 }
 
 func (s *Service) handleLogout(c tele.Context) error {
-	_ = s.state.TelegramSessions.Delete(c.Chat().ID)
+	_ = s.state.Telegram.Delete(c.Chat().ID)
 	s.working.Delete(c.Chat().ID)
 	return c.Send("Logged out.")
 }
@@ -189,7 +189,7 @@ func (s *Service) handleVoice(c tele.Context) error {
 		return c.Send(fmt.Sprintf("Invalid voice %q.", voice))
 	}
 	session.Voice = voice
-	if err := s.state.TelegramSessions.Save(session); err != nil {
+	if err := s.state.Telegram.Save(session); err != nil {
 		return fmt.Errorf("save telegram session: %w", err)
 	}
 	return c.Send("Voice updated to " + voice + ".")
@@ -209,14 +209,14 @@ func (s *Service) handleModel(c tele.Context) error {
 		return c.Send(fmt.Sprintf("Invalid model %q.", model))
 	}
 	session.Model = model
-	if err := s.state.TelegramSessions.Save(session); err != nil {
+	if err := s.state.Telegram.Save(session); err != nil {
 		return fmt.Errorf("save telegram session: %w", err)
 	}
 	return c.Send("Model updated to " + model + ".")
 }
 
 func (s *Service) handleStatus(c tele.Context) error {
-	session, ok := s.state.TelegramSessions.Authorized(c.Chat().ID, s.state.APIKeys)
+	session, ok := s.state.Telegram.Authorized(c.Chat().ID, s.state.APIKeys)
 	if !ok {
 		return c.Send("Not authenticated. Use /auth <inti_api_key>.")
 	}
@@ -356,7 +356,7 @@ func (s *Service) processSummary(c tele.Context, speak bool) error {
 }
 
 func (s *Service) summarize(c tele.Context, text string) (string, error) {
-	provider, model, keys, _ := s.state.ActiveSummarizer.Get()
+	provider, model, keys, _ := s.state.Summarizer.Get()
 	result, err := s.processor.Summarize(context.Background(), textprocessing.SummaryRequest{
 		Text:     text,
 		Provider: provider,
@@ -370,7 +370,7 @@ func (s *Service) summarize(c tele.Context, text string) (string, error) {
 }
 
 func (s *Service) sendSpeech(c tele.Context, text string) error {
-	session, ok := s.state.TelegramSessions.Authorized(c.Chat().ID, s.state.APIKeys)
+	session, ok := s.state.Telegram.Authorized(c.Chat().ID, s.state.APIKeys)
 	if !ok {
 		return c.Send("Not authenticated. Use /auth <inti_api_key>.")
 	}
@@ -406,15 +406,15 @@ func (s *Service) sendTextChunks(chat *tele.Chat, text string) error {
 	return nil
 }
 
-func (s *Service) requireSession(c tele.Context) (appstate.TelegramSession, bool, error) {
-	session, ok := s.state.TelegramSessions.Authorized(c.Chat().ID, s.state.APIKeys)
+func (s *Service) requireSession(c tele.Context) (settings.TelegramSession, bool, error) {
+	session, ok := s.state.Telegram.Authorized(c.Chat().ID, s.state.APIKeys)
 	if ok {
 		return session, true, nil
 	}
-	if s.state.TelegramSessions.HasID(c.Chat().ID) {
-		_ = s.state.TelegramSessions.Delete(c.Chat().ID)
+	if s.state.Telegram.HasID(c.Chat().ID) {
+		_ = s.state.Telegram.Delete(c.Chat().ID)
 	}
-	return appstate.TelegramSession{}, false, c.Send("Authenticate first with /auth <inti_api_key>.")
+	return settings.TelegramSession{}, false, c.Send("Authenticate first with /auth <inti_api_key>.")
 }
 
 func newWorkingTextStore() *workingTextStore {

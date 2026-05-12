@@ -16,23 +16,27 @@ import { buildDownloadFilename } from './filename.js';
 import { updateTextMetrics } from './metrics.js';
 import {
   clearLastAudioBlob,
-  getState,
+  getWorkspace,
   setLastAudioBlob,
   setProcessing,
-  subscribeState,
-} from './state.js';
+  setTextToSpeechText,
+  subscribeWorkspace,
+} from './workspace.js';
 import { truncate } from './text.js';
 import { downloadBlob } from './download.js';
 
 function syncTTSControls() {
-  const { processing } = getState();
+  const { processing, textToSpeechText } = getWorkspace();
+  if (textInput.value !== textToSpeechText) {
+    textInput.value = textToSpeechText;
+  }
   textInput.disabled = processing;
   modelSelect.disabled = processing;
   genderFilter.disabled = processing;
   voiceSelect.disabled = processing;
   providerSelect.disabled = processing;
   sumModelSelect.disabled = processing;
-  submitBtn.disabled = processing || !textInput.value.trim();
+  submitBtn.disabled = processing || !textToSpeechText.trim();
   actionSynthesize.disabled = processing;
   actionSpeak.disabled = processing;
   actionDownload.disabled = processing;
@@ -113,7 +117,7 @@ export async function synthesizeText(text) {
 }
 
 export async function playAudio() {
-  const { lastAudioBlob } = getState();
+  const { lastAudioBlob } = getWorkspace();
   if (!lastAudioBlob) return;
 
   setStatus('Playing…');
@@ -130,7 +134,7 @@ export async function playAudio() {
 }
 
 export function hasGeneratedAudio() {
-  return Boolean(getState().lastAudioBlob);
+  return Boolean(getWorkspace().lastAudioBlob);
 }
 
 export function clearGeneratedAudio() {
@@ -138,7 +142,7 @@ export function clearGeneratedAudio() {
 }
 
 export function downloadGeneratedAudio(sourceText) {
-  const { lastAudioBlob } = getState();
+  const { lastAudioBlob } = getWorkspace();
   if (!lastAudioBlob) return false;
 
   downloadBlob(lastAudioBlob, buildDownloadFilename(sourceText, 'opus'));
@@ -147,7 +151,7 @@ export function downloadGeneratedAudio(sourceText) {
 }
 
 export function initTTS({ summarizeText }) {
-  subscribeState(syncTTSControls);
+  subscribeWorkspace(syncTTSControls);
 
   textInput.addEventListener('keydown', (event) => {
     if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
@@ -157,14 +161,16 @@ export function initTTS({ summarizeText }) {
   });
 
   textInput.addEventListener('input', () => {
+    setTextToSpeechText(textInput.value);
     clearGeneratedAudio();
     updateTextMetrics();
     syncTTSControls();
   });
 
   submitBtn.addEventListener('click', async () => {
-    const text = textInput.value.trim();
-    if (!text || getState().processing) return;
+    const { processing, textToSpeechText } = getWorkspace();
+    const text = textToSpeechText.trim();
+    if (!text || processing) return;
 
     const shouldSummarize = actionSummarize.checked;
     const shouldSynthesize = actionSynthesize.checked || actionSpeak.checked || actionDownload.checked;

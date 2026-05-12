@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/100nandoo/inti/internal/appstate"
+	"github.com/100nandoo/inti/internal/settings"
 )
 
 const contentSecurityPolicy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; media-src 'self' blob: data:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
@@ -17,7 +17,7 @@ func authKey(r *http.Request) string {
 	return raw
 }
 
-func validateAPIKey(mainKey string, store *appstate.APIKeyStore, raw string) bool {
+func validateAPIKey(mainKey string, store *settings.APIKeys, raw string) bool {
 	if mainKey != "" && raw == mainKey {
 		return true
 	}
@@ -28,7 +28,7 @@ func validateAPIKey(mainKey string, store *appstate.APIKeyStore, raw string) boo
 	return ok
 }
 
-func requireAPIKey(mainKey string, store *appstate.APIKeyStore, unauthorizedHTML []byte, next http.Handler) http.Handler {
+func requireAPIKey(mainKey string, store *settings.APIKeys, unauthorizedHTML []byte, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !requiresAuth(r) {
 			next.ServeHTTP(w, r)

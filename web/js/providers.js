@@ -1,6 +1,12 @@
 import { providerSelect, sumModelSelect, sumModelWrap } from './dom.js';
 import { setStatus } from './feed.js';
-import { applySummarizerConfig, getState } from './state.js';
+import {
+  applySummarizerConfig,
+  getSelectedSummarizerModel,
+  getSelectedSummarizerProvider,
+  getWorkspace,
+  setSelectedSummarizerSelection,
+} from './workspace.js';
 
 const PROVIDERS = [
   { value: 'gemini', label: 'Gemini' },
@@ -8,14 +14,6 @@ const PROVIDERS = [
   { value: 'openrouter', label: 'OpenRouter' },
   { value: 'mock', label: 'Mock' },
 ];
-
-export function getSelectedSummarizerProvider() {
-  return providerSelect.value;
-}
-
-export function getSelectedSummarizerModel() {
-  return providerSelect.value === 'openrouter' ? '' : sumModelSelect.value;
-}
 
 async function populateModelSelect(provider, selectedModel = '') {
   await window.IntiSummarizerModels.populateSelect(
@@ -27,9 +25,9 @@ async function populateModelSelect(provider, selectedModel = '') {
 }
 
 async function populateProviderSelect(serverProvider = '') {
-  const { summarizerConfig } = getState();
+  const { summarizerConfig } = getWorkspace();
   const keys = summarizerConfig.keys || {};
-  const current = providerSelect.value || summarizerConfig.provider || serverProvider || '';
+  const current = getSelectedSummarizerProvider() || summarizerConfig.provider || serverProvider || '';
 
   providerSelect.innerHTML = '<option value="">Server default</option>';
   PROVIDERS.forEach(({ value, label }) => {
@@ -45,11 +43,12 @@ async function populateProviderSelect(serverProvider = '') {
     providerSelect.value = current;
   }
 
+  setSelectedSummarizerSelection(providerSelect.value, summarizerConfig.model || '');
   await populateModelSelect(providerSelect.value, summarizerConfig.model || '');
 }
 
 async function saveSummarizerConfigSelection(provider, model) {
-  const { summarizerConfig } = getState();
+  const { summarizerConfig } = getWorkspace();
   const response = await fetch(window.apiURL('/api/summarizer-config'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -76,7 +75,7 @@ async function loadSummarizerConfig() {
     if (response.ok) {
       const data = await response.json();
       applySummarizerConfig(data);
-      serverProvider = getState().summarizerConfig.provider;
+      serverProvider = getWorkspace().summarizerConfig.provider;
     }
   } catch {}
 
@@ -90,6 +89,7 @@ export async function initProviders() {
   providerSelect.addEventListener('change', async () => {
     const provider = providerSelect.value;
     await populateModelSelect(provider);
+    setSelectedSummarizerSelection(providerSelect.value, providerSelect.value === 'openrouter' ? '' : sumModelSelect.value);
 
     try {
       await saveSummarizerConfigSelection(provider, getSelectedSummarizerModel());
@@ -99,6 +99,7 @@ export async function initProviders() {
   });
 
   sumModelSelect.addEventListener('change', async () => {
+    setSelectedSummarizerSelection(providerSelect.value, getSelectedSummarizerModel());
     try {
       await saveSummarizerConfigSelection(providerSelect.value, getSelectedSummarizerModel());
     } catch (error) {

@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/100nandoo/inti/internal/appstate"
+	"github.com/100nandoo/inti/internal/settings"
 )
 
 func TestHandleHealthReturnsOK(t *testing.T) {
@@ -23,7 +23,7 @@ func TestHealthDoesNotRequireAPIKey(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/health", nil)
 	rec := httptest.NewRecorder()
 
-	handler := requireAPIKey("secret", &appstate.APIKeyStore{}, nil, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := requireAPIKey("secret", settings.NewAPIKeys(nil), nil, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 	}))
 	handler.ServeHTTP(rec, req)

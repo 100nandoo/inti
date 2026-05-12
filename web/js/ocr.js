@@ -13,24 +13,25 @@ import {
   ocrResult,
   runOcrBtn,
   stagedCount,
-  textInput,
   workspaceText,
 } from './dom.js';
 import { formatFileSize } from './bytes.js';
 import { addFeed, setStatus, updateFeedItem } from './feed.js';
 import { updateTextMetrics } from './metrics.js';
 import {
-  getState,
+  clearSummaryResult,
+  getWorkspace,
+  setOCRText,
   setDragSourceIndex,
   setPointerOverOcrCard,
   setStagedFiles,
-  subscribeState,
-} from './state.js';
+  setTextToSpeechText,
+  setWorkspaceText,
+  subscribeWorkspace,
+} from './workspace.js';
 import { escHtml } from './text.js';
 
 const allowedImageMimeTypes = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/tiff']);
-
-let resetSummary = () => {};
 
 function openImagePreview(src) {
   imgModalImg.src = src;
@@ -54,7 +55,7 @@ function shouldHandleGlobalPaste() {
     return false;
   }
 
-  return getState().isPointerOverOcrCard || (activeElement ? ocrCard.contains(activeElement) : false);
+  return getWorkspace().isPointerOverOcrCard || (activeElement ? ocrCard.contains(activeElement) : false);
 }
 
 function isAllowedImageType(type) {
@@ -108,11 +109,11 @@ function getImageFilesFromClipboard(clipboardData) {
 }
 
 function addStagedFiles(files) {
-  setStagedFiles([...getState().stagedFiles, ...files]);
+  setStagedFiles([...getWorkspace().stagedFiles, ...files]);
 }
 
 function renderFileList() {
-  const { stagedFiles } = getState();
+  const { stagedFiles } = getWorkspace();
   fileList.innerHTML = '';
 
   if (stagedCount) {
@@ -174,7 +175,7 @@ function renderFileList() {
       event.preventDefault();
       item.classList.remove('drag-over');
 
-      const { dragSrcIndex, stagedFiles: currentFiles } = getState();
+      const { dragSrcIndex, stagedFiles: currentFiles } = getWorkspace();
       if (dragSrcIndex === null || dragSrcIndex === index) return;
 
       const reorderedFiles = [...currentFiles];
@@ -190,7 +191,13 @@ function renderFileList() {
 }
 
 function syncOCRControls() {
-  const { processing, stagedFiles } = getState();
+  const { processing, stagedFiles, ocrText, workspaceText: currentWorkspaceText } = getWorkspace();
+  if (ocrOutputText.value !== ocrText) {
+    ocrOutputText.value = ocrText;
+  }
+  if (workspaceText.value !== currentWorkspaceText) {
+    workspaceText.value = currentWorkspaceText;
+  }
   ocrOutputText.disabled = processing;
   workspaceText.disabled = processing;
   runOcrBtn.disabled = processing || stagedFiles.length === 0;
@@ -214,11 +221,11 @@ async function uploadImagesForOCR(files) {
     }
 
     const { text } = await response.json();
-    ocrOutputText.value = text || '';
-    workspaceText.value = text || '';
-    textInput.value = text || '';
+    setOCRText(text || '');
+    setWorkspaceText(text || '');
+    setTextToSpeechText(text || '');
     ocrResult.hidden = false;
-    resetSummary();
+    clearSummaryResult();
     updateTextMetrics();
     setStagedFiles([]);
 
@@ -232,28 +239,32 @@ async function uploadImagesForOCR(files) {
   }
 }
 
-export function initOCR({ resetSummaryResult }) {
-  resetSummary = resetSummaryResult;
+export function initOCR() {
   renderFileList();
   syncOCRControls();
 
-  let previousStagedFiles = getState().stagedFiles;
-  let previousProcessing = getState().processing;
+  let previousStagedFiles = getWorkspace().stagedFiles;
+  let previousProcessing = getWorkspace().processing;
+  let previousOCRText = getWorkspace().ocrText;
+  let previousWorkspaceText = getWorkspace().workspaceText;
 
-  subscribeState((state) => {
+  subscribeWorkspace((state) => {
     const stagedFilesChanged = state.stagedFiles !== previousStagedFiles;
     const processingChanged = state.processing !== previousProcessing;
+    const textChanged = state.ocrText !== previousOCRText || state.workspaceText !== previousWorkspaceText;
 
     if (stagedFilesChanged) {
       renderFileList();
     }
 
-    if (processingChanged || stagedFilesChanged) {
+    if (processingChanged || stagedFilesChanged || textChanged) {
       syncOCRControls();
     }
 
     previousStagedFiles = state.stagedFiles;
     previousProcessing = state.processing;
+    previousOCRText = state.ocrText;
+    previousWorkspaceText = state.workspaceText;
   });
 
   imgModalClose.addEventListener('click', closeImagePreview);
@@ -305,7 +316,7 @@ export function initOCR({ resetSummaryResult }) {
     const button = event.target.closest('.file-remove');
     if (!button) return;
 
-    const files = [...getState().stagedFiles];
+    const files = [...getWorkspace().stagedFiles];
     files.splice(Number.parseInt(button.dataset.index, 10), 1);
     setStagedFiles(files);
   });
@@ -315,7 +326,7 @@ export function initOCR({ resetSummaryResult }) {
   });
 
   runOcrBtn.addEventListener('click', () => {
-    const { processing, stagedFiles } = getState();
+    const { processing, stagedFiles } = getWorkspace();
     if (stagedFiles.length > 0 && !processing) {
       uploadImagesForOCR([...stagedFiles]);
     }

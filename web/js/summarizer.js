@@ -11,7 +11,6 @@ import {
   summaryText,
   summarizeBtn,
   summarizeSpeakBtn,
-  textInput,
   workspaceText,
 } from './dom.js';
 import { addFeed, setStatus, updateFeedItem } from './feed.js';
@@ -20,16 +19,21 @@ import { renderMarkdown } from './markdown.js';
 import { updateTextMetrics } from './metrics.js';
 import { downloadBlob } from './download.js';
 import {
-  getState,
+  clearLastAudioBlob,
+  clearSummaryResult,
+  getWorkspace,
+  getSelectedSummarizerModel,
+  getSelectedSummarizerProvider,
   setGroqRateLimits,
   setProcessing,
-  subscribeState,
-} from './state.js';
+  setSummaryResult,
+  setTextToSpeechText,
+  setWorkspaceText,
+  subscribeWorkspace,
+} from './workspace.js';
 import { truncate } from './text.js';
-import { getSelectedSummarizerModel, getSelectedSummarizerProvider } from './providers.js';
 
 let summarizeToSpeech = async () => {};
-let clearGeneratedAudio = () => {};
 let summaryDownloadFormat = 'md';
 const VALID_SUMMARY_DOWNLOAD_FORMATS = new Set(['txt', 'md']);
 
@@ -49,13 +53,27 @@ function parseGroqDuration(value) {
 }
 
 function syncSummaryActionState() {
-  const { processing } = getState();
-  const hasPlainText = summaryText.innerText.trim().length > 0;
-  const hasMarkdown = (summaryDownloadGroup.dataset.summary || '').trim().length > 0;
+  const { processing, summaryPlainText, summaryMarkdown, workspaceText: currentWorkspaceText } = getWorkspace();
+  const hasPlainText = summaryPlainText.trim().length > 0;
+  const hasMarkdown = summaryMarkdown.trim().length > 0;
 
-  if (clearWorkspaceBtn) clearWorkspaceBtn.disabled = processing || !workspaceText.value.trim();
-  summarizeBtn.disabled = processing || !workspaceText.value.trim();
-  summarizeSpeakBtn.disabled = processing || !workspaceText.value.trim();
+  if (workspaceText.value !== currentWorkspaceText) {
+    workspaceText.value = currentWorkspaceText;
+  }
+  if ((summaryDownloadGroup.dataset.summary || '') !== summaryMarkdown) {
+    summaryDownloadGroup.dataset.summary = summaryMarkdown;
+  }
+  if (summaryMarkdown) {
+    summaryResult.hidden = false;
+    summaryText.innerHTML = renderMarkdown(summaryMarkdown);
+  } else {
+    summaryResult.hidden = false;
+    summaryText.innerHTML = '';
+  }
+
+  if (clearWorkspaceBtn) clearWorkspaceBtn.disabled = processing || !currentWorkspaceText.trim();
+  summarizeBtn.disabled = processing || !currentWorkspaceText.trim();
+  summarizeSpeakBtn.disabled = processing || !currentWorkspaceText.trim();
   summaryCopyBtn.disabled = processing || !hasPlainText;
   summarySpeakBtn.disabled = processing || !hasPlainText;
   summaryDownloadBtn.disabled = processing || !hasPlainText;
@@ -111,9 +129,7 @@ function toggleSummaryDownloadMenu() {
 }
 
 export function resetSummaryResult() {
-  summaryResult.hidden = false;
-  summaryText.innerHTML = '';
-  summaryDownloadGroup.dataset.summary = '';
+  clearSummaryResult();
   closeSummaryDownloadMenu();
   updateTextMetrics();
   syncSummaryActionState();
@@ -155,9 +171,9 @@ export async function summarizeText(text, shouldSpeak) {
       });
     }
 
-    summaryText.innerHTML = renderMarkdown(summary || '');
-    summaryDownloadGroup.dataset.summary = summary || '';
-    summaryResult.hidden = false;
+    const rendered = document.createElement('div');
+    rendered.innerHTML = renderMarkdown(summary || '');
+    setSummaryResult(summary || '', rendered.innerText.trim());
     updateTextMetrics();
     syncSummaryActionState();
 
@@ -172,7 +188,7 @@ export async function summarizeText(text, shouldSpeak) {
     );
 
     if (shouldSpeak) {
-      textInput.value = summary;
+      setTextToSpeechText(summary);
       updateTextMetrics();
       await summarizeToSpeech(summary);
     }
@@ -184,43 +200,45 @@ export async function summarizeText(text, shouldSpeak) {
   }
 }
 
-export function initSummarizer({ synthesizeText, clearGeneratedAudio: clearAudio }) {
+export function initSummarizer({ synthesizeText }) {
   summarizeToSpeech = synthesizeText;
-  clearGeneratedAudio = clearAudio;
   applySummaryDownloadFormat(window.IntiTheme?.summaryDownloadFormat);
 
-  subscribeState(syncSummaryActionState);
+  subscribeWorkspace(syncSummaryActionState);
 
   document.addEventListener('inti:theme-config', (event) => {
     applySummaryDownloadFormat(event.detail?.summaryDownloadFormat);
   });
 
   clearWorkspaceBtn?.addEventListener('click', () => {
-    workspaceText.value = '';
+    setWorkspaceText('');
     resetSummaryResult();
     updateTextMetrics();
   });
 
   workspaceText.addEventListener('input', () => {
+    setWorkspaceText(workspaceText.value);
     resetSummaryResult();
     updateTextMetrics();
     syncSummaryActionState();
   });
 
   summarizeBtn.addEventListener('click', async () => {
-    const text = workspaceText.value.trim();
-    if (!text || getState().processing) return;
+    const { processing, workspaceText: currentWorkspaceText } = getWorkspace();
+    const text = currentWorkspaceText.trim();
+    if (!text || processing) return;
     await summarizeText(text, false);
   });
 
   summarizeSpeakBtn.addEventListener('click', async () => {
-    const text = workspaceText.value.trim();
-    if (!text || getState().processing) return;
+    const { processing, workspaceText: currentWorkspaceText } = getWorkspace();
+    const text = currentWorkspaceText.trim();
+    if (!text || processing) return;
     await summarizeText(text, true);
   });
 
   summaryCopyBtn.addEventListener('click', async () => {
-    const text = summaryText.innerText;
+    const text = getWorkspace().summaryPlainText;
     if (!text) return;
 
     try {
@@ -234,7 +252,7 @@ export function initSummarizer({ synthesizeText, clearGeneratedAudio: clearAudio
   });
 
   summaryDownloadBtn.addEventListener('click', () => {
-    if (getState().processing) return;
+    if (getWorkspace().processing) return;
     downloadSummaryByFormat(summaryDownloadFormat);
   });
 
@@ -264,11 +282,12 @@ export function initSummarizer({ synthesizeText, clearGeneratedAudio: clearAudio
   });
 
   summarySpeakBtn.addEventListener('click', () => {
-    const text = summaryText.innerText.trim();
-    if (!text || getState().processing) return;
+    const { processing, summaryPlainText } = getWorkspace();
+    const text = summaryPlainText.trim();
+    if (!text || processing) return;
 
-    textInput.value = text;
-    clearGeneratedAudio();
+    setTextToSpeechText(text);
+    clearLastAudioBlob();
     updateTextMetrics();
     setStatus('Summary copied to Text to Speech.', 'success');
   });

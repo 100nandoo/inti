@@ -6,13 +6,13 @@ import (
 	"io/fs"
 	"net/http"
 
-	"github.com/100nandoo/inti/internal/appstate"
 	"github.com/100nandoo/inti/internal/config"
 	"github.com/100nandoo/inti/internal/gemini"
+	"github.com/100nandoo/inti/internal/settings"
 	"github.com/100nandoo/inti/internal/textprocessing"
 )
 
-func New(cfg *config.Config, webFS embed.FS, state *appstate.RuntimeState) (*http.Server, error) {
+func New(cfg *config.Config, webFS embed.FS, state *settings.Runtime) (*http.Server, error) {
 	var g *gemini.Client
 	if cfg.GeminiAPIKey != "" {
 		var err error
@@ -23,7 +23,7 @@ func New(cfg *config.Config, webFS embed.FS, state *appstate.RuntimeState) (*htt
 	}
 
 	if state == nil {
-		state = appstate.LoadRuntimeState(cfg)
+		state = settings.LoadRuntime(cfg)
 	}
 	processor := textprocessing.New(cfg)
 
@@ -33,9 +33,9 @@ func New(cfg *config.Config, webFS embed.FS, state *appstate.RuntimeState) (*htt
 	mux.HandleFunc("/api/models", handleModels(cfg))
 	mux.HandleFunc("/health", handleHealth())
 	mux.HandleFunc("/api/ocr", handleOCR(processor))
-	mux.HandleFunc("/api/summarize", handleSummarize(state.ActiveSummarizer, cfg, processor))
-	mux.HandleFunc("/api/summarizer-config", handleSummarizerConfig(state.ActiveSummarizer, cfg))
-	mux.HandleFunc("/api/theme-config", handleThemeConfig())
+	mux.HandleFunc("/api/summarize", handleSummarize(state.Summarizer, cfg, processor))
+	mux.HandleFunc("/api/summarizer-config", handleSummarizerConfig(state.Summarizer, cfg))
+	mux.HandleFunc("/api/theme-config", handleThemeConfig(state.Appearance))
 	mux.HandleFunc("GET /api/admin/keys", handleAdminListKeys(state.APIKeys))
 	mux.HandleFunc("POST /api/admin/keys", handleAdminCreateKey(state.APIKeys))
 	mux.HandleFunc("DELETE /api/admin/keys/{id}", handleAdminDeleteKey(state.APIKeys))

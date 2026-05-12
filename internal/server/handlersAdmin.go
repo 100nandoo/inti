@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/100nandoo/inti/internal/appstate"
+	"github.com/100nandoo/inti/internal/settings"
 )
 
 type keyListItem struct {
@@ -16,7 +16,7 @@ type keyListItem struct {
 	LastUsedAt *time.Time `json:"lastUsedAt,omitempty"`
 }
 
-func toListItem(k appstate.StoredKey) keyListItem {
+func toListItem(k settings.APIKey) keyListItem {
 	return keyListItem{
 		ID:         k.ID,
 		Name:       k.Name,
@@ -26,7 +26,7 @@ func toListItem(k appstate.StoredKey) keyListItem {
 	}
 }
 
-func handleAdminListKeys(store *appstate.APIKeyStore) http.HandlerFunc {
+func handleAdminListKeys(store *settings.APIKeys) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -41,7 +41,7 @@ func handleAdminListKeys(store *appstate.APIKeyStore) http.HandlerFunc {
 	}
 }
 
-func handleAdminCreateKey(store *appstate.APIKeyStore) http.HandlerFunc {
+func handleAdminCreateKey(store *settings.APIKeys) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -66,7 +66,7 @@ func handleAdminCreateKey(store *appstate.APIKeyStore) http.HandlerFunc {
 	}
 }
 
-func handleAdminDeleteKey(store *appstate.APIKeyStore) http.HandlerFunc {
+func handleAdminDeleteKey(store *settings.APIKeys) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodDelete {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)

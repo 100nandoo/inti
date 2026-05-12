@@ -9,9 +9,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/100nandoo/inti/internal/appstate"
 	"github.com/100nandoo/inti/internal/config"
 	"github.com/100nandoo/inti/internal/gemini"
+	"github.com/100nandoo/inti/internal/settings"
 	"github.com/100nandoo/inti/internal/textprocessing"
 )
 
@@ -223,13 +223,14 @@ func handleOCR(processor *textprocessing.Processor) http.HandlerFunc {
 	}
 }
 
-func handleThemeConfig() http.HandlerFunc {
+func handleThemeConfig(appearance *settings.AppearanceSettings) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
+			theme, summaryDownloadFormat := appearance.Get()
 			writeJSON(w, http.StatusOK, themeConfigResponse{
-				Theme:                 appstate.LoadTheme(),
-				SummaryDownloadFormat: appstate.LoadSummaryDownloadFormat(),
+				Theme:                 theme,
+				SummaryDownloadFormat: summaryDownloadFormat,
 			})
 		case http.MethodPost:
 			var req themeConfigRequest
@@ -245,11 +246,7 @@ func handleThemeConfig() http.HandlerFunc {
 				writeJSON(w, http.StatusBadRequest, errResponse{"invalid summary download format"})
 				return
 			}
-			if err := appstate.SaveTheme(req.Theme); err != nil {
-				writeJSON(w, http.StatusInternalServerError, errResponse{err.Error()})
-				return
-			}
-			if err := appstate.SaveSummaryDownloadFormat(req.SummaryDownloadFormat); err != nil {
+			if err := appearance.Update(req.Theme, req.SummaryDownloadFormat); err != nil {
 				writeJSON(w, http.StatusInternalServerError, errResponse{err.Error()})
 				return
 			}
@@ -264,11 +261,11 @@ func handleThemeConfig() http.HandlerFunc {
 }
 
 func isValidTheme(theme string) bool {
-	return appstate.IsValidTheme(theme)
+	return settings.IsValidTheme(theme)
 }
 
 func isValidSummaryDownloadFormat(format string) bool {
-	return appstate.IsValidSummaryDownloadFormat(format)
+	return settings.IsValidSummaryDownloadFormat(format)
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {

@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/100nandoo/inti/internal/appstate"
+	"github.com/100nandoo/inti/internal/settings"
 	tele "gopkg.in/telebot.v4"
 )
 
@@ -69,9 +69,9 @@ func TestOCRPreviewMessageKeepsShortText(t *testing.T) {
 }
 
 func TestRequireSessionInvalidatesDeletedKey(t *testing.T) {
-	store := &appstate.APIKeyStore{}
-	sessions := &appstate.TelegramSessionStore{}
-	_ = sessions.Save(appstate.TelegramSession{
+	store := settings.NewAPIKeys(nil)
+	sessions := settings.NewTelegramSessions(nil)
+	_ = sessions.Save(settings.TelegramSession{
 		ChatID:       100,
 		UserID:       5,
 		APIKeyID:     "missing",

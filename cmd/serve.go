@@ -10,8 +10,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/100nandoo/inti/internal/appstate"
 	"github.com/100nandoo/inti/internal/server"
+	"github.com/100nandoo/inti/internal/settings"
 	"github.com/100nandoo/inti/internal/telegrambot"
 	"github.com/spf13/cobra"
 	"golang.org/x/sync/errgroup"
@@ -32,7 +32,7 @@ var serveCmd = &cobra.Command{
 		if host != "" {
 			cfg.Host = host
 		}
-		state := appstate.LoadRuntimeState(cfg)
+		state := settings.LoadRuntime(cfg)
 		httpServer, err := server.New(cfg, WebFS, state)
 		if err != nil {
 			return err
