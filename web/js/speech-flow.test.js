@@ -1,0 +1,50 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+
+import {
+  buildSpeechPanelViewModel,
+  countWords,
+  requestSpeechSynthesis,
+} from '../../web-src/src/lib/speech-flow.js';
+
+test('requestSpeechSynthesis returns an audio blob from the speak API payload', async () => {
+  const result = await requestSpeechSynthesis({
+    apiURL: (path) => path,
+    text: 'Alpha beta',
+    voice: 'Kore',
+    model: 'flash',
+    fetchImpl: async (url, options) => {
+      assert.equal(url, '/api/speak');
+      assert.deepEqual(JSON.parse(options.body), {
+        text: 'Alpha beta',
+        voice: 'Kore',
+        model: 'flash',
+      });
+      return Response.json({
+        opus: Buffer.from('opus-audio').toString('base64'),
+      });
+    },
+  });
+
+  assert.equal(result.blob.type, 'audio/opus');
+  assert.equal(result.bytes.length > 0, true);
+});
+
+test('buildSpeechPanelViewModel preserves latest audio snapshot metadata after later edits', () => {
+  const blob = new Blob(['opus-audio'], { type: 'audio/opus' });
+  const viewModel = buildSpeechPanelViewModel({
+    processing: false,
+    workingText: 'Edited after audio generation',
+    latestTextResult: {
+      plainText: 'Latest result',
+    },
+    lastAudioBlob: blob,
+    lastAudioSourceLabel: 'Summary Result',
+    lastAudioSourceText: 'Stable audio snapshot',
+  });
+
+  assert.equal(viewModel.hasAudio, true);
+  assert.match(viewModel.audioMeta, /Summary Result/);
+  assert.match(viewModel.audioCardHtml, /Stable audio snapshot/);
+  assert.equal(countWords('Stable audio snapshot'), 3);
+});

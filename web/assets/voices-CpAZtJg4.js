@@ -1,0 +1,67 @@
+import { P as l, K as i, L as s } from "./dom-CESGoSUg.js";
+const o = [
+  { name: "Zephyr", gender: "Female", characteristic: "Bright" },
+  { name: "Puck", gender: "Male", characteristic: "Upbeat" },
+  { name: "Charon", gender: "Male", characteristic: "Informative" },
+  { name: "Kore", gender: "Female", characteristic: "Firm" },
+  { name: "Fenrir", gender: "Male", characteristic: "Excitable" },
+  { name: "Leda", gender: "Female", characteristic: "Youthful" },
+  { name: "Orus", gender: "Male", characteristic: "Firm" },
+  { name: "Aoede", gender: "Female", characteristic: "Breezy" },
+  { name: "Callirrhoe", gender: "Female", characteristic: "Easy-going" },
+  { name: "Autonoe", gender: "Female", characteristic: "Bright" },
+  { name: "Enceladus", gender: "Male", characteristic: "Breathy" },
+  { name: "Iapetus", gender: "Male", characteristic: "Clear" },
+  { name: "Umbriel", gender: "Male", characteristic: "Easy-going" },
+  { name: "Algieba", gender: "Male", characteristic: "Smooth" },
+  { name: "Despina", gender: "Female", characteristic: "Smooth" },
+  { name: "Erinome", gender: "Female", characteristic: "Clear" },
+  { name: "Algenib", gender: "Male", characteristic: "Gravelly" },
+  { name: "Rasalgethi", gender: "Male", characteristic: "Informative" },
+  { name: "Laomedeia", gender: "Female", characteristic: "Upbeat" },
+  { name: "Achernar", gender: "Female", characteristic: "Soft" },
+  { name: "Alnilam", gender: "Male", characteristic: "Firm" },
+  { name: "Schedar", gender: "Male", characteristic: "Even" },
+  { name: "Gacrux", gender: "Female", characteristic: "Mature" },
+  { name: "Pulcherrima", gender: "Male", characteristic: "Forward" },
+  { name: "Achird", gender: "Male", characteristic: "Friendly" },
+  { name: "Zubenelgenubi", gender: "Male", characteristic: "Casual" },
+  { name: "Vindemiatrix", gender: "Female", characteristic: "Gentle" },
+  { name: "Sadachbia", gender: "Male", characteristic: "Lively" },
+  { name: "Sadaltager", gender: "Male", characteristic: "Knowledgeable" },
+  { name: "Sulafat", gender: "Female", characteristic: "Warm" }
+], m = "Kore";
+function h(a = "All") {
+  return a === "All" ? o : o.filter((t) => t.gender === a);
+}
+async function g(a, t = fetch) {
+  const e = await t(a("/api/models"));
+  if (!e.ok)
+    throw new Error(e.statusText || "Could not load speech models");
+  return e.json();
+}
+function d(a = "All", t = !1) {
+  const e = t ? i.value : m, r = h(a);
+  i.innerHTML = "", r.forEach((n) => {
+    const c = document.createElement("option");
+    c.value = n.name, c.textContent = `${n.name} — ${n.characteristic}`, n.name === e && (c.selected = !0), i.appendChild(c);
+  }), !r.find((n) => n.name === e) && r.length > 0 && (i.selectedIndex = 0);
+}
+async function u() {
+  try {
+    const { models: a, default: t } = await g(window.apiURL);
+    s.innerHTML = "", a.forEach((e) => {
+      const r = document.createElement("option");
+      r.value = e, r.textContent = e, e === t && (r.selected = !0), s.appendChild(r);
+    });
+  } catch {
+  }
+}
+function p() {
+  d(), u(), l.addEventListener("change", () => {
+    d(l.value, !0);
+  });
+}
+export {
+  p as initVoices
+};

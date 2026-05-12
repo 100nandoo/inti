@@ -25,76 +25,37 @@ import {
   setProcessing,
   subscribeWorkspace,
 } from './workspace.js';
-import { escHtml, truncate } from './text.js';
+import { truncate } from './text.js';
+import {
+  buildSpeechPanelViewModel,
+  decodeAndPlayAudio,
+  downloadAudioSnapshot,
+  requestSpeechSynthesis,
+} from '../../web-src/src/lib/speech-flow.js';
 
 function syncTTSControls() {
-  const { processing, workingText, latestTextResult, lastAudioBlob, lastAudioSourceLabel, lastAudioSourceText } = getWorkspace();
-  const hasWorkingText = workingText.trim().length > 0;
-  const hasResult = latestTextResult.plainText.trim().length > 0;
-  const hasAudio = Boolean(lastAudioBlob);
+  const { processing } = getWorkspace();
+  const viewModel = buildSpeechPanelViewModel(getWorkspace());
 
-  speechInputPreview.innerHTML = workingText.trim()
-    ? renderSpeechPreview(workingText)
-    : '<p>Generate speech from the current working text or the latest text result.</p>';
-  speechInputPreview.dataset.previewTextLength = String(workingText.length);
+  speechInputPreview.innerHTML = viewModel.speechPreviewHtml;
+  speechInputPreview.dataset.previewTextLength = viewModel.speechPreviewLength;
 
-  modelSelect.disabled = processing;
-  genderFilter.disabled = processing;
-  voiceSelect.disabled = processing;
-  providerSelect.disabled = processing;
-  sumModelSelect.disabled = processing;
-  generateWorkingAudioBtn.disabled = processing || !hasWorkingText;
-  generateResultAudioBtn.disabled = processing || !hasResult;
-  actionSpeak.disabled = processing;
-  actionDownload.disabled = processing;
-  playAudioBtn.disabled = processing || !hasAudio;
-  downloadAudioBtn.disabled = processing || !hasAudio;
+  modelSelect.disabled = viewModel.controlsDisabled;
+  genderFilter.disabled = viewModel.controlsDisabled;
+  voiceSelect.disabled = viewModel.controlsDisabled;
+  providerSelect.disabled = viewModel.controlsDisabled;
+  sumModelSelect.disabled = viewModel.controlsDisabled;
+  generateWorkingAudioBtn.disabled = processing || !viewModel.hasWorkingText;
+  generateResultAudioBtn.disabled = processing || !viewModel.hasResult;
+  actionSpeak.disabled = viewModel.controlsDisabled;
+  actionDownload.disabled = viewModel.controlsDisabled;
+  playAudioBtn.disabled = processing || !viewModel.hasAudio;
+  downloadAudioBtn.disabled = processing || !viewModel.hasAudio;
 
-  if (hasAudio) {
-    const words = lastAudioSourceText.trim() ? lastAudioSourceText.trim().split(/\s+/).length : 0;
-    audioResultMeta.textContent = `${lastAudioSourceLabel || 'Audio result'} · ${words} words · ${(lastAudioBlob.size / 1024).toFixed(1)} KB`;
-    audioResultCard.innerHTML = `<p>${escHtml(lastAudioSourceLabel || 'Generated from working text')}</p><p>${escHtml(truncate(lastAudioSourceText, 180))}</p>`;
-  } else {
-    audioResultMeta.textContent = 'No audio yet';
-    audioResultCard.innerHTML = '<p>Generate speech from the current working text or the latest text result to keep an audio snapshot here.</p>';
-  }
+  audioResultMeta.textContent = viewModel.audioMeta;
+  audioResultCard.innerHTML = viewModel.audioCardHtml;
 
   updateTextMetrics();
-}
-
-function renderSpeechPreview(text) {
-  if (!text.trim()) return '';
-  return text
-    .split(/\n{2,}/)
-    .slice(0, 3)
-    .map((paragraph) => `<p>${escHtml(paragraph).replace(/\n/g, '<br>')}</p>`)
-    .join('');
-}
-
-async function playEncodedAudio(blob) {
-  const base64Audio = await new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const data = reader.result.split(',')[1] || reader.result;
-      resolve(data);
-    };
-    reader.readAsDataURL(blob);
-  });
-
-  const bytes = Uint8Array.from(atob(base64Audio), (char) => char.charCodeAt(0));
-  const audioContext = new AudioContext();
-  const buffer = await audioContext.decodeAudioData(bytes.buffer);
-  const source = audioContext.createBufferSource();
-  source.buffer = buffer;
-  source.connect(audioContext.destination);
-  source.start();
-
-  return new Promise((resolve) => {
-    source.onended = () => {
-      audioContext.close();
-      resolve();
-    };
-  });
 }
 
 export async function synthesizeText(text, { sourceLabel = 'Working Text' } = {}) {
@@ -109,20 +70,12 @@ export async function synthesizeText(text, { sourceLabel = 'Working Text' } = {}
   const feedItem = addFeed('info', `"${truncate(text, 60)}"`, `${model} · ${voice} · synthesizing…`);
 
   try {
-    const response = await fetch(window.apiURL('/api/speak'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, voice, model }),
+    const { blob, bytes: opusBytes } = await requestSpeechSynthesis({
+      apiURL: window.apiURL,
+      text,
+      voice,
+      model,
     });
-
-    if (!response.ok) {
-      const body = await response.json().catch(() => ({ error: response.statusText }));
-      throw new Error(body.error || response.statusText);
-    }
-
-    const { opus } = await response.json();
-    const opusBytes = Uint8Array.from(atob(opus), (char) => char.charCodeAt(0));
-    const blob = new Blob([opusBytes], { type: 'audio/opus' });
     setLastAudioResult(blob, text, sourceLabel);
 
     const duration = ((performance.now() - startTime) / 1000).toFixed(1);
@@ -156,7 +109,7 @@ export async function playAudio() {
   setPlaying(true);
 
   try {
-    await playEncodedAudio(lastAudioBlob);
+    await decodeAndPlayAudio(lastAudioBlob);
     setStatus('');
   } catch (error) {
     setStatus(error.message, 'error');
@@ -177,7 +130,7 @@ export function downloadGeneratedAudio(sourceText) {
   const { lastAudioBlob } = getWorkspace();
   if (!lastAudioBlob) return false;
 
-  downloadBlob(lastAudioBlob, buildDownloadFilename(sourceText, 'opus'));
+  downloadAudioSnapshot(lastAudioBlob, sourceText);
   addFeed('ok', 'Downloaded', 'Opus file saved to your downloads folder');
   return true;
 }
