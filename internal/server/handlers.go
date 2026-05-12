@@ -44,13 +44,17 @@ type errResponse struct {
 }
 
 type themeConfigRequest struct {
-	Theme                 string `json:"theme"`
-	SummaryDownloadFormat string `json:"summaryDownloadFormat"`
+	Theme                    string `json:"theme"`
+	SummaryDownloadFormat    string `json:"summaryDownloadFormat"`
+	OCRPromotionBehavior     string `json:"ocrPromotionBehavior"`
+	SummaryPromotionBehavior string `json:"summaryPromotionBehavior"`
 }
 
 type themeConfigResponse struct {
-	Theme                 string `json:"theme"`
-	SummaryDownloadFormat string `json:"summaryDownloadFormat"`
+	Theme                    string `json:"theme"`
+	SummaryDownloadFormat    string `json:"summaryDownloadFormat"`
+	OCRPromotionBehavior     string `json:"ocrPromotionBehavior"`
+	SummaryPromotionBehavior string `json:"summaryPromotionBehavior"`
 }
 
 func handleSpeak(g *gemini.Client, cfg *config.Config, processor *textprocessing.Processor) http.HandlerFunc {
@@ -227,10 +231,12 @@ func handleThemeConfig(appearance *settings.AppearanceSettings) http.HandlerFunc
 	return func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
-			theme, summaryDownloadFormat := appearance.Get()
+			theme, summaryDownloadFormat, ocrPromotionBehavior, summaryPromotionBehavior := appearance.Get()
 			writeJSON(w, http.StatusOK, themeConfigResponse{
-				Theme:                 theme,
-				SummaryDownloadFormat: summaryDownloadFormat,
+				Theme:                    theme,
+				SummaryDownloadFormat:    summaryDownloadFormat,
+				OCRPromotionBehavior:     ocrPromotionBehavior,
+				SummaryPromotionBehavior: summaryPromotionBehavior,
 			})
 		case http.MethodPost:
 			var req themeConfigRequest
@@ -246,13 +252,23 @@ func handleThemeConfig(appearance *settings.AppearanceSettings) http.HandlerFunc
 				writeJSON(w, http.StatusBadRequest, errResponse{"invalid summary download format"})
 				return
 			}
-			if err := appearance.Update(req.Theme, req.SummaryDownloadFormat); err != nil {
+			if !isValidPromotionBehavior(req.OCRPromotionBehavior) {
+				writeJSON(w, http.StatusBadRequest, errResponse{"invalid OCR promotion behavior"})
+				return
+			}
+			if !isValidPromotionBehavior(req.SummaryPromotionBehavior) {
+				writeJSON(w, http.StatusBadRequest, errResponse{"invalid summary promotion behavior"})
+				return
+			}
+			if err := appearance.Update(req.Theme, req.SummaryDownloadFormat, req.OCRPromotionBehavior, req.SummaryPromotionBehavior); err != nil {
 				writeJSON(w, http.StatusInternalServerError, errResponse{err.Error()})
 				return
 			}
 			writeJSON(w, http.StatusOK, themeConfigResponse{
-				Theme:                 req.Theme,
-				SummaryDownloadFormat: req.SummaryDownloadFormat,
+				Theme:                    req.Theme,
+				SummaryDownloadFormat:    req.SummaryDownloadFormat,
+				OCRPromotionBehavior:     req.OCRPromotionBehavior,
+				SummaryPromotionBehavior: req.SummaryPromotionBehavior,
 			})
 		default:
 			writeJSON(w, http.StatusMethodNotAllowed, errResponse{"method not allowed"})
@@ -266,6 +282,10 @@ func isValidTheme(theme string) bool {
 
 func isValidSummaryDownloadFormat(format string) bool {
 	return settings.IsValidSummaryDownloadFormat(format)
+}
+
+func isValidPromotionBehavior(behavior string) bool {
+	return settings.IsValidPromotionBehavior(behavior)
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {

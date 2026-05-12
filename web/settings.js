@@ -6,11 +6,14 @@ const keyGroq           = document.getElementById('key-groq');
 const keyOpenRouter     = document.getElementById('key-openrouter');
 const appearanceThemeSelect = document.getElementById('appearance-theme-select');
 const summaryDownloadFormatSelect = document.getElementById('summary-download-format-select');
+const ocrPromotionBehaviorSelect = document.getElementById('ocr-promotion-behavior-select');
+const summaryPromotionBehaviorSelect = document.getElementById('summary-promotion-behavior-select');
 const sumSaveBtn        = document.getElementById('sum-save-btn');
 const sumClearBtn       = document.getElementById('sum-clear-btn');
 const sumSaveStatus     = document.getElementById('sum-save-status');
 const VALID_THEMES = new Set(['light', 'dark', 'minimal', 'minimal-dark']);
 const VALID_SUMMARY_DOWNLOAD_FORMATS = new Set(['', 'txt', 'md']);
+const VALID_PROMOTION_BEHAVIORS = new Set(['append', 'replace']);
 const keyToggleButtons = document.querySelectorAll('.settings-key-toggle');
 
 let serverConfig = {
@@ -60,6 +63,14 @@ function applyThemeConfig(config) {
     ? config.summaryDownloadFormat
     : 'md';
   summaryDownloadFormatSelect.value = summaryDownloadFormat || 'md';
+  const ocrPromotionBehavior = VALID_PROMOTION_BEHAVIORS.has(config.ocrPromotionBehavior)
+    ? config.ocrPromotionBehavior
+    : 'append';
+  const summaryPromotionBehavior = VALID_PROMOTION_BEHAVIORS.has(config.summaryPromotionBehavior)
+    ? config.summaryPromotionBehavior
+    : 'append';
+  ocrPromotionBehaviorSelect.value = ocrPromotionBehavior;
+  summaryPromotionBehaviorSelect.value = summaryPromotionBehavior;
 }
 
 async function load() {
@@ -98,6 +109,8 @@ async function save() {
         body: JSON.stringify({
           theme: appearanceThemeSelect.value,
           summaryDownloadFormat: summaryDownloadFormatSelect.value,
+          ocrPromotionBehavior: ocrPromotionBehaviorSelect.value,
+          summaryPromotionBehavior: summaryPromotionBehaviorSelect.value,
         }),
       }),
     ]);

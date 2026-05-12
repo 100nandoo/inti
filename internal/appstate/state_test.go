@@ -141,3 +141,23 @@ func TestSummaryDownloadFormatPersistence(t *testing.T) {
 		t.Fatalf("expected inti.toml to exist: %v", err)
 	}
 }
+
+func TestPromotionBehaviorPersistence(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("INTI_CONFIG_DIR", dir)
+	if err := SaveOCRPromotionBehavior("append"); err != nil {
+		t.Fatalf("SaveOCRPromotionBehavior() error = %v", err)
+	}
+	if err := SaveSummaryPromotionBehavior("replace"); err != nil {
+		t.Fatalf("SaveSummaryPromotionBehavior() error = %v", err)
+	}
+	if got := LoadOCRPromotionBehavior(); got != "append" {
+		t.Fatalf("LoadOCRPromotionBehavior() = %q, want append", got)
+	}
+	if got := LoadSummaryPromotionBehavior(); got != "replace" {
+		t.Fatalf("LoadSummaryPromotionBehavior() = %q, want replace", got)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "inti.toml")); err != nil {
+		t.Fatalf("expected inti.toml to exist: %v", err)
+	}
+}

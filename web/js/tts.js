@@ -1,50 +1,74 @@
 import {
   actionDownload,
   actionSpeak,
-  actionSummarize,
-  actionSynthesize,
+  audioResultCard,
+  audioResultMeta,
+  downloadAudioBtn,
+  generateResultAudioBtn,
+  generateWorkingAudioBtn,
   genderFilter,
   modelSelect,
+  playAudioBtn,
   providerSelect,
-  submitBtn,
+  speechInputPreview,
   sumModelSelect,
-  textInput,
   voiceSelect,
 } from './dom.js';
 import { addFeed, setPlaying, setStatus, updateFeedItem } from './feed.js';
 import { buildDownloadFilename } from './filename.js';
+import { downloadBlob } from './download.js';
 import { updateTextMetrics } from './metrics.js';
 import {
   clearLastAudioBlob,
   getWorkspace,
-  setLastAudioBlob,
+  setLastAudioResult,
   setProcessing,
-  setTextToSpeechText,
   subscribeWorkspace,
 } from './workspace.js';
-import { truncate } from './text.js';
-import { downloadBlob } from './download.js';
+import { escHtml, truncate } from './text.js';
 
 function syncTTSControls() {
-  const { processing, textToSpeechText } = getWorkspace();
-  if (textInput.value !== textToSpeechText) {
-    textInput.value = textToSpeechText;
-  }
-  textInput.disabled = processing;
+  const { processing, workingText, latestTextResult, lastAudioBlob, lastAudioSourceLabel, lastAudioSourceText } = getWorkspace();
+  const hasWorkingText = workingText.trim().length > 0;
+  const hasResult = latestTextResult.plainText.trim().length > 0;
+  const hasAudio = Boolean(lastAudioBlob);
+
+  speechInputPreview.innerHTML = workingText.trim()
+    ? renderSpeechPreview(workingText)
+    : '<p>Generate speech from the current working text or the latest text result.</p>';
+  speechInputPreview.dataset.previewTextLength = String(workingText.length);
+
   modelSelect.disabled = processing;
   genderFilter.disabled = processing;
   voiceSelect.disabled = processing;
   providerSelect.disabled = processing;
   sumModelSelect.disabled = processing;
-  submitBtn.disabled = processing || !textToSpeechText.trim();
-  actionSynthesize.disabled = processing;
+  generateWorkingAudioBtn.disabled = processing || !hasWorkingText;
+  generateResultAudioBtn.disabled = processing || !hasResult;
   actionSpeak.disabled = processing;
   actionDownload.disabled = processing;
-  actionSummarize.disabled = processing;
+  playAudioBtn.disabled = processing || !hasAudio;
+  downloadAudioBtn.disabled = processing || !hasAudio;
 
-  if (!processing) {
-    textInput.focus();
+  if (hasAudio) {
+    const words = lastAudioSourceText.trim() ? lastAudioSourceText.trim().split(/\s+/).length : 0;
+    audioResultMeta.textContent = `${lastAudioSourceLabel || 'Audio result'} · ${words} words · ${(lastAudioBlob.size / 1024).toFixed(1)} KB`;
+    audioResultCard.innerHTML = `<p>${escHtml(lastAudioSourceLabel || 'Generated from working text')}</p><p>${escHtml(truncate(lastAudioSourceText, 180))}</p>`;
+  } else {
+    audioResultMeta.textContent = 'No audio yet';
+    audioResultCard.innerHTML = '<p>Generate speech from the current working text or the latest text result to keep an audio snapshot here.</p>';
   }
+
+  updateTextMetrics();
+}
+
+function renderSpeechPreview(text) {
+  if (!text.trim()) return '';
+  return text
+    .split(/\n{2,}/)
+    .slice(0, 3)
+    .map((paragraph) => `<p>${escHtml(paragraph).replace(/\n/g, '<br>')}</p>`)
+    .join('');
 }
 
 async function playEncodedAudio(blob) {
@@ -73,7 +97,7 @@ async function playEncodedAudio(blob) {
   });
 }
 
-export async function synthesizeText(text) {
+export async function synthesizeText(text, { sourceLabel = 'Working Text' } = {}) {
   const voice = voiceSelect.value;
   const model = modelSelect.value;
 
@@ -98,16 +122,24 @@ export async function synthesizeText(text) {
 
     const { opus } = await response.json();
     const opusBytes = Uint8Array.from(atob(opus), (char) => char.charCodeAt(0));
-    setLastAudioBlob(new Blob([opusBytes], { type: 'audio/opus' }));
+    const blob = new Blob([opusBytes], { type: 'audio/opus' });
+    setLastAudioResult(blob, text, sourceLabel);
 
     const duration = ((performance.now() - startTime) / 1000).toFixed(1);
-    setStatus('');
+    setStatus('Audio result ready.', 'success');
     updateFeedItem(
       feedItem,
       'ok',
       `"${truncate(text, 60)}"`,
       `${wordCount} words · ${duration}s · ${model} · ${voice} · ${(opusBytes.length / 1024).toFixed(1)} KB`,
     );
+
+    if (actionSpeak.checked) {
+      await playAudio();
+    }
+    if (actionDownload.checked) {
+      downloadGeneratedAudio(text);
+    }
   } catch (error) {
     setStatus(error.message, 'error');
     updateFeedItem(feedItem, 'fail', `"${truncate(text, 60)}"`, error.message);
@@ -150,36 +182,33 @@ export function downloadGeneratedAudio(sourceText) {
   return true;
 }
 
-export function initTTS({ summarizeText }) {
+export function initTTS() {
   subscribeWorkspace(syncTTSControls);
 
-  textInput.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
-      event.preventDefault();
-      submitBtn.click();
-    }
-  });
-
-  textInput.addEventListener('input', () => {
-    setTextToSpeechText(textInput.value);
-    clearGeneratedAudio();
-    updateTextMetrics();
-    syncTTSControls();
-  });
-
-  submitBtn.addEventListener('click', async () => {
-    const { processing, textToSpeechText } = getWorkspace();
-    const text = textToSpeechText.trim();
+  generateWorkingAudioBtn.addEventListener('click', async () => {
+    const { processing, workingText } = getWorkspace();
+    const text = workingText.trim();
     if (!text || processing) return;
-
-    const shouldSummarize = actionSummarize.checked;
-    const shouldSynthesize = actionSynthesize.checked || actionSpeak.checked || actionDownload.checked;
-    const shouldSpeak = actionSpeak.checked;
-    const shouldDownload = actionDownload.checked;
-
-    if (shouldSummarize) await summarizeText(text, false);
-    if (shouldSynthesize) await synthesizeText(text);
-    if (shouldSpeak && hasGeneratedAudio()) await playAudio();
-    if (shouldDownload) downloadGeneratedAudio(text);
+    await synthesizeText(text, { sourceLabel: 'Working Text' });
   });
+
+  generateResultAudioBtn.addEventListener('click', async () => {
+    const { processing, latestTextResult } = getWorkspace();
+    const text = latestTextResult.plainText.trim();
+    if (!text || processing) return;
+    await synthesizeText(text, { sourceLabel: latestTextResult.title || 'Latest Text Result' });
+  });
+
+  playAudioBtn.addEventListener('click', async () => {
+    if (!hasGeneratedAudio()) return;
+    await playAudio();
+  });
+
+  downloadAudioBtn.addEventListener('click', () => {
+    const { lastAudioSourceText } = getWorkspace();
+    if (!hasGeneratedAudio()) return;
+    downloadGeneratedAudio(lastAudioSourceText || 'audio');
+  });
+
+  syncTTSControls();
 }

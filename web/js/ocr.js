@@ -9,24 +9,19 @@ import {
   imgModalClose,
   imgModalImg,
   ocrCard,
-  ocrOutputText,
-  ocrResult,
   runOcrBtn,
   stagedCount,
-  workspaceText,
 } from './dom.js';
 import { formatFileSize } from './bytes.js';
 import { addFeed, setStatus, updateFeedItem } from './feed.js';
-import { updateTextMetrics } from './metrics.js';
 import {
-  clearSummaryResult,
   getWorkspace,
-  setOCRText,
+  replaceWorkingText,
   setDragSourceIndex,
+  setLatestTextResult,
   setPointerOverOcrCard,
+  setProcessing,
   setStagedFiles,
-  setTextToSpeechText,
-  setWorkspaceText,
   subscribeWorkspace,
 } from './workspace.js';
 import { escHtml } from './text.js';
@@ -184,6 +179,11 @@ function renderFileList() {
       setStagedFiles(reorderedFiles);
     });
 
+    item.querySelector('.file-remove').addEventListener('click', () => {
+      const nextFiles = getWorkspace().stagedFiles.filter((_, fileIndex) => fileIndex !== index);
+      setStagedFiles(nextFiles);
+    });
+
     fileList.appendChild(item);
   });
 
@@ -191,15 +191,7 @@ function renderFileList() {
 }
 
 function syncOCRControls() {
-  const { processing, stagedFiles, ocrText, workspaceText: currentWorkspaceText } = getWorkspace();
-  if (ocrOutputText.value !== ocrText) {
-    ocrOutputText.value = ocrText;
-  }
-  if (workspaceText.value !== currentWorkspaceText) {
-    workspaceText.value = currentWorkspaceText;
-  }
-  ocrOutputText.disabled = processing;
-  workspaceText.disabled = processing;
+  const { processing, stagedFiles } = getWorkspace();
   runOcrBtn.disabled = processing || stagedFiles.length === 0;
   clearFilesBtn.disabled = processing || stagedFiles.length === 0;
 }
@@ -207,6 +199,7 @@ function syncOCRControls() {
 async function uploadImagesForOCR(files) {
   const label = files.length === 1 ? files[0].name : `${files.length} images`;
   dropZone.classList.add('ocr-loading');
+  setProcessing(true);
   runOcrBtn.disabled = true;
   const feedItem = addFeed('info', `OCR: ${label}`, 'extracting text…');
 
@@ -221,20 +214,36 @@ async function uploadImagesForOCR(files) {
     }
 
     const { text } = await response.json();
-    setOCRText(text || '');
-    setWorkspaceText(text || '');
-    setTextToSpeechText(text || '');
-    ocrResult.hidden = false;
-    clearSummaryResult();
-    updateTextMetrics();
+    const rawText = text || '';
+    setLatestTextResult({
+      kind: 'ocr',
+      title: 'OCR Result',
+      format: 'plain',
+      rawText,
+      plainText: rawText,
+    });
+
+    const hadWorkingText = Boolean(getWorkspace().workingText.trim());
+    if (!hadWorkingText && rawText.trim()) {
+      replaceWorkingText(rawText);
+      setStatus('OCR result replaced empty working text.', 'success');
+    } else {
+      setStatus('OCR result ready for review.', 'success');
+    }
+
     setStagedFiles([]);
 
-    const wordCount = text ? text.trim().split(/\s+/).filter(Boolean).length : 0;
-    updateFeedItem(feedItem, 'ok', `OCR: ${label}`, `${wordCount} word${wordCount === 1 ? '' : 's'} extracted`);
+    const wordCount = rawText ? rawText.trim().split(/\s+/).filter(Boolean).length : 0;
+    const promotionMeta = !hadWorkingText && rawText.trim()
+      ? `${wordCount} word${wordCount === 1 ? '' : 's'} extracted · promoted to working text`
+      : `${wordCount} word${wordCount === 1 ? '' : 's'} extracted`;
+    updateFeedItem(feedItem, 'ok', `OCR: ${label}`, promotionMeta);
   } catch (error) {
     updateFeedItem(feedItem, 'fail', `OCR: ${label}`, error.message);
+    setStatus(error.message, 'error');
   } finally {
     dropZone.classList.remove('ocr-loading');
+    setProcessing(false);
     syncOCRControls();
   }
 }
@@ -245,94 +254,85 @@ export function initOCR() {
 
   let previousStagedFiles = getWorkspace().stagedFiles;
   let previousProcessing = getWorkspace().processing;
-  let previousOCRText = getWorkspace().ocrText;
-  let previousWorkspaceText = getWorkspace().workspaceText;
 
   subscribeWorkspace((state) => {
-    const stagedFilesChanged = state.stagedFiles !== previousStagedFiles;
-    const processingChanged = state.processing !== previousProcessing;
-    const textChanged = state.ocrText !== previousOCRText || state.workspaceText !== previousWorkspaceText;
-
-    if (stagedFilesChanged) {
+    if (state.stagedFiles !== previousStagedFiles) {
       renderFileList();
     }
-
-    if (processingChanged || stagedFilesChanged || textChanged) {
+    if (state.processing !== previousProcessing || state.stagedFiles !== previousStagedFiles) {
       syncOCRControls();
     }
 
     previousStagedFiles = state.stagedFiles;
     previousProcessing = state.processing;
-    previousOCRText = state.ocrText;
-    previousWorkspaceText = state.workspaceText;
   });
 
-  imgModalClose.addEventListener('click', closeImagePreview);
-  imgModalBack.addEventListener('click', closeImagePreview);
+  dropZone.addEventListener('click', (event) => {
+    if (event.target instanceof HTMLLabelElement) return;
+    fileInput.click();
+  });
+
+  dropZone.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      fileInput.click();
+    }
+  });
+
+  fileInput.addEventListener('change', () => {
+    const files = filterAllowedImageFiles(Array.from(fileInput.files || []));
+    if (files.length > 0) addStagedFiles(files);
+    fileInput.value = '';
+  });
+
+  dropZone.addEventListener('dragenter', (event) => {
+    event.preventDefault();
+    dropZone.classList.add('drag-active');
+  });
 
   dropZone.addEventListener('dragover', (event) => {
     event.preventDefault();
     dropZone.classList.add('drag-active');
   });
 
-  dropZone.addEventListener('dragleave', () => {
-    dropZone.classList.remove('drag-active');
+  dropZone.addEventListener('dragleave', (event) => {
+    if (!dropZone.contains(event.relatedTarget)) {
+      dropZone.classList.remove('drag-active');
+    }
   });
 
   dropZone.addEventListener('drop', (event) => {
     event.preventDefault();
     dropZone.classList.remove('drag-active');
-    const files = filterAllowedImageFiles(Array.from(event.dataTransfer.files));
+    const files = filterAllowedImageFiles(Array.from(event.dataTransfer?.files || []));
     if (files.length > 0) addStagedFiles(files);
   });
 
-  dropZone.addEventListener('click', () => {
-    dropZone.focus();
-  });
-
-  ocrCard.addEventListener('pointerenter', () => {
-    setPointerOverOcrCard(true);
-  });
-
-  ocrCard.addEventListener('pointerleave', () => {
-    setPointerOverOcrCard(false);
-  });
+  ocrCard.addEventListener('mouseenter', () => setPointerOverOcrCard(true));
+  ocrCard.addEventListener('mouseleave', () => setPointerOverOcrCard(false));
+  ocrCard.addEventListener('focusin', () => setPointerOverOcrCard(true));
+  ocrCard.addEventListener('focusout', () => setPointerOverOcrCard(false));
 
   document.addEventListener('paste', (event) => {
     if (!shouldHandleGlobalPaste()) return;
     const files = getImageFilesFromClipboard(event.clipboardData);
-    if (!files.length) return;
+    if (files.length === 0) return;
     event.preventDefault();
     addStagedFiles(files);
-  });
-
-  fileInput.addEventListener('change', () => {
-    const files = filterAllowedImageFiles(Array.from(fileInput.files));
-    if (files.length > 0) addStagedFiles(files);
-    fileInput.value = '';
-  });
-
-  fileList.addEventListener('click', (event) => {
-    const button = event.target.closest('.file-remove');
-    if (!button) return;
-
-    const files = [...getWorkspace().stagedFiles];
-    files.splice(Number.parseInt(button.dataset.index, 10), 1);
-    setStagedFiles(files);
+    setStatus(`Staged ${files.length} pasted image${files.length === 1 ? '' : 's'}.`, 'success');
   });
 
   clearFilesBtn.addEventListener('click', () => {
     setStagedFiles([]);
+    setStatus('Cleared staged OCR files.', 'success');
   });
 
-  runOcrBtn.addEventListener('click', () => {
-    const { processing, stagedFiles } = getWorkspace();
-    if (stagedFiles.length > 0 && !processing) {
-      uploadImagesForOCR([...stagedFiles]);
-    }
+  runOcrBtn.addEventListener('click', async () => {
+    const files = getWorkspace().stagedFiles;
+    if (files.length === 0) return;
+    await uploadImagesForOCR(files);
   });
 
-  ocrOutputText.addEventListener('input', () => {
-    updateTextMetrics();
-  });
+  imgModalBack?.addEventListener('click', closeImagePreview);
+  imgModalClose?.addEventListener('click', closeImagePreview);
 }

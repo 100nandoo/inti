@@ -1,39 +1,44 @@
 import {
   clearWorkspaceBtn,
-  summaryCopyBtn,
-  summaryCopyLabel,
-  summaryDownloadBtn,
-  summaryDownloadGroup,
-  summaryDownloadMenu,
-  summaryDownloadToggle,
-  summaryResult,
-  summarySpeakBtn,
-  summaryText,
+  resultAppendBtn,
+  resultCopyBtn,
+  resultCopyLabel,
+  resultDownloadBtn,
+  resultDownloadGroup,
+  resultDownloadMenu,
+  resultDownloadToggle,
+  resultPromoteDefaultBtn,
+  resultPromoteDefaultLabel,
+  resultReplaceBtn,
+  resultSpeakBtn,
   summarizeBtn,
-  summarizeSpeakBtn,
-  workspaceText,
+  textResultContent,
+  textResultKindChip,
+  textResultTitle,
+  workingText,
 } from './dom.js';
 import { addFeed, setStatus, updateFeedItem } from './feed.js';
 import { buildDownloadFilename } from './filename.js';
+import { downloadBlob } from './download.js';
 import { renderMarkdown } from './markdown.js';
 import { updateTextMetrics } from './metrics.js';
-import { downloadBlob } from './download.js';
 import {
-  clearLastAudioBlob,
-  clearSummaryResult,
-  getWorkspace,
+  applyAppearanceConfig,
+  clearLatestTextResult,
+  getDefaultPromotionBehavior,
   getSelectedSummarizerModel,
   getSelectedSummarizerProvider,
+  getWorkspace,
+  promoteLatestTextResult,
   setGroqRateLimits,
+  setLatestTextResult,
   setProcessing,
-  setSummaryResult,
-  setTextToSpeechText,
-  setWorkspaceText,
+  setWorkingText,
   subscribeWorkspace,
 } from './workspace.js';
-import { truncate } from './text.js';
+import { escHtml, truncate } from './text.js';
 
-let summarizeToSpeech = async () => {};
+let synthesizeFromResult = async () => {};
 let summaryDownloadFormat = 'md';
 const VALID_SUMMARY_DOWNLOAD_FORMATS = new Set(['txt', 'md']);
 
@@ -52,90 +57,113 @@ function parseGroqDuration(value) {
   return milliseconds;
 }
 
-function syncSummaryActionState() {
-  const { processing, summaryPlainText, summaryMarkdown, workspaceText: currentWorkspaceText } = getWorkspace();
-  const hasPlainText = summaryPlainText.trim().length > 0;
-  const hasMarkdown = summaryMarkdown.trim().length > 0;
+function renderPlainText(text) {
+  if (!text.trim()) return '';
+  return text
+    .split(/\n{2,}/)
+    .map((paragraph) => `<p>${escHtml(paragraph).replace(/\n/g, '<br>')}</p>`)
+    .join('');
+}
 
-  if (workspaceText.value !== currentWorkspaceText) {
-    workspaceText.value = currentWorkspaceText;
+function syncWorkspaceControls() {
+  const { processing, workingText: currentWorkingText, latestTextResult } = getWorkspace();
+  const hasWorkingText = currentWorkingText.trim().length > 0;
+  const hasResult = latestTextResult.rawText.trim().length > 0;
+  const defaultPromotionBehavior = getDefaultPromotionBehavior(latestTextResult.kind);
+
+  if (workingText.value !== currentWorkingText) {
+    workingText.value = currentWorkingText;
   }
-  if ((summaryDownloadGroup.dataset.summary || '') !== summaryMarkdown) {
-    summaryDownloadGroup.dataset.summary = summaryMarkdown;
-  }
-  if (summaryMarkdown) {
-    summaryResult.hidden = false;
-    summaryText.innerHTML = renderMarkdown(summaryMarkdown);
+
+  workingText.disabled = processing;
+  clearWorkspaceBtn.disabled = processing || !hasWorkingText;
+  summarizeBtn.disabled = processing || !hasWorkingText;
+
+  if (latestTextResult.kind === 'summary') {
+    textResultContent.innerHTML = renderMarkdown(latestTextResult.rawText);
   } else {
-    summaryResult.hidden = false;
-    summaryText.innerHTML = '';
+    textResultContent.innerHTML = renderPlainText(latestTextResult.rawText);
   }
 
-  if (clearWorkspaceBtn) clearWorkspaceBtn.disabled = processing || !currentWorkspaceText.trim();
-  summarizeBtn.disabled = processing || !currentWorkspaceText.trim();
-  summarizeSpeakBtn.disabled = processing || !currentWorkspaceText.trim();
-  summaryCopyBtn.disabled = processing || !hasPlainText;
-  summarySpeakBtn.disabled = processing || !hasPlainText;
-  summaryDownloadBtn.disabled = processing || !hasPlainText;
-  summaryDownloadToggle.disabled = processing || (!hasPlainText && !hasMarkdown);
+  textResultKindChip.textContent = latestTextResult.kind
+    ? `${latestTextResult.kind === 'summary' ? 'Summary' : 'OCR'} result`
+    : 'No result yet';
+  textResultTitle.textContent = latestTextResult.title || 'Transform result';
 
-  if (summaryDownloadBtn.disabled) {
-    closeSummaryDownloadMenu();
+  const defaultLabel = defaultPromotionBehavior === 'replace'
+    ? 'Replace Working Text'
+    : 'Append to Working Text';
+  resultPromoteDefaultLabel.textContent = defaultLabel;
+
+  resultPromoteDefaultBtn.disabled = processing || !hasResult;
+  resultAppendBtn.disabled = processing || !hasResult;
+  resultReplaceBtn.disabled = processing || !hasResult;
+  resultCopyBtn.disabled = processing || !hasResult;
+  resultDownloadBtn.disabled = processing || !hasResult;
+  resultDownloadToggle.disabled = processing || !hasResult;
+  resultSpeakBtn.disabled = processing || !latestTextResult.plainText.trim();
+
+  if (resultDownloadBtn.disabled) {
+    closeResultDownloadMenu();
   }
+
+  updateTextMetrics();
 }
 
-function downloadSummaryFile(content, ext, mimeType) {
+function downloadResultFile(content, ext, mimeType) {
   const blob = new Blob([content], { type: `${mimeType};charset=utf-8` });
-  const sourceText = summaryDownloadGroup.dataset.summary || summaryText.innerText.trim();
-  downloadBlob(blob, buildDownloadFilename(sourceText, ext));
+  downloadBlob(blob, buildDownloadFilename(content, ext));
 }
 
-function downloadSummaryByFormat(format) {
+function downloadResultByFormat(format) {
+  const { latestTextResult } = getWorkspace();
+  if (!latestTextResult.rawText.trim()) return;
+
   if (format === 'md') {
-    const markdown = summaryDownloadGroup.dataset.summary || '';
+    const markdown = latestTextResult.format === 'markdown'
+      ? latestTextResult.rawText
+      : latestTextResult.plainText || latestTextResult.rawText;
     if (!markdown.trim()) return;
-    downloadSummaryFile(markdown, 'md', 'text/markdown');
+    downloadResultFile(markdown, 'md', 'text/markdown');
     return;
   }
 
-  const plainText = summaryText.innerText.trim();
-  if (!plainText) return;
-  downloadSummaryFile(plainText, 'txt', 'text/plain');
+  const plainText = latestTextResult.plainText || latestTextResult.rawText;
+  if (!plainText.trim()) return;
+  downloadResultFile(plainText, 'txt', 'text/plain');
 }
 
 function applySummaryDownloadFormat(format) {
   summaryDownloadFormat = VALID_SUMMARY_DOWNLOAD_FORMATS.has(format) ? format : 'md';
 }
 
-function openSummaryDownloadMenu() {
-  summaryDownloadMenu.hidden = false;
-  summaryDownloadGroup.classList.add('is-open');
-  summaryDownloadToggle.setAttribute('aria-expanded', 'true');
+function openResultDownloadMenu() {
+  resultDownloadMenu.hidden = false;
+  resultDownloadGroup.classList.add('is-open');
+  resultDownloadToggle.setAttribute('aria-expanded', 'true');
 }
 
-function closeSummaryDownloadMenu() {
-  summaryDownloadMenu.hidden = true;
-  summaryDownloadGroup.classList.remove('is-open');
-  summaryDownloadToggle.setAttribute('aria-expanded', 'false');
+function closeResultDownloadMenu() {
+  resultDownloadMenu.hidden = true;
+  resultDownloadGroup.classList.remove('is-open');
+  resultDownloadToggle.setAttribute('aria-expanded', 'false');
 }
 
-function toggleSummaryDownloadMenu() {
-  if (summaryDownloadMenu.hidden) {
-    openSummaryDownloadMenu();
+function toggleResultDownloadMenu() {
+  if (resultDownloadMenu.hidden) {
+    openResultDownloadMenu();
     return;
   }
-
-  closeSummaryDownloadMenu();
+  closeResultDownloadMenu();
 }
 
-export function resetSummaryResult() {
-  clearSummaryResult();
-  closeSummaryDownloadMenu();
-  updateTextMetrics();
-  syncSummaryActionState();
+function announcePromotion(mode) {
+  const kind = getWorkspace().latestTextResult.kind || 'result';
+  const action = mode === 'replace' ? 'replaced' : 'appended to';
+  setStatus(`${kind === 'summary' ? 'Summary' : 'OCR result'} ${action} working text.`, 'success');
 }
 
-export async function summarizeText(text, shouldSpeak) {
+export async function summarizeText(text) {
   setProcessing(true);
   setStatus('Summarizing…');
 
@@ -173,25 +201,23 @@ export async function summarizeText(text, shouldSpeak) {
 
     const rendered = document.createElement('div');
     rendered.innerHTML = renderMarkdown(summary || '');
-    setSummaryResult(summary || '', rendered.innerText.trim());
-    updateTextMetrics();
-    syncSummaryActionState();
+    setLatestTextResult({
+      kind: 'summary',
+      title: 'Summary Result',
+      format: 'markdown',
+      rawText: summary || '',
+      plainText: rendered.innerText.trim(),
+    });
 
     const duration = ((performance.now() - startTime) / 1000).toFixed(1);
     const modelTag = model ? ` · ${model}` : (resolvedProvider ? ` · ${resolvedProvider}` : '');
-    setStatus('');
+    setStatus('Summary result ready for review.', 'success');
     updateFeedItem(
       feedItem,
       'ok',
       `"${truncate(text, 60)}"`,
       `${wordCount} words → summary · ${duration}s${modelTag}`,
     );
-
-    if (shouldSpeak) {
-      setTextToSpeechText(summary);
-      updateTextMetrics();
-      await summarizeToSpeech(summary);
-    }
   } catch (error) {
     setStatus(error.message, 'error');
     updateFeedItem(feedItem, 'fail', `"${truncate(text, 60)}"`, error.message);
@@ -201,68 +227,73 @@ export async function summarizeText(text, shouldSpeak) {
 }
 
 export function initSummarizer({ synthesizeText }) {
-  summarizeToSpeech = synthesizeText;
+  synthesizeFromResult = synthesizeText;
   applySummaryDownloadFormat(window.IntiTheme?.summaryDownloadFormat);
+  applyAppearanceConfig(window.IntiTheme || {});
 
-  subscribeWorkspace(syncSummaryActionState);
+  subscribeWorkspace(syncWorkspaceControls);
 
   document.addEventListener('inti:theme-config', (event) => {
+    applyAppearanceConfig(event.detail || {});
     applySummaryDownloadFormat(event.detail?.summaryDownloadFormat);
   });
 
   clearWorkspaceBtn?.addEventListener('click', () => {
-    setWorkspaceText('');
-    resetSummaryResult();
+    setWorkingText('');
+    setStatus('Working text cleared.', 'success');
     updateTextMetrics();
   });
 
-  workspaceText.addEventListener('input', () => {
-    setWorkspaceText(workspaceText.value);
-    resetSummaryResult();
-    updateTextMetrics();
-    syncSummaryActionState();
+  workingText.addEventListener('input', () => {
+    setWorkingText(workingText.value);
   });
 
   summarizeBtn.addEventListener('click', async () => {
-    const { processing, workspaceText: currentWorkspaceText } = getWorkspace();
-    const text = currentWorkspaceText.trim();
+    const { processing, workingText: currentWorkingText } = getWorkspace();
+    const text = currentWorkingText.trim();
     if (!text || processing) return;
-    await summarizeText(text, false);
+    await summarizeText(text);
   });
 
-  summarizeSpeakBtn.addEventListener('click', async () => {
-    const { processing, workspaceText: currentWorkspaceText } = getWorkspace();
-    const text = currentWorkspaceText.trim();
-    if (!text || processing) return;
-    await summarizeText(text, true);
+  resultPromoteDefaultBtn.addEventListener('click', () => {
+    const behavior = getDefaultPromotionBehavior(getWorkspace().latestTextResult.kind);
+    if (promoteLatestTextResult(behavior)) announcePromotion(behavior);
   });
 
-  summaryCopyBtn.addEventListener('click', async () => {
-    const text = getWorkspace().summaryPlainText;
+  resultAppendBtn.addEventListener('click', () => {
+    if (promoteLatestTextResult('append')) announcePromotion('append');
+  });
+
+  resultReplaceBtn.addEventListener('click', () => {
+    if (promoteLatestTextResult('replace')) announcePromotion('replace');
+  });
+
+  resultCopyBtn.addEventListener('click', async () => {
+    const text = getWorkspace().latestTextResult.plainText || getWorkspace().latestTextResult.rawText;
     if (!text) return;
 
     try {
       await navigator.clipboard.writeText(text);
     } catch {}
 
-    summaryCopyLabel.textContent = 'Copied!';
+    resultCopyLabel.textContent = 'Copied!';
     setTimeout(() => {
-      summaryCopyLabel.textContent = 'Copy';
+      resultCopyLabel.textContent = 'Copy';
     }, 1500);
   });
 
-  summaryDownloadBtn.addEventListener('click', () => {
+  resultDownloadBtn.addEventListener('click', () => {
     if (getWorkspace().processing) return;
-    downloadSummaryByFormat(summaryDownloadFormat);
+    downloadResultByFormat(summaryDownloadFormat);
   });
 
-  summaryDownloadToggle.addEventListener('click', (event) => {
+  resultDownloadToggle.addEventListener('click', (event) => {
     event.stopPropagation();
-    if (summaryDownloadToggle.disabled) return;
-    toggleSummaryDownloadMenu();
+    if (resultDownloadToggle.disabled) return;
+    toggleResultDownloadMenu();
   });
 
-  summaryDownloadMenu.addEventListener('click', (event) => {
+  resultDownloadMenu.addEventListener('click', (event) => {
     const item = event.target.closest('.split-menu-item');
     if (!item) return;
 
@@ -270,33 +301,36 @@ export function initSummarizer({ synthesizeText }) {
     if (!format) return;
 
     summaryDownloadFormat = format;
-    closeSummaryDownloadMenu();
-    downloadSummaryByFormat(format);
+    closeResultDownloadMenu();
+    downloadResultByFormat(format);
   });
 
-  summaryDownloadGroup.addEventListener('keydown', (event) => {
+  resultDownloadGroup.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
-      closeSummaryDownloadMenu();
-      summaryDownloadToggle.focus();
+      closeResultDownloadMenu();
+      resultDownloadToggle.focus();
     }
   });
 
-  summarySpeakBtn.addEventListener('click', () => {
-    const { processing, summaryPlainText } = getWorkspace();
-    const text = summaryPlainText.trim();
+  resultSpeakBtn.addEventListener('click', async () => {
+    const { processing, latestTextResult } = getWorkspace();
+    const text = latestTextResult.plainText.trim();
     if (!text || processing) return;
-
-    setTextToSpeechText(text);
-    clearLastAudioBlob();
-    updateTextMetrics();
-    setStatus('Summary copied to Text to Speech.', 'success');
+    await synthesizeFromResult(text, { sourceLabel: latestTextResult.title || 'Latest Text Result' });
   });
 
   document.addEventListener('click', (event) => {
-    if (!summaryDownloadGroup.contains(event.target)) {
-      closeSummaryDownloadMenu();
+    if (!resultDownloadGroup.contains(event.target)) {
+      closeResultDownloadMenu();
     }
   });
 
-  syncSummaryActionState();
+  syncWorkspaceControls();
+}
+
+export function resetLatestTextResult() {
+  clearLatestTextResult();
+  closeResultDownloadMenu();
+  updateTextMetrics();
+  syncWorkspaceControls();
 }

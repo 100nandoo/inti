@@ -3,14 +3,24 @@ const listeners = new Set();
 const state = {
   processing: false,
   lastAudioBlob: null,
+  lastAudioSourceText: '',
+  lastAudioSourceLabel: '',
   stagedFiles: [],
   dragSrcIndex: null,
   isPointerOverOcrCard: false,
-  ocrText: '',
-  workspaceText: '',
-  textToSpeechText: '',
-  summaryMarkdown: '',
-  summaryPlainText: '',
+  workingText: '',
+  latestTextResult: {
+    kind: '',
+    title: '',
+    format: 'plain',
+    rawText: '',
+    plainText: '',
+  },
+  appearanceConfig: {
+    summaryDownloadFormat: 'md',
+    ocrPromotionBehavior: 'append',
+    summaryPromotionBehavior: 'append',
+  },
   summarizerConfig: {
     provider: '',
     model: '',
@@ -23,6 +33,17 @@ const state = {
 
 function emit() {
   listeners.forEach((listener) => listener(state));
+}
+
+function normalizePromotionBehavior(value) {
+  return value === 'replace' ? 'replace' : 'append';
+}
+
+function joinTextParts(current, incoming) {
+  const next = incoming || '';
+  if (!current.trim()) return next;
+  if (!next.trim()) return current;
+  return `${current.replace(/\s+$/, '')}\n\n${next.replace(/^\s+/, '')}`;
 }
 
 export function getWorkspace() {
@@ -40,13 +61,17 @@ export function setProcessing(value) {
   emit();
 }
 
-export function setLastAudioBlob(blob) {
+export function setLastAudioResult(blob, sourceText, sourceLabel) {
   state.lastAudioBlob = blob;
+  state.lastAudioSourceText = sourceText || '';
+  state.lastAudioSourceLabel = sourceLabel || '';
   emit();
 }
 
 export function clearLastAudioBlob() {
   state.lastAudioBlob = null;
+  state.lastAudioSourceText = '';
+  state.lastAudioSourceLabel = '';
   emit();
 }
 
@@ -65,24 +90,74 @@ export function setPointerOverOcrCard(value) {
   emit();
 }
 
-export function setOCRText(text) {
-  state.ocrText = text;
+export function setWorkingText(text) {
+  state.workingText = text;
   emit();
 }
 
-export function setWorkspaceText(text) {
-  state.workspaceText = text;
+export function clearWorkingText() {
+  state.workingText = '';
   emit();
 }
 
-export function clearWorkspaceText() {
-  state.workspaceText = '';
+export function replaceWorkingText(text) {
+  state.workingText = text || '';
   emit();
 }
 
-export function setTextToSpeechText(text) {
-  state.textToSpeechText = text;
+export function appendToWorkingText(text) {
+  state.workingText = joinTextParts(state.workingText, text || '');
   emit();
+}
+
+export function setLatestTextResult({ kind = '', title = '', format = 'plain', rawText = '', plainText = '' }) {
+  state.latestTextResult = {
+    kind,
+    title,
+    format,
+    rawText,
+    plainText: plainText || rawText,
+  };
+  emit();
+}
+
+export function clearLatestTextResult() {
+  state.latestTextResult = {
+    kind: '',
+    title: '',
+    format: 'plain',
+    rawText: '',
+    plainText: '',
+  };
+  emit();
+}
+
+export function promoteLatestTextResult(mode) {
+  const rawText = state.latestTextResult.rawText || '';
+  if (!rawText.trim()) return false;
+
+  if (mode === 'replace') {
+    replaceWorkingText(rawText);
+    return true;
+  }
+
+  appendToWorkingText(rawText);
+  return true;
+}
+
+export function applyAppearanceConfig(data) {
+  state.appearanceConfig = {
+    summaryDownloadFormat: data.summaryDownloadFormat === 'txt' ? 'txt' : 'md',
+    ocrPromotionBehavior: normalizePromotionBehavior(data.ocrPromotionBehavior),
+    summaryPromotionBehavior: normalizePromotionBehavior(data.summaryPromotionBehavior),
+  };
+  emit();
+}
+
+export function getDefaultPromotionBehavior(kind) {
+  if (kind === 'summary') return state.appearanceConfig.summaryPromotionBehavior;
+  if (kind === 'ocr') return state.appearanceConfig.ocrPromotionBehavior;
+  return 'append';
 }
 
 export function applySummarizerConfig(data) {
@@ -125,16 +200,4 @@ export function getSelectedSummarizerProvider() {
 
 export function getSelectedSummarizerModel() {
   return state.selectedSummarizerProvider === 'openrouter' ? '' : state.selectedSummarizerModel;
-}
-
-export function setSummaryResult(markdown, plainText) {
-  state.summaryMarkdown = markdown || '';
-  state.summaryPlainText = plainText || '';
-  emit();
-}
-
-export function clearSummaryResult() {
-  state.summaryMarkdown = '';
-  state.summaryPlainText = '';
-  emit();
 }

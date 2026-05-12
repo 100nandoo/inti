@@ -1,17 +1,15 @@
 import {
-  ocrCount,
-  ocrOutputText,
-  summaryCount,
-  summaryText,
-  textInput,
-  ttsCount,
-  workspaceCount,
-  workspaceText,
+  audioResultCard,
+  speechInputPreview,
+  speechInputCount,
+  textResultContent,
+  textResultCount,
+  workingText,
+  workingTextCount,
 } from './dom.js';
 
 export function updateTextMetrics() {
-  if (ocrCount) ocrCount.textContent = `${ocrOutputText.value.length} characters`;
-  if (workspaceCount) workspaceCount.textContent = `${workspaceText.value.length} characters`;
-  if (summaryCount) summaryCount.textContent = `${summaryText.innerText.trim().length} characters`;
-  if (ttsCount) ttsCount.textContent = `${textInput.value.length} characters`;
+  if (workingTextCount) workingTextCount.textContent = `${workingText.value.length} characters`;
+  if (textResultCount) textResultCount.textContent = `${textResultContent.innerText.trim().length} characters`;
+  if (speechInputCount) speechInputCount.textContent = `${speechInputPreview.dataset.previewTextLength || workingText.value.length} characters`;
 }
