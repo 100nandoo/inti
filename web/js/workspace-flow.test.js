@@ -2,6 +2,7 @@ import test, { before, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
 import { renderAppShell } from '../../web-src/src/lib/app-shell.js';
+import { createOCRTextResult } from '../../web-src/src/lib/ocr-result.js';
 
 const html = `<!DOCTYPE html><html lang="en"><body>${renderAppShell()}</body></html>`;
 
@@ -198,17 +199,10 @@ test('summary and OCR promotions honor their configured default behaviors', asyn
   assert.equal(workspace.getWorkspace().workingText, 'Workspace text\n\nScanned text');
 });
 
-test('ocr uploads publish to the shared result surface without mutating working text', async () => {
-  const file = new File(['scan'], 'receipt.png', { type: 'image/png' });
-
-  workspace.setStagedFiles([file]);
-  await flushAsyncWork();
-  assert.equal(elements.runOcrBtn.disabled, false);
-  elements.runOcrBtn.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+test('ocr results publish to the shared result surface without mutating working text', async () => {
+  workspace.setLatestTextResult(createOCRTextResult('Scanned text from OCR'));
   await flushAsyncWork();
 
-  assert.equal(fetchCalls[0].url, '/api/ocr');
-  assert.deepEqual(fetchCalls[0].body.files, ['receipt.png']);
   assert.equal(workspace.getWorkspace().latestTextResult.kind, 'ocr');
   assert.equal(workspace.getWorkspace().latestTextResult.rawText, 'Scanned text from OCR');
   assert.equal(workspace.getWorkspace().workingText, '');

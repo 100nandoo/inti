@@ -29,7 +29,6 @@ import {
   filterAllowedImageFiles,
   formatStagedCount,
   getImageFilesFromClipboard,
-  isAllowedImageType,
   removeStagedFile,
   reorderStagedFiles,
 } from '../../web-src/src/lib/ocr-file-staging.js';
