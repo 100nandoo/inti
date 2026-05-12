@@ -1,0 +1,197 @@
+import { d as l, f as c, o as u, c as T, r as y, i as D, a as M, b as m, s as R, e as C, g as U, h as j } from "./dom-CESGoSUg.js";
+import { s as g, a as x, u as k, e as $ } from "./feed-DrSayDY3.js";
+import { g as d, s as P, a as p, b as f, c as b, d as I, e as q } from "./workspace-Csdb2nMO.js";
+function O(e) {
+  if (!Number.isFinite(e) || e <= 0) return "0 B";
+  const a = ["B", "KB", "MB", "GB"];
+  let n = e, t = 0;
+  for (; n >= 1024 && t < a.length - 1; )
+    n /= 1024, t += 1;
+  const s = t === 0 || n >= 10 ? 0 : 1;
+  return `${n.toFixed(s)} ${a[t]}`;
+}
+const H = /* @__PURE__ */ new Set(["image/png", "image/jpeg", "image/webp", "image/tiff"]);
+function A(e) {
+  return H.has(e);
+}
+function W(e) {
+  return !!(e != null && e.type) && A(e.type);
+}
+function F(e = []) {
+  const a = [];
+  let n = 0;
+  return e.forEach((t) => {
+    var s;
+    W(t) ? a.push(t) : ((s = t == null ? void 0 : t.type) != null && s.startsWith("image/") || /\.svgz?$/i.test((t == null ? void 0 : t.name) || "")) && (n += 1);
+  }), { allowedFiles: a, rejectedCount: n };
+}
+function z(e, { now: a = () => Date.now() } = {}) {
+  if (!e) return { files: [], rejectedCount: 0 };
+  const n = Array.from(e.items || []).filter((i) => i.kind === "file" && A(i.type)).map((i, r) => {
+    const o = i.getAsFile();
+    if (!o) return null;
+    if (!o.name) {
+      const v = o.type.split("/")[1] || "png";
+      return new File([o], `clipboard-image-${a()}-${r}.${v}`, { type: o.type });
+    }
+    return o;
+  }).filter(Boolean);
+  if (n.length > 0)
+    return { files: n, rejectedCount: 0 };
+  const { allowedFiles: t, rejectedCount: s } = F(Array.from(e.files || []));
+  return { files: t, rejectedCount: s };
+}
+function G(e, a) {
+  return [...e, ...a];
+}
+function K(e, a, n) {
+  if (a === null || a === n || a < 0 || n < 0 || a >= e.length || n >= e.length)
+    return e;
+  const t = [...e], [s] = t.splice(a, 1);
+  return t.splice(n, 0, s), t;
+}
+function N(e, a) {
+  return e.filter((n, t) => t !== a);
+}
+function V(e) {
+  return `${e} file${e === 1 ? "" : "s"}`;
+}
+function Z(e = "") {
+  return {
+    kind: "ocr",
+    title: "OCR Result",
+    format: "plain",
+    rawText: e,
+    plainText: e
+  };
+}
+function _(e = "") {
+  return e.trim() ? e.trim().split(/\s+/).filter(Boolean).length : 0;
+}
+function J(e = "") {
+  const a = _(e);
+  return `${a} word${a === 1 ? "" : "s"} extracted`;
+}
+function Q(e) {
+  C.src = e, j.hidden = !1, document.addEventListener("keydown", B);
+}
+function E() {
+  j.hidden = !0, C.src = "", document.removeEventListener("keydown", B);
+}
+function B(e) {
+  e.key === "Escape" && E();
+}
+function X() {
+  const e = document.activeElement;
+  return e && e.closest('input, textarea, select, [contenteditable="true"]') ? !1 : d().isPointerOverOcrCard || (e ? u.contains(e) : !1);
+}
+function L(e) {
+  e > 0 && g(`Rejected ${e} unsupported image file${e === 1 ? "" : "s"}. SVG uploads are not allowed.`, "error");
+}
+function h(e) {
+  f(G(d().stagedFiles, e));
+}
+function S() {
+  const { stagedFiles: e } = d();
+  m.innerHTML = "", R && (R.textContent = V(e.length)), e.forEach((a, n) => {
+    const t = document.createElement("li");
+    t.className = "file-item", t.draggable = !0, t.dataset.index = n;
+    const s = URL.createObjectURL(a);
+    t.innerHTML = `
+      <span class="drag-handle" title="Drag to reorder">::</span>
+      <img class="file-thumb" src="${s}" alt="" />
+      <span class="file-info">
+        <span class="file-name" title="${$(a.name)}">${$(a.name)}</span>
+        <span class="file-meta">${O(a.size)}</span>
+      </span>
+      <span class="file-ok" title="Ready">
+        <span class="icon icon-check" aria-hidden="true"></span>
+      </span>
+      <button class="file-remove" data-index="${n}" title="Remove">
+        <span class="icon icon-trash" aria-hidden="true"></span>
+      </button>`;
+    const i = t.querySelector(".file-thumb");
+    i.addEventListener("load", () => {
+      const r = t.querySelector(".file-meta");
+      r.textContent = `${O(a.size)} · ${i.naturalWidth} × ${i.naturalHeight}`, URL.revokeObjectURL(s);
+    }), i.addEventListener("click", () => {
+      const r = URL.createObjectURL(a);
+      Q(r), C.addEventListener("load", () => URL.revokeObjectURL(r), { once: !0 });
+    }), t.addEventListener("dragstart", (r) => {
+      q(n), r.dataTransfer.effectAllowed = "move", requestAnimationFrame(() => t.classList.add("dragging"));
+    }), t.addEventListener("dragend", () => {
+      t.classList.remove("dragging"), m.querySelectorAll(".file-item").forEach((r) => r.classList.remove("drag-over"));
+    }), t.addEventListener("dragover", (r) => {
+      r.preventDefault(), r.dataTransfer.dropEffect = "move", m.querySelectorAll(".file-item").forEach((o) => o.classList.remove("drag-over")), t.classList.add("drag-over");
+    }), t.addEventListener("drop", (r) => {
+      r.preventDefault(), t.classList.remove("drag-over");
+      const { dragSrcIndex: o, stagedFiles: v } = d();
+      f(K(v, o, n));
+    }), t.querySelector(".file-remove").addEventListener("click", () => {
+      f(N(d().stagedFiles, n));
+    }), m.appendChild(t);
+  }), U.hidden = e.length === 0;
+}
+function w() {
+  const { processing: e, stagedFiles: a } = d();
+  y.disabled = e || a.length === 0, T.disabled = e || a.length === 0;
+}
+async function Y(e) {
+  const a = e.length === 1 ? e[0].name : `${e.length} images`;
+  l.classList.add("ocr-loading"), b(!0), y.disabled = !0;
+  const n = x("info", `OCR: ${a}`, "extracting text…");
+  try {
+    const t = new FormData();
+    e.forEach((o) => t.append("files", o));
+    const s = await fetch(window.apiURL("/api/ocr"), { method: "POST", body: t });
+    if (!s.ok) {
+      const o = await s.json().catch(() => ({ error: s.statusText }));
+      throw new Error(o.error || s.statusText);
+    }
+    const { text: i } = await s.json(), r = i || "";
+    I(Z(r)), g("OCR result ready for review.", "success"), f([]), k(n, "ok", `OCR: ${a}`, J(r));
+  } catch (t) {
+    k(n, "fail", `OCR: ${a}`, t.message), g(t.message, "error");
+  } finally {
+    l.classList.remove("ocr-loading"), b(!1), w();
+  }
+}
+function ae() {
+  var n, t;
+  S(), w();
+  let e = d().stagedFiles, a = d().processing;
+  P((s) => {
+    s.stagedFiles !== e && S(), (s.processing !== a || s.stagedFiles !== e) && w(), e = s.stagedFiles, a = s.processing;
+  }), l.addEventListener("click", (s) => {
+    s.target instanceof HTMLLabelElement || c.click();
+  }), l.addEventListener("keydown", (s) => {
+    (s.key === "Enter" || s.key === " ") && (s.preventDefault(), c.click());
+  }), c.addEventListener("change", () => {
+    const { allowedFiles: s, rejectedCount: i } = F(Array.from(c.files || []));
+    L(i), s.length > 0 && h(s), c.value = "";
+  }), l.addEventListener("dragenter", (s) => {
+    s.preventDefault(), l.classList.add("drag-active");
+  }), l.addEventListener("dragover", (s) => {
+    s.preventDefault(), l.classList.add("drag-active");
+  }), l.addEventListener("dragleave", (s) => {
+    l.contains(s.relatedTarget) || l.classList.remove("drag-active");
+  }), l.addEventListener("drop", (s) => {
+    var o;
+    s.preventDefault(), l.classList.remove("drag-active");
+    const { allowedFiles: i, rejectedCount: r } = F(Array.from(((o = s.dataTransfer) == null ? void 0 : o.files) || []));
+    L(r), i.length > 0 && h(i);
+  }), u.addEventListener("mouseenter", () => p(!0)), u.addEventListener("mouseleave", () => p(!1)), u.addEventListener("focusin", () => p(!0)), u.addEventListener("focusout", () => p(!1)), document.addEventListener("paste", (s) => {
+    if (!X()) return;
+    const { files: i, rejectedCount: r } = z(s.clipboardData);
+    L(r), i.length !== 0 && (s.preventDefault(), h(i), g(`Staged ${i.length} pasted image${i.length === 1 ? "" : "s"}.`, "success"));
+  }), T.addEventListener("click", () => {
+    f([]), g("Cleared staged OCR files.", "success");
+  }), y.addEventListener("click", async () => {
+    const s = d().stagedFiles;
+    s.length !== 0 && await Y(s);
+  }), (n = D) == null || n.addEventListener("click", E), (t = M) == null || t.addEventListener("click", E);
+}
+export {
+  ae as initOCR,
+  Y as uploadImagesForOCR
+};

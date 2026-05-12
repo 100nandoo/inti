@@ -16,7 +16,6 @@ import { formatFileSize } from './bytes.js';
 import { addFeed, setStatus, updateFeedItem } from './feed.js';
 import {
   getWorkspace,
-  replaceWorkingText,
   setDragSourceIndex,
   setLatestTextResult,
   setPointerOverOcrCard,
@@ -25,8 +24,19 @@ import {
   subscribeWorkspace,
 } from './workspace.js';
 import { escHtml } from './text.js';
-
-const allowedImageMimeTypes = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/tiff']);
+import {
+  appendStagedFiles,
+  filterAllowedImageFiles,
+  formatStagedCount,
+  getImageFilesFromClipboard,
+  isAllowedImageType,
+  removeStagedFile,
+  reorderStagedFiles,
+} from '../../web-src/src/lib/ocr-file-staging.js';
+import {
+  buildOCRCompletionMeta,
+  createOCRTextResult,
+} from '../../web-src/src/lib/ocr-result.js';
 
 function openImagePreview(src) {
   imgModalImg.src = src;
@@ -53,58 +63,15 @@ function shouldHandleGlobalPaste() {
   return getWorkspace().isPointerOverOcrCard || (activeElement ? ocrCard.contains(activeElement) : false);
 }
 
-function isAllowedImageType(type) {
-  return allowedImageMimeTypes.has(type);
-}
-
-function isAllowedImageFile(file) {
-  return Boolean(file?.type) && isAllowedImageType(file.type);
-}
-
-function filterAllowedImageFiles(files) {
-  const allowedFiles = [];
-  let rejectedCount = 0;
-
-  files.forEach((file) => {
-    if (isAllowedImageFile(file)) {
-      allowedFiles.push(file);
-    } else if (file?.type?.startsWith('image/') || /\.svgz?$/i.test(file?.name || '')) {
-      rejectedCount += 1;
-    }
-  });
-
+function announceRejectedFiles(rejectedCount) {
   if (rejectedCount > 0) {
     const suffix = rejectedCount === 1 ? '' : 's';
     setStatus(`Rejected ${rejectedCount} unsupported image file${suffix}. SVG uploads are not allowed.`, 'error');
   }
-
-  return allowedFiles;
-}
-
-function getImageFilesFromClipboard(clipboardData) {
-  if (!clipboardData) return [];
-
-  const itemFiles = Array.from(clipboardData.items || [])
-    .filter((item) => item.kind === 'file' && isAllowedImageType(item.type))
-    .map((item, index) => {
-      const file = item.getAsFile();
-      if (!file) return null;
-
-      if (!file.name) {
-        const ext = file.type.split('/')[1] || 'png';
-        return new File([file], `clipboard-image-${Date.now()}-${index}.${ext}`, { type: file.type });
-      }
-
-      return file;
-    })
-    .filter(Boolean);
-
-  if (itemFiles.length > 0) return itemFiles;
-  return filterAllowedImageFiles(Array.from(clipboardData.files || []));
 }
 
 function addStagedFiles(files) {
-  setStagedFiles([...getWorkspace().stagedFiles, ...files]);
+  setStagedFiles(appendStagedFiles(getWorkspace().stagedFiles, files));
 }
 
 function renderFileList() {
@@ -112,7 +79,7 @@ function renderFileList() {
   fileList.innerHTML = '';
 
   if (stagedCount) {
-    stagedCount.textContent = `${stagedFiles.length} file${stagedFiles.length === 1 ? '' : 's'}`;
+    stagedCount.textContent = formatStagedCount(stagedFiles.length);
   }
 
   stagedFiles.forEach((file, index) => {
@@ -171,17 +138,11 @@ function renderFileList() {
       item.classList.remove('drag-over');
 
       const { dragSrcIndex, stagedFiles: currentFiles } = getWorkspace();
-      if (dragSrcIndex === null || dragSrcIndex === index) return;
-
-      const reorderedFiles = [...currentFiles];
-      const [movedFile] = reorderedFiles.splice(dragSrcIndex, 1);
-      reorderedFiles.splice(index, 0, movedFile);
-      setStagedFiles(reorderedFiles);
+      setStagedFiles(reorderStagedFiles(currentFiles, dragSrcIndex, index));
     });
 
     item.querySelector('.file-remove').addEventListener('click', () => {
-      const nextFiles = getWorkspace().stagedFiles.filter((_, fileIndex) => fileIndex !== index);
-      setStagedFiles(nextFiles);
+      setStagedFiles(removeStagedFile(getWorkspace().stagedFiles, index));
     });
 
     fileList.appendChild(item);
@@ -196,7 +157,7 @@ function syncOCRControls() {
   clearFilesBtn.disabled = processing || stagedFiles.length === 0;
 }
 
-async function uploadImagesForOCR(files) {
+export async function uploadImagesForOCR(files) {
   const label = files.length === 1 ? files[0].name : `${files.length} images`;
   dropZone.classList.add('ocr-loading');
   setProcessing(true);
@@ -215,29 +176,10 @@ async function uploadImagesForOCR(files) {
 
     const { text } = await response.json();
     const rawText = text || '';
-    setLatestTextResult({
-      kind: 'ocr',
-      title: 'OCR Result',
-      format: 'plain',
-      rawText,
-      plainText: rawText,
-    });
-
-    const hadWorkingText = Boolean(getWorkspace().workingText.trim());
-    if (!hadWorkingText && rawText.trim()) {
-      replaceWorkingText(rawText);
-      setStatus('OCR result replaced empty working text.', 'success');
-    } else {
-      setStatus('OCR result ready for review.', 'success');
-    }
-
+    setLatestTextResult(createOCRTextResult(rawText));
+    setStatus('OCR result ready for review.', 'success');
     setStagedFiles([]);
-
-    const wordCount = rawText ? rawText.trim().split(/\s+/).filter(Boolean).length : 0;
-    const promotionMeta = !hadWorkingText && rawText.trim()
-      ? `${wordCount} word${wordCount === 1 ? '' : 's'} extracted · promoted to working text`
-      : `${wordCount} word${wordCount === 1 ? '' : 's'} extracted`;
-    updateFeedItem(feedItem, 'ok', `OCR: ${label}`, promotionMeta);
+    updateFeedItem(feedItem, 'ok', `OCR: ${label}`, buildOCRCompletionMeta(rawText));
   } catch (error) {
     updateFeedItem(feedItem, 'fail', `OCR: ${label}`, error.message);
     setStatus(error.message, 'error');
@@ -280,8 +222,9 @@ export function initOCR() {
   });
 
   fileInput.addEventListener('change', () => {
-    const files = filterAllowedImageFiles(Array.from(fileInput.files || []));
-    if (files.length > 0) addStagedFiles(files);
+    const { allowedFiles, rejectedCount } = filterAllowedImageFiles(Array.from(fileInput.files || []));
+    announceRejectedFiles(rejectedCount);
+    if (allowedFiles.length > 0) addStagedFiles(allowedFiles);
     fileInput.value = '';
   });
 
@@ -304,8 +247,9 @@ export function initOCR() {
   dropZone.addEventListener('drop', (event) => {
     event.preventDefault();
     dropZone.classList.remove('drag-active');
-    const files = filterAllowedImageFiles(Array.from(event.dataTransfer?.files || []));
-    if (files.length > 0) addStagedFiles(files);
+    const { allowedFiles, rejectedCount } = filterAllowedImageFiles(Array.from(event.dataTransfer?.files || []));
+    announceRejectedFiles(rejectedCount);
+    if (allowedFiles.length > 0) addStagedFiles(allowedFiles);
   });
 
   ocrCard.addEventListener('mouseenter', () => setPointerOverOcrCard(true));
@@ -315,7 +259,8 @@ export function initOCR() {
 
   document.addEventListener('paste', (event) => {
     if (!shouldHandleGlobalPaste()) return;
-    const files = getImageFilesFromClipboard(event.clipboardData);
+    const { files, rejectedCount } = getImageFilesFromClipboard(event.clipboardData);
+    announceRejectedFiles(rejectedCount);
     if (files.length === 0) return;
     event.preventDefault();
     addStagedFiles(files);

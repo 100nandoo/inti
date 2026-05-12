@@ -2377,11 +2377,11 @@ function kr(e, t) {
     ] = await Promise.all([
       import("./feed-DrSayDY3.js").then((h) => h.c),
       import("./metrics-CLwihjC0.js"),
-      import("./ocr-DjNBxBGc.js"),
-      import("./providers-B-yYHjoO.js"),
-      import("./summarizer-DZubgPV8.js"),
-      import("./tts-BY_ceIfF.js"),
-      import("./voices-DdW-V1kh.js")
+      import("./ocr-_ZduCAgi.js"),
+      import("./providers-CUCu6-U8.js"),
+      import("./summarizer-DPp0390l.js"),
+      import("./tts-Cifn4IA3.js"),
+      import("./voices-CpAZtJg4.js")
     ]);
     a(), o(), p(), f(), l({ synthesizeText: v }), d(), u();
   }), cr();
