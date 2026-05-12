@@ -6,10 +6,12 @@ import { renderAppShell } from '../../web-src/src/lib/app-shell.js';
 const html = `<!DOCTYPE html><html lang="en"><body>${renderAppShell()}</body></html>`;
 
 let workspace;
+let ocr;
 let summarizer;
 let tts;
 let elements;
 let fetchCalls;
+let objectUrlCounter = 0;
 
 function exposeWindowToGlobals(window) {
   globalThis.window = window;
@@ -27,6 +29,13 @@ function exposeWindowToGlobals(window) {
   globalThis.FileReader = globalThis.FileReader || window.FileReader;
   globalThis.atob = globalThis.atob || window.atob.bind(window);
   globalThis.btoa = globalThis.btoa || window.btoa.bind(window);
+  const createObjectURL = () => `blob:mock-${objectUrlCounter += 1}`;
+  const revokeObjectURL = () => {};
+  globalThis.URL = globalThis.URL || window.URL;
+  globalThis.URL.createObjectURL = createObjectURL;
+  globalThis.URL.revokeObjectURL = revokeObjectURL;
+  window.URL.createObjectURL = createObjectURL;
+  window.URL.revokeObjectURL = revokeObjectURL;
   if (!Object.getOwnPropertyDescriptor(window.HTMLElement.prototype, 'innerText')) {
     Object.defineProperty(window.HTMLElement.prototype, 'innerText', {
       configurable: true,
@@ -44,21 +53,27 @@ function cacheElements() {
   elements = {
     workingText: document.getElementById('working-text'),
     summarizeBtn: document.getElementById('summarize-btn'),
+    runOcrBtn: document.getElementById('run-ocr-btn'),
     generateWorkingAudioBtn: document.getElementById('generate-working-audio-btn'),
     generateResultAudioBtn: document.getElementById('generate-result-audio-btn'),
     resultPromoteDefaultBtn: document.getElementById('result-promote-default-btn'),
     resultPromoteDefaultLabel: document.getElementById('result-promote-default-label'),
     audioResultCard: document.getElementById('audio-result-card'),
+    textResultTitle: document.getElementById('text-result-title'),
+    textResultContent: document.getElementById('text-result-content'),
   };
 }
 
 function resetFetchMock() {
   fetchCalls = [];
   globalThis.fetch = async (url, options = {}) => {
+    const isFormDataBody = typeof window.FormData !== 'undefined' && options.body instanceof window.FormData;
     fetchCalls.push({
       url,
       options,
-      body: options.body ? JSON.parse(options.body) : null,
+      body: isFormDataBody
+        ? { files: options.body.getAll('files').map((file) => file.name) }
+        : (options.body ? JSON.parse(options.body) : null),
     });
 
     if (url === '/api/summarize') {
@@ -75,6 +90,12 @@ function resetFetchMock() {
       });
     }
 
+    if (url === '/api/ocr') {
+      return Response.json({
+        text: 'Scanned text from OCR',
+      });
+    }
+
     throw new Error(`Unexpected fetch to ${url}`);
   };
 }
@@ -84,6 +105,7 @@ function resetWorkspaceState() {
   workspace.clearWorkingText();
   workspace.clearLatestTextResult();
   workspace.clearLastAudioBlob();
+  workspace.setStagedFiles([]);
   workspace.applyAppearanceConfig({
     summaryDownloadFormat: 'md',
     ocrPromotionBehavior: 'append',
@@ -118,6 +140,7 @@ before(async () => {
   resetFetchMock();
 
   workspace = await import('./workspace.js');
+  ocr = await import('./ocr.js');
   summarizer = await import('./summarizer.js');
   tts = await import('./tts.js');
 
@@ -129,6 +152,7 @@ before(async () => {
   voiceSelect.innerHTML = '<option value="Kore">Kore</option>';
   voiceSelect.value = 'Kore';
 
+  ocr.initOCR();
   summarizer.initSummarizer({ synthesizeText: tts.synthesizeText });
   tts.initTTS();
 });
@@ -172,6 +196,29 @@ test('summary and OCR promotions honor their configured default behaviors', asyn
   assert.equal(elements.resultPromoteDefaultLabel.textContent, 'Append to Working Text');
   elements.resultPromoteDefaultBtn.click();
   assert.equal(workspace.getWorkspace().workingText, 'Workspace text\n\nScanned text');
+});
+
+test('ocr uploads publish to the shared result surface without mutating working text', async () => {
+  const file = new File(['scan'], 'receipt.png', { type: 'image/png' });
+
+  workspace.setStagedFiles([file]);
+  await flushAsyncWork();
+  assert.equal(elements.runOcrBtn.disabled, false);
+  elements.runOcrBtn.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+  await flushAsyncWork();
+
+  assert.equal(fetchCalls[0].url, '/api/ocr');
+  assert.deepEqual(fetchCalls[0].body.files, ['receipt.png']);
+  assert.equal(workspace.getWorkspace().latestTextResult.kind, 'ocr');
+  assert.equal(workspace.getWorkspace().latestTextResult.rawText, 'Scanned text from OCR');
+  assert.equal(workspace.getWorkspace().workingText, '');
+  assert.equal(elements.workingText.value, '');
+  assert.equal(elements.textResultTitle.textContent, 'OCR Result');
+  assert.match(elements.textResultContent.textContent, /Scanned text from OCR/);
+  assert.equal(elements.resultPromoteDefaultLabel.textContent, 'Append to Working Text');
+
+  elements.resultPromoteDefaultBtn.click();
+  assert.equal(workspace.getWorkspace().workingText, 'Scanned text from OCR');
 });
 
 test('speech generation works from working text and latest text result', async () => {
