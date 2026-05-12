@@ -1,0 +1,11 @@
+{
+  "name": "inti-web-tests",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:web": "node --test web/js/*.test.js"
+  },
+  "devDependencies": {
+    "jsdom": "^26.1.0"
+  }
+}
