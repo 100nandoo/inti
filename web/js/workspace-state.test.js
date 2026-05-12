@@ -1,0 +1,72 @@
+import test, { beforeEach } from 'node:test';
+import assert from 'node:assert/strict';
+
+import {
+  appendToWorkingText,
+  applyAppearanceConfig,
+  clearLastAudioBlob,
+  clearLatestTextResult,
+  getDefaultPromotionBehavior,
+  getWorkspaceSnapshot,
+  promoteLatestTextResult,
+  replaceWorkingText,
+  setLastAudioResult,
+  setLatestTextResult,
+  setWorkingText,
+} from '../../web-src/src/lib/workspace-state.js';
+
+function resetWorkspaceState() {
+  setWorkingText('');
+  clearLatestTextResult();
+  clearLastAudioBlob();
+  applyAppearanceConfig({
+    summaryDownloadFormat: 'md',
+    ocrPromotionBehavior: 'append',
+    summaryPromotionBehavior: 'append',
+  });
+}
+
+beforeEach(() => {
+  resetWorkspaceState();
+});
+
+test('promotion defaults stay scoped to summary and OCR result kinds', () => {
+  applyAppearanceConfig({
+    summaryDownloadFormat: 'txt',
+    ocrPromotionBehavior: 'append',
+    summaryPromotionBehavior: 'replace',
+  });
+
+  assert.equal(getDefaultPromotionBehavior('summary'), 'replace');
+  assert.equal(getDefaultPromotionBehavior('ocr'), 'append');
+  assert.equal(getDefaultPromotionBehavior('unknown'), 'append');
+});
+
+test('promoting the latest text result preserves append and replace semantics', () => {
+  setWorkingText('Working draft');
+  setLatestTextResult({
+    kind: 'summary',
+    title: 'Summary Result',
+    rawText: 'Condensed result',
+    plainText: 'Condensed result',
+  });
+
+  assert.equal(promoteLatestTextResult('append'), true);
+  assert.equal(getWorkspaceSnapshot().workingText, 'Working draft\n\nCondensed result');
+
+  replaceWorkingText('Working draft');
+  assert.equal(promoteLatestTextResult('replace'), true);
+  assert.equal(getWorkspaceSnapshot().workingText, 'Condensed result');
+});
+
+test('audio result metadata survives later working text edits', () => {
+  const blob = new Blob(['opus-audio'], { type: 'audio/opus' });
+
+  setLastAudioResult(blob, 'Stable audio snapshot', 'Summary Result');
+  appendToWorkingText('Edited later');
+
+  const state = getWorkspaceSnapshot();
+  assert.equal(state.lastAudioBlob, blob);
+  assert.equal(state.lastAudioSourceText, 'Stable audio snapshot');
+  assert.equal(state.lastAudioSourceLabel, 'Summary Result');
+});

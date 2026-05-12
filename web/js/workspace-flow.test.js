@@ -3,7 +3,13 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { JSDOM } from 'jsdom';
 
-const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+function loadWorkspaceShell() {
+  const svelteSource = readFileSync(new URL('../../web-src/src/App.svelte', import.meta.url), 'utf8');
+  const body = svelteSource.replace(/^<script>[\s\S]*?<\/script>\s*/, '').trim();
+  return `<!DOCTYPE html><html lang="en"><body>${body}</body></html>`;
+}
+
+const html = loadWorkspaceShell();
 
 let workspace;
 let summarizer;
