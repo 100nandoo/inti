@@ -2,6 +2,39 @@
 
 This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
 
+## RTK - Rust Token Killer (Codex CLI)
+
+**Usage**: Token-optimized CLI proxy for shell commands.
+
+### Rule
+
+Always prefix shell commands with `rtk`.
+
+Examples:
+
+```bash
+rtk git status
+rtk cargo test
+rtk npm run build
+rtk pytest -q
+```
+
+### Meta Commands
+
+```bash
+rtk gain            # Token savings analytics
+rtk gain --history  # Recent command savings history
+rtk proxy <cmd>     # Run raw command without filtering
+```
+
+### Verification
+
+```bash
+rtk --version
+rtk gain
+which rtk
+```
+
 ## Build & Run
 
 ```sh
@@ -34,6 +67,7 @@ cp .env.example .env
 Single Go binary with web assets embedded via `go:embed` (see `embed.go`).
 
 **Entry flow:** `main.go` → `cmd/` (Cobra CLI) → subcommands:
+
 - `serve` — starts HTTP server (`internal/server/`)
 - `speak` — one-shot TTS to stdout/file/player (`cmd/speak.go`)
 - `summarize` — summarizes input text (`cmd/summarize.go`)
@@ -41,6 +75,7 @@ Single Go binary with web assets embedded via `go:embed` (see `embed.go`).
 - `pdf` — converts PDF pages to images (`cmd/pdf.go`)
 
 **Key packages:**
+
 - `internal/gemini/` — wraps `google.golang.org/genai`, calls the Gemini TTS API, detects rate-limit errors
 - `internal/audio/` — encodes PCM → Ogg Opus via `github.com/hraban/opus` (CGo, requires libopus), and invokes `mpv`/`ffplay`/`vlc` for playback
 - `internal/server/` — `net/http` server; `handlers.go` exposes `POST /api/speak`, `GET /api/voices`, `GET /api/models`
