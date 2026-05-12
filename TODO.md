@@ -19,6 +19,7 @@
 
 ### High
 
+- Migrate embedded web frontend from vanilla JS to Svelte (issue #8)
 - Add button Download summary result → [download-summary.md](docs/plan/download-summary.md)
 - Load AI api keys from config → [load-api-keys-from-config.md](docs/plan/load-api-keys-from-config.md)
 - download speak and synthesize button logic improvement → [speak-download-button-fix.md](docs/plan/speak-download-button-fix.md)
@@ -27,6 +28,9 @@
 
 ### Medium
 
+- Migrate secondary web pages to Svelte after the main Text Workspace migration
+- Migrate the web frontend styling and theme system to daisyUI in a follow-on pass
+- Add full web frontend test coverage after the Svelte migration lands
 - Add keyboard shortcut → [keyboard-shortcuts.md](docs/plan/keyboard-shortcuts.md)
 - Add light/dark mode switch → [light-dark-mode.md](docs/plan/light-dark-mode.md)
 

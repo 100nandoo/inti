@@ -16,6 +16,10 @@ _Avoid_: source text, OCR text, TTS text
 The latest text output produced by OCR or summarization, kept separate from **Working Text** until the user promotes it.
 _Avoid_: temporary copy, output box, second editor
 
+**Result Surface**:
+The part of the **Text Workspace** that presents the latest **Transform Result** and the available **Promotion Rule** actions.
+_Avoid_: output panel, result box
+
 **Audio Result**:
 Generated speech for a specific text snapshot that can be played or downloaded independently of later text edits.
 _Avoid_: TTS state, player buffer
@@ -40,6 +44,7 @@ _Avoid_: provider picker logic, backend routing
 
 - The **Text Workspace** owns exactly one **Working Text**
 - **Text Processing** can produce a **Transform Result** from imported images or **Working Text**
+- The **Result Surface** presents the latest **Transform Result** and lets the user apply a **Promotion Rule**
 - A **Transform Result** does not change **Working Text** until a **Promotion Rule** is applied
 - **Runtime Settings** stores the default **Promotion Rule** for OCR imports and summary promotions
 - An **Audio Result** belongs to the text snapshot used to generate it and may remain available after **Working Text** changes
