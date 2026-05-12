@@ -3,9 +3,14 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "build:web": "vite build",
+    "dev:web": "vite",
     "test:web": "node --test web/js/*.test.js"
   },
   "devDependencies": {
-    "jsdom": "^26.1.0"
+    "@sveltejs/vite-plugin-svelte": "^5.1.1",
+    "jsdom": "^26.1.0",
+    "svelte": "^5.55.5",
+    "vite": "^6.4.2"
   }
 }
