@@ -6,5 +6,13 @@ declare module '*.svelte' {
 }
 
 interface Window {
+  IntiTheme?: {
+    apply?: (theme: string) => void;
+    persist?: (theme: string) => void;
+    theme?: string;
+    summaryDownloadFormat?: string;
+    ocrPromotionBehavior?: string;
+    summaryPromotionBehavior?: string;
+  };
   __intiLegacyWorkspaceInitialized?: boolean;
 }
