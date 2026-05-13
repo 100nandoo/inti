@@ -43,6 +43,7 @@ Text-to-speech powered by Google Gemini, with an OCR and summarization workspace
 - [CLI reference](docs/cli.md) — all subcommands, flags, and examples
 - [API reference](docs/api.md) — HTTP endpoints, request/response schemas, and curl examples
 - [Configuration reference](docs/config.md) — all env vars, config file locations, and API key setup
+- [Dev loop contract](docs/dev-loop.md) — the single-command embedded web development workflow and validation matrix
 - [Extension contributing guide](docs/contributing.md) — development, build, packaging, and architecture notes for the browser extension in `extension/`
 
 ## Setup

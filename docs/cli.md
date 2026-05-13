@@ -30,6 +30,8 @@ make dev
 
 `make dev` is the primary development entrypoint. It fails fast if `air`, `npm`, or the installed frontend dependencies are missing, performs one embedded web rebuild up front, then keeps the web watcher and Air running together so `serve` restarts only after generated `web/` assets change.
 
+For the expected ownership split and the validation checklist maintainers should preserve, see [docs/dev-loop.md](dev-loop.md).
+
 For embedded web-only watch mode:
 
 ```sh
