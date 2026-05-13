@@ -1,8 +1,29 @@
-<script>
+<script lang="ts">
   import { onMount } from 'svelte';
   import PageShell from '../components/PageShell.svelte';
   import { createProtectedPage } from '../lib/protected-page.js';
   import { createAPIKey, deleteAPIKey, listAPIKeys } from '../lib/api-keys-service.js';
+
+  type APIKeyRecord = {
+    id: string;
+    name: string;
+    prefix: string;
+    createdAt: string;
+    lastUsedAt: string;
+  };
+
+  type CreateAPIKeyResponse = {
+    key?: APIKeyRecord;
+    raw?: string;
+  };
+
+  type CopyLabel = 'Copy' | 'Copied!' | 'Copy failed';
+
+  type ModalState = {
+    open: boolean;
+    value: string;
+    copyLabel: CopyLabel;
+  };
 
   const protectedPage = createProtectedPage({
     navItems: [
@@ -21,16 +42,24 @@
     ],
   });
 
-  let navLinks = [];
+  const initialModalState = (): ModalState => ({
+    open: false,
+    value: '',
+    copyLabel: 'Copy',
+  });
+
+  let navLinks = protectedPage.navLinks();
   let newKeyName = '';
   let createStatus = '';
-  let keys = [];
+  let keys: APIKeyRecord[] = [];
   let errorMessage = '';
-  let modalOpen = false;
-  let modalValue = '';
-  let copyLabel = 'Copy';
+  let modalState = initialModalState();
 
-  function formatDate(iso) {
+  function readErrorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : 'Unknown error';
+  }
+
+  function formatDate(iso: string): string {
     if (!iso) return '—';
     return new Date(iso).toLocaleDateString(undefined, {
       year: 'numeric',
@@ -42,31 +71,33 @@
   async function handleLoad() {
     errorMessage = '';
     try {
-      keys = await listAPIKeys({ apiURL: protectedPage.apiURL });
+      keys = (await listAPIKeys({ apiURL: protectedPage.apiURL })) as APIKeyRecord[];
     } catch (error) {
-      errorMessage = `Could not load keys: ${error.message}`;
+      errorMessage = `Could not load keys: ${readErrorMessage(error)}`;
     }
   }
 
   async function handleCreate() {
     createStatus = 'Creating…';
     try {
-      const result = await createAPIKey({
+      const result = (await createAPIKey({
         apiURL: protectedPage.apiURL,
         name: newKeyName.trim(),
-      });
+      })) as CreateAPIKeyResponse;
       newKeyName = '';
       createStatus = '';
-      modalValue = result.raw || '';
-      modalOpen = true;
-      copyLabel = 'Copy';
+      modalState = {
+        open: true,
+        value: result.raw || '',
+        copyLabel: 'Copy',
+      };
       await handleLoad();
     } catch (error) {
-      createStatus = `Error: ${error.message}`;
+      createStatus = `Error: ${readErrorMessage(error)}`;
     }
   }
 
-  async function handleDelete(id, name) {
+  async function handleDelete(id: string, name: string) {
     if (!window.confirm(`Delete key "${name}"?\n\nAny requests using it will immediately return 401.`)) {
       return;
     }
@@ -75,36 +106,44 @@
       await deleteAPIKey({ apiURL: protectedPage.apiURL, id });
       await handleLoad();
     } catch (error) {
-      errorMessage = `Delete failed: ${error.message}`;
+      errorMessage = `Delete failed: ${readErrorMessage(error)}`;
     }
   }
 
   async function handleCopy() {
     try {
-      await navigator.clipboard.writeText(modalValue);
-      copyLabel = 'Copied!';
+      await navigator.clipboard.writeText(modalState.value);
+      modalState = {
+        ...modalState,
+        copyLabel: 'Copied!',
+      };
       window.setTimeout(() => {
-        if (copyLabel === 'Copied!') copyLabel = 'Copy';
+        if (modalState.copyLabel === 'Copied!') {
+          modalState = {
+            ...modalState,
+            copyLabel: 'Copy',
+          };
+        }
       }, 2000);
     } catch {
-      copyLabel = 'Copy failed';
+      modalState = {
+        ...modalState,
+        copyLabel: 'Copy failed',
+      };
     }
   }
 
   function closeModal() {
-    modalOpen = false;
-    modalValue = '';
-    copyLabel = 'Copy';
+    modalState = initialModalState();
   }
 
   function useCreatedKey() {
-    navLinks = protectedPage.setCurrentAPIKey(modalValue);
+    navLinks = protectedPage.setCurrentAPIKey(modalState.value);
     closeModal();
     void handleLoad();
   }
 
   onMount(() => {
-    navLinks = protectedPage.navLinks();
     void handleLoad();
   });
 </script>
@@ -165,7 +204,7 @@
   </div>
 </PageShell>
 
-{#if modalOpen}
+{#if modalState.open}
   <div id="key-modal" style="display:flex;">
     <div
       id="key-modal-backdrop"
@@ -178,9 +217,9 @@
     <div id="key-modal-box">
       <h3>API Key Created</h3>
       <p class="key-warning">Copy this key now - it won't be shown again.</p>
-      <code id="key-modal-value" class="key-display">{modalValue}</code>
+      <code id="key-modal-value" class="key-display">{modalState.value}</code>
       <div class="modal-actions">
-        <button id="key-modal-copy" class="btn-secondary" on:click={handleCopy}>{copyLabel}</button>
+        <button id="key-modal-copy" class="btn-secondary" on:click={handleCopy}>{modalState.copyLabel}</button>
         <button id="key-modal-save" class="btn-primary" on:click={useCreatedKey}>Use This Key</button>
       </div>
     </div>
