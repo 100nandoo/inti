@@ -1,6 +1,8 @@
-<script>
-  export let badge = '';
-  export let navLinks = [];
+<script lang="ts">
+  import type { PageShellBadge, PageShellNavLink } from '../lib/page-shell-contracts';
+
+  export let badge: PageShellBadge = '';
+  export let navLinks: PageShellNavLink[] = [];
 </script>
 
 <div class="app">
