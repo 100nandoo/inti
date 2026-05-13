@@ -129,3 +129,88 @@ test('settings page loads and saves through the current backend APIs', async (t)
   ]);
   assert.match(document.body.textContent, /Saved/);
 });
+
+test('settings page labels and scopes clear provider settings narrowly', async (t) => {
+  const requests = [];
+
+  const dom = installDom('http://localhost:8282/settings.html?key=main-secret');
+  t.after(() => teardownPage(dom));
+
+  window.IntiTheme = {
+    apply() {},
+    persist() {},
+  };
+
+  globalThis.fetch = async (url, options = {}) => {
+    const method = options.method || 'GET';
+    const body = options.body ? JSON.parse(options.body) : null;
+    requests.push({ url, method, body });
+
+    if (method === 'GET' && url === 'http://localhost:8282/api/summarizer-config?key=main-secret') {
+      return Response.json({
+        provider: 'groq',
+        model: 'llama-3.3-70b-versatile',
+        keys: {
+          gemini: 'AIza-existing',
+          groq: 'gsk_existing',
+          openrouter: 'sk-or-existing',
+        },
+      });
+    }
+
+    if (method === 'GET' && url === 'http://localhost:8282/api/theme-config?key=main-secret') {
+      return Response.json({
+        theme: 'minimal',
+        summaryDownloadFormat: 'txt',
+        ocrPromotionBehavior: 'replace',
+        summaryPromotionBehavior: 'append',
+      });
+    }
+
+    if (method === 'GET' && url === '/summarizer-models/groq.json') {
+      return Response.json([
+        { value: 'llama-3.3-70b-versatile', label: 'Llama 3.3 70B' },
+      ]);
+    }
+
+    if (method === 'POST' && url === 'http://localhost:8282/api/summarizer-config?key=main-secret') {
+      return Response.json(body);
+    }
+
+    throw new Error(`Unexpected fetch to ${method} ${url}`);
+  };
+
+  await import(`../../web/assets/settings.js?test=${Date.now()}`);
+  await flushAsyncWork();
+
+  assert.equal(document.getElementById('sum-clear-btn').textContent.trim(), 'Clear Provider Settings');
+  assert.equal(document.getElementById('appearance-theme-select').value, 'minimal');
+  assert.equal(document.getElementById('summary-download-format-select').value, 'txt');
+  assert.equal(document.getElementById('ocr-promotion-behavior-select').value, 'replace');
+  assert.equal(document.getElementById('summary-promotion-behavior-select').value, 'append');
+
+  document.getElementById('sum-clear-btn').click();
+  await flushAsyncWork();
+
+  assert.deepEqual(requests.at(-1), {
+    url: 'http://localhost:8282/api/summarizer-config?key=main-secret',
+    method: 'POST',
+    body: {
+      provider: '',
+      model: '',
+      keys: {
+        gemini: '',
+        groq: '',
+        openrouter: '',
+      },
+    },
+  });
+  assert.equal(document.getElementById('sum-provider-select').value, '');
+  assert.equal(document.getElementById('key-gemini').value, '');
+  assert.equal(document.getElementById('key-groq').value, '');
+  assert.equal(document.getElementById('key-openrouter').value, '');
+  assert.equal(document.getElementById('appearance-theme-select').value, 'minimal');
+  assert.equal(document.getElementById('summary-download-format-select').value, 'txt');
+  assert.equal(document.getElementById('ocr-promotion-behavior-select').value, 'replace');
+  assert.equal(document.getElementById('summary-promotion-behavior-select').value, 'append');
+});
