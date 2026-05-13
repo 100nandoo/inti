@@ -65,6 +65,7 @@ For local development with auto-rebuild and restart on Go or embedded web asset 
 
 ```sh
 go install github.com/air-verse/air@latest
+npm install
 make dev
 ```
 
@@ -79,11 +80,11 @@ make dev
 
 If `TELEGRAM_BOT_TOKEN` is set, the same `serve` process also starts the Telegram bot automatically. Without that env var, `serve` keeps the current web-only behavior.
 
-During development, `make dev` is the faster loop. It uses [Air](https://github.com/air-verse/air) with the repo's `.air.toml` to rebuild into `./tmp/inti` and restart `serve` automatically when watched files change.
+During development, `make dev` is the single local entrypoint. It first verifies that `air` and the frontend dependencies are installed, refreshes the embedded `web/` assets once, then runs the persistent `npm run watch:web` loop beside [Air](https://github.com/air-verse/air). Air owns Go rebuilds and `serve` restarts, while raw `web-src/` edits belong to the web watcher and only trigger a restart after the generated embedded assets in `web/` are updated successfully.
 
 For the Svelte-based web source in `web-src/`, run `npm run typecheck:web` to validate the current `.svelte` surface and any typed web modules before building. This is the enforced baseline for the ongoing web TypeScript migration work: `#31` wires Svelte-aware checking into normal validation, and later migration slices can tighten types file-by-file without blocking on the older untyped JavaScript helpers.
 
-To rebuild the embedded web assets continuously without starting a separate frontend runtime, run `npm run watch:web`. It watches the embedded web build plus the generated unauthorized page and stays running across rebuild failures so the next successful save recovers automatically.
+To rebuild the embedded web assets continuously without starting the full dev loop, run `npm run watch:web`. It watches the embedded web build plus the generated unauthorized page and stays running across rebuild failures so the next successful save recovers automatically.
 
 The web UI is split into four panels:
 

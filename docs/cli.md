@@ -24,8 +24,11 @@ For local development with automatic rebuild and restart:
 
 ```sh
 go install github.com/air-verse/air@latest
+npm install
 make dev
 ```
+
+`make dev` is the primary development entrypoint. It fails fast if `air`, `npm`, or the installed frontend dependencies are missing, performs one embedded web rebuild up front, then keeps the web watcher and Air running together so `serve` restarts only after generated `web/` assets change.
 
 For embedded web-only watch mode:
 

@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { build } from 'vite';
@@ -49,7 +49,8 @@ async function startWatcher(label, config) {
 async function main() {
   const tempRoot = resolve(repoRoot, '.tmp');
   await mkdir(tempRoot, { recursive: true });
-  const unauthorizedOutDir = await mkdtemp(resolve(tempRoot, 'inti-unauthorized-watch-'));
+  const unauthorizedOutDir = resolve(tempRoot, 'inti-unauthorized-watch');
+  await rm(unauthorizedOutDir, { recursive: true, force: true });
 
   const watchers = await Promise.all([
     startWatcher('embedded web', {
