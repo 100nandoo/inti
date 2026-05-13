@@ -1,13 +1,27 @@
+/**
+ * @typedef {import('./workspace-contracts').AllowedImageFilesResult} AllowedImageFilesResult
+ * @typedef {import('./workspace-contracts').AllowedImageMimeType} AllowedImageMimeType
+ * @typedef {import('./workspace-contracts').ClipboardImageFilesResult} ClipboardImageFilesResult
+ * @typedef {import('./workspace-contracts').OCRClipboardOptions} OCRClipboardOptions
+ */
+
+/** @type {Set<string>} */
 const allowedImageMimeTypes = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/tiff']);
 
+/** @param {string} type */
 export function isAllowedImageType(type) {
   return allowedImageMimeTypes.has(type);
 }
 
+/** @param {File | null | undefined} file */
 export function isAllowedImageFile(file) {
   return Boolean(file?.type) && isAllowedImageType(file.type);
 }
 
+/**
+ * @param {File[]} [files=[]]
+ * @returns {AllowedImageFilesResult}
+ */
 export function filterAllowedImageFiles(files = []) {
   const allowedFiles = [];
   let rejectedCount = 0;
@@ -23,6 +37,11 @@ export function filterAllowedImageFiles(files = []) {
   return { allowedFiles, rejectedCount };
 }
 
+/**
+ * @param {DataTransfer | null | undefined} clipboardData
+ * @param {OCRClipboardOptions} [options]
+ * @returns {ClipboardImageFilesResult}
+ */
 export function getImageFilesFromClipboard(clipboardData, { now = () => Date.now() } = {}) {
   if (!clipboardData) return { files: [], rejectedCount: 0 };
 
@@ -49,10 +68,21 @@ export function getImageFilesFromClipboard(clipboardData, { now = () => Date.now
   return { files: allowedFiles, rejectedCount };
 }
 
+/**
+ * @param {File[]} currentFiles
+ * @param {File[]} incomingFiles
+ * @returns {File[]}
+ */
 export function appendStagedFiles(currentFiles, incomingFiles) {
   return [...currentFiles, ...incomingFiles];
 }
 
+/**
+ * @param {File[]} files
+ * @param {number | null} fromIndex
+ * @param {number} toIndex
+ * @returns {File[]}
+ */
 export function reorderStagedFiles(files, fromIndex, toIndex) {
   if (
     fromIndex === null
@@ -71,10 +101,16 @@ export function reorderStagedFiles(files, fromIndex, toIndex) {
   return reorderedFiles;
 }
 
+/**
+ * @param {File[]} files
+ * @param {number} index
+ * @returns {File[]}
+ */
 export function removeStagedFile(files, index) {
   return files.filter((_, fileIndex) => fileIndex !== index);
 }
 
+/** @param {number} count */
 export function formatStagedCount(count) {
   return `${count} file${count === 1 ? '' : 's'}`;
 }

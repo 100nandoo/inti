@@ -2,6 +2,7 @@ export type TextResultKind = 'summary' | 'ocr' | '';
 export type TextResultFormat = 'plain' | 'markdown';
 export type PromotionBehavior = 'append' | 'replace';
 export type SummaryDownloadFormat = 'md' | 'txt';
+export type AllowedImageMimeType = 'image/png' | 'image/jpeg' | 'image/webp' | 'image/tiff';
 
 export interface TextResult {
   kind: TextResultKind;
@@ -82,6 +83,20 @@ export interface WorkspaceState {
   selectedSummarizerModel: string;
 }
 
+export interface AllowedImageFilesResult {
+  allowedFiles: File[];
+  rejectedCount: number;
+}
+
+export interface ClipboardImageFilesResult {
+  files: File[];
+  rejectedCount: number;
+}
+
+export interface OCRClipboardOptions {
+  now?: () => number;
+}
+
 export interface SummaryRequestInput {
   apiURL: (path: string) => string;
   fetchImpl?: typeof fetch;
@@ -140,6 +155,14 @@ export interface SpeechPanelViewModel {
   controlsDisabled: boolean;
   audioMeta: string;
   audioCardHtml: string;
+}
+
+export interface ResultSurfaceWorkspace {
+  latestTextResult: TextResult;
+}
+
+export interface ClipboardWriter {
+  writeText(text: string): Promise<void>;
 }
 
 export interface ResultSurfaceViewModel {

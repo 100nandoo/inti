@@ -5,6 +5,7 @@ import {
   appendStagedFiles,
   filterAllowedImageFiles,
   formatStagedCount,
+  getImageFilesFromClipboard,
   removeStagedFile,
   reorderStagedFiles,
 } from '../../web-src/src/lib/ocr-file-staging.js';
@@ -15,23 +16,25 @@ import {
 
 test('OCR staging helpers keep accepted files and count rejected image types', () => {
   const files = [
-    { name: 'receipt.png', type: 'image/png' },
-    { name: 'notes.txt', type: 'text/plain' },
-    { name: 'diagram.svg', type: 'image/svg+xml' },
+    new File(['receipt'], 'receipt.png', { type: 'image/png' }),
+    new File(['notes'], 'notes.txt', { type: 'text/plain' }),
+    new File(['diagram'], 'diagram.svg', { type: 'image/svg+xml' }),
   ];
 
   const { allowedFiles, rejectedCount } = filterAllowedImageFiles(files);
 
-  assert.deepEqual(allowedFiles, [{ name: 'receipt.png', type: 'image/png' }]);
+  assert.equal(allowedFiles.length, 1);
+  assert.equal(allowedFiles[0].name, 'receipt.png');
+  assert.equal(allowedFiles[0].type, 'image/png');
   assert.equal(rejectedCount, 1);
   assert.equal(formatStagedCount(1), '1 file');
   assert.equal(formatStagedCount(2), '2 files');
 });
 
 test('OCR staging helpers append, reorder, and remove files non-destructively', () => {
-  const first = { name: '1.png', type: 'image/png' };
-  const second = { name: '2.png', type: 'image/png' };
-  const third = { name: '3.png', type: 'image/png' };
+  const first = new File(['1'], '1.png', { type: 'image/png' });
+  const second = new File(['2'], '2.png', { type: 'image/png' });
+  const third = new File(['3'], '3.png', { type: 'image/png' });
 
   const appended = appendStagedFiles([first], [second, third]);
   assert.deepEqual(appended, [first, second, third]);
@@ -41,6 +44,35 @@ test('OCR staging helpers append, reorder, and remove files non-destructively', 
 
   const removed = removeStagedFile(reordered, 1);
   assert.deepEqual(removed, [third, second]);
+});
+
+test('OCR clipboard helpers create stable names for pasted image items and reject unsupported fallback files', () => {
+  const pastedFile = new File(['pixels'], '', { type: 'image/png' });
+  const unsupportedSvg = new File(['vector'], 'diagram.svg', { type: 'image/svg+xml' });
+  const plainText = new File(['notes'], 'notes.txt', { type: 'text/plain' });
+
+  const pastedImages = getImageFilesFromClipboard({
+    items: [
+      {
+        kind: 'file',
+        type: 'image/png',
+        getAsFile: () => pastedFile,
+      },
+    ],
+  }, { now: () => 1234 });
+
+  assert.equal(pastedImages.rejectedCount, 0);
+  assert.equal(pastedImages.files.length, 1);
+  assert.equal(pastedImages.files[0].name, 'clipboard-image-1234-0.png');
+  assert.equal(pastedImages.files[0].type, 'image/png');
+
+  const fallbackImages = getImageFilesFromClipboard({
+    items: [],
+    files: [unsupportedSvg, plainText],
+  });
+
+  assert.deepEqual(fallbackImages.files, []);
+  assert.equal(fallbackImages.rejectedCount, 1);
 });
 
 test('OCR result helpers publish a plain text result surface payload', () => {
