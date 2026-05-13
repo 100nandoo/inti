@@ -1,7 +1,7 @@
 <script>
   import { onDestroy, onMount } from 'svelte';
   import PageShell from '../components/PageShell.svelte';
-  import { apiURL, buildPageLink } from '../lib/page-auth.js';
+  import { createProtectedPage } from '../lib/protected-page.js';
   import { getSummarizerModels } from '../lib/summarizer-models.js';
   import {
     clearSummarizerSettings,
@@ -35,7 +35,23 @@
     { value: 'replace', label: 'Replace working text' },
   ];
 
-  let locationContext;
+  const protectedPage = createProtectedPage({
+    navItems: [
+      {
+        path: '/api-keys.html',
+        label: 'API Keys',
+        title: 'Manage API keys',
+        iconClass: 'icon-key',
+      },
+      {
+        path: '/',
+        label: 'Back',
+        title: 'Back to app',
+        iconClass: 'icon-chevron-left',
+      },
+    ],
+  });
+
   let navLinks = [];
 
   let provider = '';
@@ -57,23 +73,6 @@
   let statusError = false;
 
   let groqTimer = null;
-
-  function syncNavLinks() {
-    navLinks = [
-      {
-        href: buildPageLink('/api-keys.html', locationContext),
-        label: 'API Keys',
-        title: 'Manage API keys',
-        iconClass: 'icon-key',
-      },
-      {
-        href: buildPageLink('/', locationContext),
-        label: 'Back',
-        title: 'Back to app',
-        iconClass: 'icon-chevron-left',
-      },
-    ];
-  }
 
   function setStatus(message, isError = false) {
     statusMessage = message;
@@ -145,7 +144,7 @@
 
   async function handleLoad() {
     try {
-      const result = await loadSettings({ apiURL });
+      const result = await loadSettings({ apiURL: protectedPage.apiURL });
       applySummarizerConfig(result.summarizerConfig);
       applyAppearanceConfig(result.appearanceConfig);
       await refreshModelOptions(provider, model);
@@ -157,7 +156,7 @@
   async function handleSave() {
     try {
       const result = await saveSettings({
-        apiURL,
+        apiURL: protectedPage.apiURL,
         provider,
         model: provider === 'openrouter' ? '' : model,
         keys: summarizerKeysPayload(),
@@ -174,7 +173,7 @@
 
   async function handleClear() {
     try {
-      applySummarizerConfig(await clearSummarizerSettings({ apiURL }));
+      applySummarizerConfig(await clearSummarizerSettings({ apiURL: protectedPage.apiURL }));
       await refreshModelOptions(provider, model);
       setStatus('Cleared');
     } catch (error) {
@@ -240,8 +239,7 @@
   }
 
   onMount(() => {
-    locationContext = window.location;
-    syncNavLinks();
+    navLinks = protectedPage.navLinks();
     document.addEventListener('inti:theme-config', handleThemeConfig);
     void handleLoad();
   });

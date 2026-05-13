@@ -1,0 +1,65 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+
+import { createProtectedPage } from '../../web-src/src/lib/protected-page.js';
+
+test('protected page utilities preserve key-aware links and requests', async () => {
+  const requests = [];
+  const win = {
+    location: {
+      origin: 'http://localhost:8282',
+      search: '?key=secret',
+      href: 'http://localhost:8282/settings.html?key=secret',
+    },
+    history: {
+      replaceState(_state, _title, nextUrl) {
+        win.location.href = `http://localhost:8282${nextUrl}`;
+        const next = new URL(win.location.href);
+        win.location.search = next.search;
+      },
+    },
+  };
+
+  const protectedPage = createProtectedPage({
+    navItems: [
+      {
+        path: '/api-keys.html',
+        label: 'API Keys',
+        title: 'Manage API keys',
+        iconClass: 'icon-key',
+      },
+      {
+        path: '/',
+        label: 'Back',
+        title: 'Back to app',
+        iconClass: 'icon-chevron-left',
+      },
+    ],
+    win,
+    fetchImpl: async (url, init = {}) => {
+      requests.push({ url, init });
+      return { ok: true, json: async () => ({ ok: true }) };
+    },
+  });
+
+  assert.equal(protectedPage.currentAPIKey(), 'secret');
+  assert.deepEqual(
+    protectedPage.navLinks().map((link) => link.href),
+    ['/api-keys.html?key=secret', '/?key=secret'],
+  );
+
+  await protectedPage.fetch('/api/theme-config', { method: 'POST' });
+  assert.deepEqual(requests, [
+    {
+      url: 'http://localhost:8282/api/theme-config?key=secret',
+      init: { method: 'POST' },
+    },
+  ]);
+
+  assert.deepEqual(
+    protectedPage.setCurrentAPIKey('next-secret').map((link) => link.href),
+    ['/api-keys.html?key=next-secret', '/?key=next-secret'],
+  );
+  assert.equal(win.location.href, 'http://localhost:8282/settings.html?key=next-secret');
+  assert.equal(protectedPage.currentAPIKey(), 'next-secret');
+});

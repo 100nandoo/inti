@@ -1,10 +1,26 @@
 <script>
   import { onMount } from 'svelte';
   import PageShell from '../components/PageShell.svelte';
-  import { apiURL, buildPageLink, setCurrentAPIKey } from '../lib/page-auth.js';
+  import { createProtectedPage } from '../lib/protected-page.js';
   import { createAPIKey, deleteAPIKey, listAPIKeys } from '../lib/api-keys-service.js';
 
-  let locationContext;
+  const protectedPage = createProtectedPage({
+    navItems: [
+      {
+        path: '/settings.html',
+        label: 'Settings',
+        title: 'Settings',
+        iconClass: 'icon-settings',
+      },
+      {
+        path: '/',
+        label: 'Back',
+        title: 'Back to app',
+        iconClass: 'icon-chevron-left',
+      },
+    ],
+  });
+
   let navLinks = [];
   let newKeyName = '';
   let createStatus = '';
@@ -13,23 +29,6 @@
   let modalOpen = false;
   let modalValue = '';
   let copyLabel = 'Copy';
-
-  function syncNavLinks() {
-    navLinks = [
-      {
-        href: buildPageLink('/settings.html', locationContext),
-        label: 'Settings',
-        title: 'Settings',
-        iconClass: 'icon-settings',
-      },
-      {
-        href: buildPageLink('/', locationContext),
-        label: 'Back',
-        title: 'Back to app',
-        iconClass: 'icon-chevron-left',
-      },
-    ];
-  }
 
   function formatDate(iso) {
     if (!iso) return '—';
@@ -43,7 +42,7 @@
   async function handleLoad() {
     errorMessage = '';
     try {
-      keys = await listAPIKeys({ apiURL });
+      keys = await listAPIKeys({ apiURL: protectedPage.apiURL });
     } catch (error) {
       errorMessage = `Could not load keys: ${error.message}`;
     }
@@ -53,7 +52,7 @@
     createStatus = 'Creating…';
     try {
       const result = await createAPIKey({
-        apiURL,
+        apiURL: protectedPage.apiURL,
         name: newKeyName.trim(),
       });
       newKeyName = '';
@@ -73,7 +72,7 @@
     }
 
     try {
-      await deleteAPIKey({ apiURL, id });
+      await deleteAPIKey({ apiURL: protectedPage.apiURL, id });
       await handleLoad();
     } catch (error) {
       errorMessage = `Delete failed: ${error.message}`;
@@ -99,16 +98,13 @@
   }
 
   function useCreatedKey() {
-    setCurrentAPIKey(modalValue);
-    locationContext = window.location;
-    syncNavLinks();
+    navLinks = protectedPage.setCurrentAPIKey(modalValue);
     closeModal();
     void handleLoad();
   }
 
   onMount(() => {
-    locationContext = window.location;
-    syncNavLinks();
+    navLinks = protectedPage.navLinks();
     void handleLoad();
   });
 </script>
