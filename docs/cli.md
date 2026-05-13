@@ -27,6 +27,12 @@ go install github.com/air-verse/air@latest
 make dev
 ```
 
+For embedded web-only watch mode:
+
+```sh
+npm run watch:web
+```
+
 ---
 
 ## `speak` — Synthesize text

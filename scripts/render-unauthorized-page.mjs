@@ -1,39 +1,19 @@
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { mkdir, mkdtemp, rm } from 'node:fs/promises';
+import { resolve } from 'node:path';
 import { build } from 'vite';
-import { svelte } from '@sveltejs/vite-plugin-svelte';
+import {
+  createUnauthorizedBuildConfig,
+  repoRoot,
+  writeUnauthorizedPage,
+} from './lib/embedded-web-build.mjs';
 
-const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const tempRoot = resolve(repoRoot, '.tmp');
 await mkdir(tempRoot, { recursive: true });
 const tempOutDir = await mkdtemp(resolve(tempRoot, 'inti-unauthorized-'));
 
 try {
-  await build({
-    appType: 'custom',
-    configFile: false,
-    plugins: [svelte()],
-    publicDir: false,
-    root: repoRoot,
-    build: {
-      emptyOutDir: true,
-      minify: false,
-      outDir: tempOutDir,
-      rollupOptions: {
-        input: resolve(repoRoot, 'web-src/src/unauthorized/render.js'),
-        external: ['svelte', 'svelte/internal', 'svelte/internal/server', 'svelte/server'],
-        output: {
-          entryFileNames: 'render.mjs',
-          format: 'es',
-        },
-      },
-      ssr: true,
-    },
-  });
-
-  const { renderUnauthorizedPage } = await import(pathToFileURL(resolve(tempOutDir, 'render.mjs')).href);
-  await writeFile(resolve(repoRoot, 'web/401.html'), renderUnauthorizedPage());
+  await build(createUnauthorizedBuildConfig({ outDir: tempOutDir }));
+  await writeUnauthorizedPage({ rendererModulePath: resolve(tempOutDir, 'render.mjs') });
 } finally {
   await rm(tempOutDir, { recursive: true, force: true });
 }

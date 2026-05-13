@@ -5,6 +5,7 @@
   "scripts": {
     "build:web": "vite build && node scripts/render-unauthorized-page.mjs",
     "dev:web": "vite",
+    "watch:web": "node scripts/watch-web.mjs",
     "test:web": "node --test web/js/*.test.js",
     "typecheck:web": "svelte-check --tsconfig ./tsconfig.web.json"
   },

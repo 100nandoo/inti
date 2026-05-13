@@ -83,6 +83,8 @@ During development, `make dev` is the faster loop. It uses [Air](https://github.
 
 For the Svelte-based web source in `web-src/`, run `npm run typecheck:web` to validate the current `.svelte` surface and any typed web modules before building. This is the enforced baseline for the ongoing web TypeScript migration work: `#31` wires Svelte-aware checking into normal validation, and later migration slices can tighten types file-by-file without blocking on the older untyped JavaScript helpers.
 
+To rebuild the embedded web assets continuously without starting a separate frontend runtime, run `npm run watch:web`. It watches the embedded web build plus the generated unauthorized page and stays running across rebuild failures so the next successful save recovers automatically.
+
 The web UI is split into four panels:
 
 - **Import / OCR** — stage one or more images, extract text, and edit the OCR output.
