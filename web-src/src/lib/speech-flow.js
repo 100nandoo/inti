@@ -69,7 +69,8 @@ export async function decodeAndPlayAudio(blob, audioContextFactory = () => new A
   const base64Audio = await new Promise((resolve) => {
     const reader = new FileReader();
     reader.onload = () => {
-      const data = reader.result.split(',')[1] || reader.result;
+      const result = typeof reader.result === 'string' ? reader.result : '';
+      const data = result.split(',')[1] || result;
       resolve(data);
     };
     reader.readAsDataURL(blob);

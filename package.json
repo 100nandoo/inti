@@ -5,12 +5,14 @@
   "scripts": {
     "build:web": "vite build && node scripts/render-unauthorized-page.mjs",
     "dev:web": "vite",
-    "test:web": "node --test web/js/*.test.js"
+    "test:web": "node --test web/js/*.test.js",
+    "typecheck:web": "tsc --project tsconfig.web.json"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^5.1.1",
     "jsdom": "^26.1.0",
     "svelte": "^5.55.5",
+    "typescript": "^6.0.3",
     "vite": "^6.4.2"
   }
 }

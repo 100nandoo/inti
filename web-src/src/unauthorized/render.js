@@ -11,7 +11,6 @@ export function renderUnauthorizedPage(message = '__MESSAGE__') {
   });
   const html = stripSSRComments(result.html ?? result.body ?? '');
   const head = stripSSRComments(result.head ?? '');
-  const css = result.css?.code ? `<style>${result.css.code}</style>` : '';
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -22,7 +21,6 @@ export function renderUnauthorizedPage(message = '__MESSAGE__') {
   <link rel="icon" href="/icons/inti.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="/style.css" />
   <script defer src="/theme.js"></script>
-  ${css}
 </head>
 <body>
   ${html}
