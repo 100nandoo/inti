@@ -1,5 +1,87 @@
 import { get, writable } from 'svelte/store';
 
+/**
+ * @typedef {'summary' | 'ocr' | ''} TextResultKind
+ * @typedef {'plain' | 'markdown'} TextResultFormat
+ * @typedef {'append' | 'replace'} PromotionBehavior
+ * @typedef {'md' | 'txt'} SummaryDownloadFormat
+ *
+ * @typedef {object} TextResult
+ * @property {TextResultKind} kind
+ * @property {string} title
+ * @property {TextResultFormat} format
+ * @property {string} rawText
+ * @property {string} plainText
+ *
+ * @typedef {object} TextResultUpdate
+ * @property {TextResultKind} [kind]
+ * @property {string} [title]
+ * @property {TextResultFormat} [format]
+ * @property {string} [rawText]
+ * @property {string} [plainText]
+ *
+ * @typedef {object} AppearanceConfig
+ * @property {SummaryDownloadFormat} summaryDownloadFormat
+ * @property {PromotionBehavior} ocrPromotionBehavior
+ * @property {PromotionBehavior} summaryPromotionBehavior
+ *
+ * @typedef {object} AppearanceConfigInput
+ * @property {string} [summaryDownloadFormat]
+ * @property {string} [ocrPromotionBehavior]
+ * @property {string} [summaryPromotionBehavior]
+ *
+ * @typedef {object} SummarizerKeys
+ * @property {string} gemini
+ * @property {string} groq
+ * @property {string} openrouter
+ *
+ * @typedef {object} GroqRateLimits
+ * @property {string} [resetRequests]
+ * @property {string} [resetTokens]
+ * @property {number} [capturedAt]
+ * @property {number} [resetRequestsAt]
+ * @property {number} [resetTokensAt]
+ *
+ * @typedef {object} SummarizerConfig
+ * @property {string} provider
+ * @property {string} model
+ * @property {SummarizerKeys} keys
+ * @property {GroqRateLimits | null} groqLimits
+ *
+ * @typedef {object} SummarizerConfigInput
+ * @property {string} [provider]
+ * @property {string} [model]
+ * @property {{ gemini?: string, groq?: string, openrouter?: string }} [keys]
+ * @property {GroqRateLimits | null} [groqLimits]
+ *
+ * @typedef {object} WorkspaceState
+ * @property {boolean} processing
+ * @property {Blob | null} lastAudioBlob
+ * @property {string} lastAudioSourceText
+ * @property {string} lastAudioSourceLabel
+ * @property {File[]} stagedFiles
+ * @property {number | null} dragSrcIndex
+ * @property {boolean} isPointerOverOcrCard
+ * @property {string} workingText
+ * @property {TextResult} latestTextResult
+ * @property {AppearanceConfig} appearanceConfig
+ * @property {SummarizerConfig} summarizerConfig
+ * @property {string} selectedSummarizerProvider
+ * @property {string} selectedSummarizerModel
+ */
+
+/** @returns {TextResult} */
+function createEmptyTextResult() {
+  return {
+    kind: '',
+    title: '',
+    format: 'plain',
+    rawText: '',
+    plainText: '',
+  };
+}
+
+/** @returns {WorkspaceState} */
 function createInitialState() {
   return {
     processing: false,
@@ -10,13 +92,7 @@ function createInitialState() {
     dragSrcIndex: null,
     isPointerOverOcrCard: false,
     workingText: '',
-    latestTextResult: {
-      kind: '',
-      title: '',
-      format: 'plain',
-      rawText: '',
-      plainText: '',
-    },
+    latestTextResult: createEmptyTextResult(),
     appearanceConfig: {
       summaryDownloadFormat: 'md',
       ocrPromotionBehavior: 'append',
@@ -33,10 +109,15 @@ function createInitialState() {
   };
 }
 
+/** @param {string} value */
 function normalizePromotionBehavior(value) {
   return value === 'replace' ? 'replace' : 'append';
 }
 
+/** @param {string} current
+ * @param {string} incoming
+ * @returns {string}
+ */
 function joinTextParts(current, incoming) {
   const next = incoming || '';
   if (!current.trim()) return next;
@@ -44,20 +125,31 @@ function joinTextParts(current, incoming) {
   return `${current.replace(/\s+$/, '')}\n\n${next.replace(/^\s+/, '')}`;
 }
 
+/** @type {import('svelte/store').Writable<WorkspaceState>} */
 export const workspaceStore = writable(createInitialState());
 
+/** @returns {WorkspaceState} */
 export function getWorkspaceSnapshot() {
   return get(workspaceStore);
 }
 
+/**
+ * @param {(state: WorkspaceState) => WorkspaceState} updater
+ */
 function updateWorkspace(updater) {
   workspaceStore.update((state) => updater(state));
 }
 
+/** @param {boolean} value */
 export function setProcessing(value) {
   updateWorkspace((state) => ({ ...state, processing: value }));
 }
 
+/**
+ * @param {Blob | null} blob
+ * @param {string} sourceText
+ * @param {string} sourceLabel
+ */
 export function setLastAudioResult(blob, sourceText, sourceLabel) {
   updateWorkspace((state) => ({
     ...state,
@@ -76,18 +168,22 @@ export function clearLastAudioBlob() {
   }));
 }
 
+/** @param {File[]} files */
 export function setStagedFiles(files) {
   updateWorkspace((state) => ({ ...state, stagedFiles: files }));
 }
 
+/** @param {number | null} index */
 export function setDragSourceIndex(index) {
   updateWorkspace((state) => ({ ...state, dragSrcIndex: index }));
 }
 
+/** @param {boolean} value */
 export function setPointerOverOcrCard(value) {
   updateWorkspace((state) => ({ ...state, isPointerOverOcrCard: value }));
 }
 
+/** @param {string} text */
 export function setWorkingText(text) {
   updateWorkspace((state) => ({ ...state, workingText: text }));
 }
@@ -96,10 +192,12 @@ export function clearWorkingText() {
   updateWorkspace((state) => ({ ...state, workingText: '' }));
 }
 
+/** @param {string} text */
 export function replaceWorkingText(text) {
   updateWorkspace((state) => ({ ...state, workingText: text || '' }));
 }
 
+/** @param {string} text */
 export function appendToWorkingText(text) {
   updateWorkspace((state) => ({
     ...state,
@@ -107,6 +205,7 @@ export function appendToWorkingText(text) {
   }));
 }
 
+/** @param {TextResultUpdate} result */
 export function setLatestTextResult({ kind = '', title = '', format = 'plain', rawText = '', plainText = '' }) {
   updateWorkspace((state) => ({
     ...state,
@@ -123,16 +222,11 @@ export function setLatestTextResult({ kind = '', title = '', format = 'plain', r
 export function clearLatestTextResult() {
   updateWorkspace((state) => ({
     ...state,
-    latestTextResult: {
-      kind: '',
-      title: '',
-      format: 'plain',
-      rawText: '',
-      plainText: '',
-    },
+    latestTextResult: createEmptyTextResult(),
   }));
 }
 
+/** @param {PromotionBehavior} mode */
 export function promoteLatestTextResult(mode) {
   const state = getWorkspaceSnapshot();
   const rawText = state.latestTextResult.rawText || '';
@@ -147,6 +241,7 @@ export function promoteLatestTextResult(mode) {
   return true;
 }
 
+/** @param {AppearanceConfigInput} data */
 export function applyAppearanceConfig(data) {
   updateWorkspace((state) => ({
     ...state,
@@ -158,6 +253,9 @@ export function applyAppearanceConfig(data) {
   }));
 }
 
+/** @param {TextResultKind} kind
+ * @returns {PromotionBehavior}
+ */
 export function getDefaultPromotionBehavior(kind) {
   const state = getWorkspaceSnapshot();
   if (kind === 'summary') return state.appearanceConfig.summaryPromotionBehavior;
@@ -165,6 +263,7 @@ export function getDefaultPromotionBehavior(kind) {
   return 'append';
 }
 
+/** @param {SummarizerConfigInput} data */
 export function applySummarizerConfig(data) {
   updateWorkspace((state) => ({
     ...state,
@@ -183,6 +282,7 @@ export function applySummarizerConfig(data) {
   }));
 }
 
+/** @param {GroqRateLimits | null} rateLimits */
 export function setGroqRateLimits(rateLimits) {
   updateWorkspace((state) => ({
     ...state,
@@ -193,6 +293,10 @@ export function setGroqRateLimits(rateLimits) {
   }));
 }
 
+/**
+ * @param {string} provider
+ * @param {string} model
+ */
 export function setSelectedSummarizerSelection(provider, model) {
   updateWorkspace((state) => ({
     ...state,
@@ -201,10 +305,12 @@ export function setSelectedSummarizerSelection(provider, model) {
   }));
 }
 
+/** @returns {string} */
 export function getSelectedSummarizerProvider() {
   return getWorkspaceSnapshot().selectedSummarizerProvider;
 }
 
+/** @returns {string} */
 export function getSelectedSummarizerModel() {
   const state = getWorkspaceSnapshot();
   return state.selectedSummarizerProvider === 'openrouter' ? '' : state.selectedSummarizerModel;
