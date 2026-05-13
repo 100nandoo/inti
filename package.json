@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build:web": "vite build",
+    "build:web": "vite build && node scripts/render-unauthorized-page.mjs",
     "dev:web": "vite",
     "test:web": "node --test web/js/*.test.js"
   },

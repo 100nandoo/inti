@@ -19,7 +19,6 @@ export default defineConfig({
         resolve(webSrcDir, 'index.html'),
         resolve(webSrcDir, 'settings.html'),
         resolve(webSrcDir, 'api-keys.html'),
-        resolve(webSrcDir, '401.html'),
       ],
       output: {
         entryFileNames: 'assets/[name].js',
