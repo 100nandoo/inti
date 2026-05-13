@@ -2,6 +2,28 @@ import { buildDownloadFilename } from '../../../web/js/filename.js';
 import { downloadBlob } from '../../../web/js/download.js';
 import { escHtml, truncate } from '../../../web/js/text.js';
 
+/**
+ * @typedef {import('./workspace-contracts').SpeechPanelViewModel} SpeechPanelViewModel
+ * @typedef {import('./workspace-contracts').SpeechPanelWorkspace} SpeechPanelWorkspace
+ * @typedef {import('./workspace-contracts').SpeechRequestInput} SpeechRequestInput
+ * @typedef {import('./workspace-contracts').SpeechResponsePayload} SpeechResponsePayload
+ * @typedef {import('./workspace-contracts').SpeechSynthesisResult} SpeechSynthesisResult
+ */
+
+/**
+ * @param {SpeechResponsePayload} payload
+ * @returns {Uint8Array<ArrayBuffer>}
+ */
+function decodeOpusBytes(payload) {
+  if (!payload.opus) {
+    throw new Error('invalid speech response');
+  }
+  return Uint8Array.from(atob(payload.opus), (char) => char.charCodeAt(0));
+}
+
+/** @param {SpeechPanelWorkspace} workspace
+ * @returns {SpeechPanelViewModel}
+ */
 export function buildSpeechPanelViewModel(workspace) {
   const { processing, workingText, latestTextResult, lastAudioBlob, lastAudioSourceLabel, lastAudioSourceText } = workspace;
   const hasWorkingText = workingText.trim().length > 0;
@@ -39,6 +61,9 @@ export function countWords(text) {
   return text.trim() ? text.trim().split(/\s+/).length : 0;
 }
 
+/** @param {SpeechRequestInput} input
+ * @returns {Promise<SpeechSynthesisResult>}
+ */
 export async function requestSpeechSynthesis({
   apiURL,
   text,
@@ -57,8 +82,9 @@ export async function requestSpeechSynthesis({
     throw new Error(body.error || response.statusText);
   }
 
-  const { opus } = await response.json();
-  const opusBytes = Uint8Array.from(atob(opus), (char) => char.charCodeAt(0));
+  /** @type {SpeechResponsePayload} */
+  const payload = await response.json();
+  const opusBytes = decodeOpusBytes(payload);
   return {
     blob: new Blob([opusBytes], { type: 'audio/opus' }),
     bytes: opusBytes,

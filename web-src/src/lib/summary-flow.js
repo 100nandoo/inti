@@ -1,5 +1,13 @@
 import { renderMarkdown } from '../../../web/js/markdown.js';
 
+/**
+ * @typedef {import('./workspace-contracts').GroqRateLimitPayload} GroqRateLimitPayload
+ * @typedef {import('./workspace-contracts').GroqRateLimits} GroqRateLimits
+ * @typedef {import('./workspace-contracts').SummaryFlowResult} SummaryFlowResult
+ * @typedef {import('./workspace-contracts').SummaryRequestInput} SummaryRequestInput
+ * @typedef {import('./workspace-contracts').SummaryResponsePayload} SummaryResponsePayload
+ */
+
 function parseGroqDuration(value) {
   if (!value) return 0;
 
@@ -15,6 +23,43 @@ function parseGroqDuration(value) {
   return milliseconds;
 }
 
+/**
+ * @param {GroqRateLimitPayload | null | undefined} rateLimits
+ * @param {number} capturedAt
+ * @returns {GroqRateLimits | null}
+ */
+function normalizeGroqRateLimits(rateLimits, capturedAt) {
+  if (!rateLimits) return null;
+
+  return {
+    ...rateLimits,
+    capturedAt,
+    resetRequestsAt: capturedAt + parseGroqDuration(rateLimits.resetRequests),
+    resetTokensAt: capturedAt + parseGroqDuration(rateLimits.resetTokens),
+  };
+}
+
+/**
+ * @param {SummaryResponsePayload} payload
+ * @param {string} requestedProvider
+ * @param {string} requestedModel
+ */
+function normalizeSummaryPayload(payload, requestedProvider, requestedModel) {
+  const provider = payload.provider || requestedProvider || '';
+  const model = provider === 'openrouter'
+    ? ''
+    : (payload.model || requestedModel || '');
+  return {
+    summary: payload.summary || '',
+    provider,
+    model,
+    rateLimits: provider === 'groq' ? payload.rateLimits || null : null,
+  };
+}
+
+/** @param {SummaryRequestInput} input
+ * @returns {Promise<SummaryFlowResult>}
+ */
 export async function executeSummaryRequest({
   apiURL,
   fetchImpl = fetch,
@@ -39,9 +84,11 @@ export async function executeSummaryRequest({
     throw new Error(body.error || response.statusText);
   }
 
+  /** @type {SummaryResponsePayload} */
   const payload = await response.json();
+  const normalized = normalizeSummaryPayload(payload, provider, model);
   const rendered = document.createElement('div');
-  rendered.innerHTML = renderMarkdown(payload.summary || '');
+  rendered.innerHTML = renderMarkdown(normalized.summary);
   const capturedAt = now();
 
   return {
@@ -49,18 +96,11 @@ export async function executeSummaryRequest({
       kind: 'summary',
       title: 'Summary Result',
       format: 'markdown',
-      rawText: payload.summary || '',
+      rawText: normalized.summary,
       plainText: rendered.innerText.trim(),
     },
-    model: payload.model || '',
-    provider: payload.provider || '',
-    rateLimits: payload.rateLimits && payload.provider === 'groq'
-      ? {
-          ...payload.rateLimits,
-          capturedAt,
-          resetRequestsAt: capturedAt + parseGroqDuration(payload.rateLimits.resetRequests),
-          resetTokensAt: capturedAt + parseGroqDuration(payload.rateLimits.resetTokens),
-        }
-      : null,
+    model: normalized.model,
+    provider: normalized.provider,
+    rateLimits: normalizeGroqRateLimits(normalized.rateLimits, capturedAt),
   };
 }

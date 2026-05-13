@@ -1,3 +1,6 @@
+/** @typedef {import('./workspace-contracts').TextResult} TextResult */
+
+/** @returns {TextResult} */
 export function createOCRTextResult(rawText = '') {
   return {
     kind: 'ocr',

@@ -30,6 +30,19 @@ test('requestSpeechSynthesis returns an audio blob from the speak API payload', 
   assert.equal(result.bytes.length > 0, true);
 });
 
+test('requestSpeechSynthesis rejects malformed speak API payloads', async () => {
+  await assert.rejects(
+    requestSpeechSynthesis({
+      apiURL: (path) => path,
+      text: 'Alpha beta',
+      voice: 'Kore',
+      model: 'flash',
+      fetchImpl: async () => Response.json({}),
+    }),
+    /invalid speech response/,
+  );
+});
+
 test('buildSpeechPanelViewModel preserves latest audio snapshot metadata after later edits', () => {
   const blob = new Blob(['opus-audio'], { type: 'audio/opus' });
   const viewModel = buildSpeechPanelViewModel({

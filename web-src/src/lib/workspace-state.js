@@ -1,73 +1,14 @@
 import { get, writable } from 'svelte/store';
 
 /**
- * @typedef {'summary' | 'ocr' | ''} TextResultKind
- * @typedef {'plain' | 'markdown'} TextResultFormat
- * @typedef {'append' | 'replace'} PromotionBehavior
- * @typedef {'md' | 'txt'} SummaryDownloadFormat
- *
- * @typedef {object} TextResult
- * @property {TextResultKind} kind
- * @property {string} title
- * @property {TextResultFormat} format
- * @property {string} rawText
- * @property {string} plainText
- *
- * @typedef {object} TextResultUpdate
- * @property {TextResultKind} [kind]
- * @property {string} [title]
- * @property {TextResultFormat} [format]
- * @property {string} [rawText]
- * @property {string} [plainText]
- *
- * @typedef {object} AppearanceConfig
- * @property {SummaryDownloadFormat} summaryDownloadFormat
- * @property {PromotionBehavior} ocrPromotionBehavior
- * @property {PromotionBehavior} summaryPromotionBehavior
- *
- * @typedef {object} AppearanceConfigInput
- * @property {string} [summaryDownloadFormat]
- * @property {string} [ocrPromotionBehavior]
- * @property {string} [summaryPromotionBehavior]
- *
- * @typedef {object} SummarizerKeys
- * @property {string} gemini
- * @property {string} groq
- * @property {string} openrouter
- *
- * @typedef {object} GroqRateLimits
- * @property {string} [resetRequests]
- * @property {string} [resetTokens]
- * @property {number} [capturedAt]
- * @property {number} [resetRequestsAt]
- * @property {number} [resetTokensAt]
- *
- * @typedef {object} SummarizerConfig
- * @property {string} provider
- * @property {string} model
- * @property {SummarizerKeys} keys
- * @property {GroqRateLimits | null} groqLimits
- *
- * @typedef {object} SummarizerConfigInput
- * @property {string} [provider]
- * @property {string} [model]
- * @property {{ gemini?: string, groq?: string, openrouter?: string }} [keys]
- * @property {GroqRateLimits | null} [groqLimits]
- *
- * @typedef {object} WorkspaceState
- * @property {boolean} processing
- * @property {Blob | null} lastAudioBlob
- * @property {string} lastAudioSourceText
- * @property {string} lastAudioSourceLabel
- * @property {File[]} stagedFiles
- * @property {number | null} dragSrcIndex
- * @property {boolean} isPointerOverOcrCard
- * @property {string} workingText
- * @property {TextResult} latestTextResult
- * @property {AppearanceConfig} appearanceConfig
- * @property {SummarizerConfig} summarizerConfig
- * @property {string} selectedSummarizerProvider
- * @property {string} selectedSummarizerModel
+ * @typedef {import('./workspace-contracts').AppearanceConfigInput} AppearanceConfigInput
+ * @typedef {import('./workspace-contracts').GroqRateLimits} GroqRateLimits
+ * @typedef {import('./workspace-contracts').PromotionBehavior} PromotionBehavior
+ * @typedef {import('./workspace-contracts').SummarizerConfigInput} SummarizerConfigInput
+ * @typedef {import('./workspace-contracts').TextResult} TextResult
+ * @typedef {import('./workspace-contracts').TextResultKind} TextResultKind
+ * @typedef {import('./workspace-contracts').TextResultUpdate} TextResultUpdate
+ * @typedef {import('./workspace-contracts').WorkspaceState} WorkspaceState
  */
 
 /** @returns {TextResult} */

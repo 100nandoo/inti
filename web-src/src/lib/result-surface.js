@@ -3,6 +3,13 @@ import { downloadBlob } from '../../../web/js/download.js';
 import { renderMarkdown } from '../../../web/js/markdown.js';
 import { escHtml } from '../../../web/js/text.js';
 
+/**
+ * @typedef {import('./workspace-contracts').PromotionBehavior} PromotionBehavior
+ * @typedef {import('./workspace-contracts').ResultSurfaceViewModel} ResultSurfaceViewModel
+ * @typedef {import('./workspace-contracts').TextResult} TextResult
+ * @typedef {import('./workspace-contracts').WorkspaceState} WorkspaceState
+ */
+
 function renderPlainText(text) {
   if (!text.trim()) return '';
   return text
@@ -11,6 +18,11 @@ function renderPlainText(text) {
     .join('');
 }
 
+/**
+ * @param {WorkspaceState} workspace
+ * @param {PromotionBehavior} defaultPromotionBehavior
+ * @returns {ResultSurfaceViewModel}
+ */
 export function buildResultSurfaceViewModel(workspace, defaultPromotionBehavior) {
   const latestTextResult = workspace.latestTextResult;
   const hasResult = latestTextResult.rawText.trim().length > 0;
@@ -31,6 +43,10 @@ export function buildResultSurfaceViewModel(workspace, defaultPromotionBehavior)
   };
 }
 
+/**
+ * @param {TextResult} latestTextResult
+ * @param {'md' | 'txt'} format
+ */
 export function downloadLatestResult(latestTextResult, format) {
   if (!latestTextResult.rawText.trim()) return false;
 
@@ -47,6 +63,7 @@ export function downloadLatestResult(latestTextResult, format) {
   return true;
 }
 
+/** @param {TextResult} latestTextResult */
 export async function copyLatestResultText(latestTextResult, clipboard = navigator.clipboard) {
   const text = latestTextResult.plainText || latestTextResult.rawText;
   if (!text) return false;
