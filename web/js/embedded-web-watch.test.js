@@ -17,7 +17,7 @@ test('createUnauthorizedBuildConfig enables watch mode when requested', () => {
 
   assert.equal(config.build.outDir, '/tmp/inti-web-watch');
   assert.deepEqual(config.build.watch, {});
-  assert.equal(config.build.rollupOptions.input.endsWith('web-src/src/unauthorized/render.js'), true);
+  assert.equal(config.build.rollupOptions.input.endsWith('web-src/src/unauthorized/render.ts'), true);
 });
 
 test('createUnauthorizedPageWriter writes the rendered unauthorized page', async () => {

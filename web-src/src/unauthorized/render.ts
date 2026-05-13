@@ -1,14 +1,20 @@
 import { render } from 'svelte/server';
 import UnauthorizedPage from '../pages/UnauthorizedPage.svelte';
 
-function stripSSRComments(markup) {
+type SSRRenderResult = {
+  body?: string;
+  head?: string;
+  html?: string;
+};
+
+function stripSSRComments(markup: string): string {
   return markup.replace(/<!--[^]*?-->/g, '');
 }
 
-export function renderUnauthorizedPage(message = '__MESSAGE__') {
+export function renderUnauthorizedPage(message = '__MESSAGE__'): string {
   const result = render(UnauthorizedPage, {
     props: { message },
-  });
+  }) as SSRRenderResult;
   const html = stripSSRComments(result.html ?? result.body ?? '');
   const head = stripSSRComments(result.head ?? '');
 
