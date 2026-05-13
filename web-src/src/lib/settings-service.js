@@ -1,12 +1,29 @@
+// @ts-check
+
+/** @typedef {import('./settings-contracts').AppearanceSettingsPayload} AppearanceSettingsPayload */
+/** @typedef {import('./settings-contracts').LoadSettingsInput} LoadSettingsInput */
+/** @typedef {import('./settings-contracts').SaveSettingsInput} SaveSettingsInput */
+/** @typedef {import('./settings-contracts').SettingsLoadResult} SettingsLoadResult */
+/** @typedef {import('./settings-contracts').SummarizerSettingsPayload} SummarizerSettingsPayload */
+
+/**
+ * @template T
+ * @param {Response} response
+ * @returns {Promise<T>}
+ */
 async function readJSON(response) {
   if (response.ok) {
-    return response.json();
+    return /** @type {Promise<T>} */ (response.json());
   }
 
-  const body = await response.json().catch(() => ({ error: response.statusText }));
+  const body = await response.json().catch(() => /** @type {{ error: string }} */ ({ error: response.statusText }));
   throw new Error(body.error || response.statusText);
 }
 
+/**
+ * @param {LoadSettingsInput} input
+ * @returns {Promise<SettingsLoadResult>}
+ */
 export async function loadSettings({ fetchImpl = fetch, apiURL }) {
   const [summarizerResponse, themeResponse] = await Promise.all([
     fetchImpl(apiURL('/api/summarizer-config')),
@@ -18,13 +35,17 @@ export async function loadSettings({ fetchImpl = fetch, apiURL }) {
   }
 
   const [summarizerConfig, appearanceConfig] = await Promise.all([
-    summarizerResponse.json(),
-    themeResponse.json(),
+    /** @type {Promise<SummarizerSettingsPayload>} */ (summarizerResponse.json()),
+    /** @type {Promise<AppearanceSettingsPayload>} */ (themeResponse.json()),
   ]);
 
   return { summarizerConfig, appearanceConfig };
 }
 
+/**
+ * @param {SaveSettingsInput} input
+ * @returns {Promise<SettingsLoadResult>}
+ */
 export async function saveSettings({
   fetchImpl = fetch,
   apiURL,
@@ -54,6 +75,10 @@ export async function saveSettings({
   return { summarizerConfig, appearanceConfig: nextAppearanceConfig };
 }
 
+/**
+ * @param {LoadSettingsInput} input
+ * @returns {Promise<SummarizerSettingsPayload>}
+ */
 export async function clearSummarizerSettings({ fetchImpl = fetch, apiURL }) {
   const response = await fetchImpl(apiURL('/api/summarizer-config'), {
     method: 'POST',

@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import { onDestroy, onMount } from 'svelte';
   import PageShell from '../components/PageShell.svelte';
   import { createProtectedPage } from '../lib/protected-page.js';
@@ -8,8 +8,33 @@
     loadSettings,
     saveSettings,
   } from '../lib/settings-service.js';
+  import type { PageShellNavLink } from '../lib/page-shell-contracts';
+  import type {
+    AppearanceSettingsInput,
+    AppearanceSettingsPayload,
+    ProviderDisplayName,
+    SettingsOption,
+    SummarizerModelOption,
+    SummarizerProvider,
+    SummarizerSettingsInput,
+    SummarizerSettingsPayload,
+    ThemeChoice,
+  } from '../lib/settings-contracts';
+  import type {
+    GroqRateLimits,
+    PromotionBehavior,
+    SummaryDownloadFormat,
+    SummarizerKeys,
+  } from '../lib/workspace-contracts';
 
-  const providerOptions = [
+  type StatusState = {
+    message: string;
+    isError: boolean;
+  };
+
+  type GroqTimerState = ReturnType<typeof window.setInterval> | null;
+
+  const providerOptions: SettingsOption<SummarizerProvider>[] = [
     { value: '', label: 'Server default' },
     { value: 'gemini', label: 'Gemini' },
     { value: 'groq', label: 'Groq' },
@@ -17,7 +42,7 @@
     { value: 'mock', label: 'Mock (Testing)' },
   ];
 
-  const themeOptions = [
+  const themeOptions: SettingsOption<ThemeChoice>[] = [
     { value: '', label: 'Server default' },
     { value: 'light', label: 'Light' },
     { value: 'dark', label: 'Dark' },
@@ -25,12 +50,12 @@
     { value: 'minimal-dark', label: 'Minimal Dark' },
   ];
 
-  const summaryFormatOptions = [
+  const summaryFormatOptions: SettingsOption<SummaryDownloadFormat>[] = [
     { value: 'txt', label: 'Plain text (.txt)' },
     { value: 'md', label: 'Markdown (.md)' },
   ];
 
-  const promotionOptions = [
+  const promotionOptions: SettingsOption<PromotionBehavior>[] = [
     { value: 'append', label: 'Append to working text' },
     { value: 'replace', label: 'Replace working text' },
   ];
@@ -52,39 +77,75 @@
     ],
   });
 
-  let navLinks = [];
+  let navLinks: PageShellNavLink[] = [];
 
-  let provider = '';
+  let provider: SummarizerProvider = '';
   let model = '';
-  let modelOptions = [];
-  let theme = '';
-  let summaryDownloadFormat = 'md';
-  let ocrPromotionBehavior = 'append';
-  let summaryPromotionBehavior = 'append';
+  let modelOptions: SummarizerModelOption[] = [];
+  let theme: ThemeChoice = '';
+  let summaryDownloadFormat: SummaryDownloadFormat = 'md';
+  let ocrPromotionBehavior: PromotionBehavior = 'append';
+  let summaryPromotionBehavior: PromotionBehavior = 'append';
   let keyGemini = '';
   let keyGroq = '';
   let keyOpenRouter = '';
   let revealGeminiKey = false;
   let revealGroqKey = false;
   let revealOpenRouterKey = false;
-  let groqLimits = null;
+  let groqLimits: GroqRateLimits | null = null;
   let groqNow = Date.now();
-  let statusMessage = '';
-  let statusError = false;
+  let status: StatusState = { message: '', isError: false };
 
-  let groqTimer = null;
+  let groqTimer: GroqTimerState = null;
 
-  function setStatus(message, isError = false) {
-    statusMessage = message;
-    statusError = isError;
+  function readErrorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : 'Unknown error';
+  }
+
+  function normalizeProvider(value?: string): SummarizerProvider {
+    switch (value) {
+      case 'gemini':
+      case 'groq':
+      case 'openrouter':
+      case 'mock':
+        return value;
+      default:
+        return '';
+    }
+  }
+
+  function normalizeThemeChoice(value?: string): ThemeChoice {
+    switch (value) {
+      case 'light':
+      case 'dark':
+      case 'minimal':
+      case 'minimal-dark':
+        return value;
+      default:
+        return '';
+    }
+  }
+
+  function normalizeSummaryDownloadFormat(value?: string): SummaryDownloadFormat {
+    return value === 'txt' ? 'txt' : 'md';
+  }
+
+  function normalizePromotionBehavior(value?: string): PromotionBehavior {
+    return value === 'replace' ? 'replace' : 'append';
+  }
+
+  function setStatus(message: string, isError = false): void {
+    status = { message, isError };
     if (!message) return;
     window.setTimeout(() => {
-      if (statusMessage === message) statusMessage = '';
+      if (status.message === message) {
+        status = { message: '', isError: false };
+      }
     }, 2000);
   }
 
-  function applySummarizerConfig(config) {
-    provider = config.provider || '';
+  function applySummarizerConfig(config: SummarizerSettingsInput): void {
+    provider = normalizeProvider(config.provider);
     model = config.model || '';
     keyGemini = config.keys?.gemini || '';
     keyGroq = config.keys?.groq || '';
@@ -93,14 +154,14 @@
     resetGroqTimer();
   }
 
-  function applyAppearanceConfig(config) {
-    theme = config.theme || '';
-    summaryDownloadFormat = config.summaryDownloadFormat || 'md';
-    ocrPromotionBehavior = config.ocrPromotionBehavior || 'append';
-    summaryPromotionBehavior = config.summaryPromotionBehavior || 'append';
+  function applyAppearanceConfig(config: AppearanceSettingsInput): void {
+    theme = normalizeThemeChoice(config.theme);
+    summaryDownloadFormat = normalizeSummaryDownloadFormat(config.summaryDownloadFormat);
+    ocrPromotionBehavior = normalizePromotionBehavior(config.ocrPromotionBehavior);
+    summaryPromotionBehavior = normalizePromotionBehavior(config.summaryPromotionBehavior);
   }
 
-  async function refreshModelOptions(selectedProvider, selectedModel = '') {
+  async function refreshModelOptions(selectedProvider: SummarizerProvider, selectedModel = ''): Promise<void> {
     if (!selectedProvider || selectedProvider === 'openrouter') {
       modelOptions = [];
       model = '';
@@ -108,10 +169,10 @@
     }
 
     try {
-      modelOptions = await getSummarizerModels(selectedProvider);
+      modelOptions = (await getSummarizerModels(selectedProvider)) as SummarizerModelOption[];
     } catch (error) {
       modelOptions = [];
-      setStatus(error.message, true);
+      setStatus(readErrorMessage(error), true);
       return;
     }
 
@@ -125,7 +186,7 @@
       : modelOptions[0].value;
   }
 
-  function themeConfigPayload() {
+  function themeConfigPayload(): AppearanceSettingsPayload {
     return {
       theme,
       summaryDownloadFormat,
@@ -134,7 +195,7 @@
     };
   }
 
-  function summarizerKeysPayload() {
+  function summarizerKeysPayload(): SummarizerKeys {
     return {
       gemini: keyGemini.trim(),
       groq: keyGroq.trim(),
@@ -142,18 +203,18 @@
     };
   }
 
-  async function handleLoad() {
+  async function handleLoad(): Promise<void> {
     try {
       const result = await loadSettings({ apiURL: protectedPage.apiURL });
       applySummarizerConfig(result.summarizerConfig);
       applyAppearanceConfig(result.appearanceConfig);
       await refreshModelOptions(provider, model);
     } catch (error) {
-      setStatus(error.message, true);
+      setStatus(readErrorMessage(error), true);
     }
   }
 
-  async function handleSave() {
+  async function handleSave(): Promise<void> {
     try {
       const result = await saveSettings({
         apiURL: protectedPage.apiURL,
@@ -167,36 +228,36 @@
       await refreshModelOptions(provider, model);
       setStatus('Saved');
     } catch (error) {
-      setStatus(error.message, true);
+      setStatus(readErrorMessage(error), true);
     }
   }
 
-  async function handleClear() {
+  async function handleClear(): Promise<void> {
     try {
       applySummarizerConfig(await clearSummarizerSettings({ apiURL: protectedPage.apiURL }));
       await refreshModelOptions(provider, model);
       setStatus('Cleared');
     } catch (error) {
-      setStatus(error.message, true);
+      setStatus(readErrorMessage(error), true);
     }
   }
 
-  async function handleProviderChange() {
+  async function handleProviderChange(): Promise<void> {
     await refreshModelOptions(provider);
   }
 
-  function keyVisibilityLabel(showing, providerName) {
+  function keyVisibilityLabel(showing: boolean, providerName: ProviderDisplayName): string {
     return `${showing ? 'Hide' : 'Show'} ${providerName} API key`;
   }
 
-  function handleThemePreview() {
+  function handleThemePreview(): void {
     if (theme) {
-      window.IntiTheme?.apply(theme);
-      window.IntiTheme?.persist(theme);
+      window.IntiTheme?.apply?.(theme);
+      window.IntiTheme?.persist?.(theme);
     }
   }
 
-  function fmtDuration(ms) {
+  function fmtDuration(ms: number): string {
     if (ms <= 0) return 'now';
     const seconds = Math.round(ms / 1000);
     if (seconds < 60) return `${seconds}s`;
@@ -208,25 +269,26 @@
     return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
   }
 
-  function fmtAgo(ms) {
+  function fmtAgo(ms: number): string {
     const seconds = Math.round(ms / 1000);
     if (seconds < 60) return `${seconds}s ago`;
     if (seconds < 3600) return `${Math.round(seconds / 60)}m ago`;
     return `${Math.round(seconds / 3600)}h ago`;
   }
 
-  function resetGroqTimer() {
+  function resetGroqTimer(): void {
     if (groqTimer) {
       window.clearInterval(groqTimer);
       groqTimer = null;
     }
 
-    if (!groqLimits) return;
+    const currentGroqLimits = groqLimits;
+    if (!currentGroqLimits) return;
 
     groqNow = Date.now();
     groqTimer = window.setInterval(() => {
       groqNow = Date.now();
-      const latestReset = Math.max(groqLimits.resetRequestsAt || 0, groqLimits.resetTokensAt || 0);
+      const latestReset = Math.max(currentGroqLimits.resetRequestsAt || 0, currentGroqLimits.resetTokensAt || 0);
       if (latestReset && groqNow > latestReset + 2000 && groqTimer) {
         window.clearInterval(groqTimer);
         groqTimer = null;
@@ -234,8 +296,12 @@
     }, 1000);
   }
 
-  function handleThemeConfig(event) {
-    applyAppearanceConfig(event.detail || {});
+  function handleThemeConfig(event: Event): void {
+    if (event instanceof CustomEvent) {
+      applyAppearanceConfig((event.detail || {}) as AppearanceSettingsInput);
+      return;
+    }
+    applyAppearanceConfig({});
   }
 
   onMount(() => {
@@ -510,6 +576,6 @@
   <div class="settings-actions-row" style="padding-bottom: 32px">
     <button id="sum-save-btn" class="btn-primary" on:click={handleSave}>Save</button>
     <button id="sum-clear-btn" class="btn-secondary" on:click={handleClear}>Clear Provider Settings</button>
-    <span class:error={statusError} class="status-text">{statusMessage}</span>
+    <span class:error={status.isError} class="status-text">{status.message}</span>
   </div>
 </PageShell>

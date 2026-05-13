@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 test('unauthorized page renderer source preserves the server-side message injection contract', () => {
-  const source = readFileSync(new URL('../../web-src/src/unauthorized/render.js', import.meta.url), 'utf8');
+  const source = readFileSync(new URL('../../web-src/src/unauthorized/render.ts', import.meta.url), 'utf8');
 
   assert.match(source, /renderUnauthorizedPage\(message = '__MESSAGE__'\)/);
   assert.match(source, /UnauthorizedPage\.svelte/);

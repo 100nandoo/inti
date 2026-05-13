@@ -4,7 +4,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 
 export const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
-export const unauthorizedEntry = resolve(repoRoot, 'web-src/src/unauthorized/render.js');
+export const unauthorizedEntry = resolve(repoRoot, 'web-src/src/unauthorized/render.ts');
 export const unauthorizedOutputFile = resolve(repoRoot, 'web/401.html');
 
 export function createUnauthorizedBuildConfig({ outDir, watch = null, extraPlugins = [] }) {

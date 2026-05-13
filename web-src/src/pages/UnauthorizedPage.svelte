@@ -1,7 +1,11 @@
 <svelte:options css="injected" />
 
-<script>
-  let { message = '__MESSAGE__' } = $props();
+<script lang="ts">
+  type UnauthorizedPageProps = {
+    message?: string;
+  };
+
+  let { message = '__MESSAGE__' }: UnauthorizedPageProps = $props();
 </script>
 
 <svelte:head>
