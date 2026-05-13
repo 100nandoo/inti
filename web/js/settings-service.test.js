@@ -1,0 +1,98 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+
+import {
+  clearSummarizerSettings,
+  loadSettings,
+  saveSettings,
+} from '../../web-src/src/lib/settings-service.js';
+
+test('loadSettings fetches summarizer and appearance settings together', async () => {
+  const fetchCalls = [];
+  const apiURL = (path) => `http://localhost:8282${path}?key=secret`;
+
+  const result = await loadSettings({
+    apiURL,
+    fetchImpl: async (url) => {
+      fetchCalls.push(url);
+      if (url.includes('/api/summarizer-config')) {
+        return Response.json({ provider: 'groq', model: 'llama', keys: { groq: 'gsk_test' } });
+      }
+      if (url.includes('/api/theme-config')) {
+        return Response.json({
+          theme: 'minimal',
+          summaryDownloadFormat: 'md',
+          ocrPromotionBehavior: 'append',
+          summaryPromotionBehavior: 'replace',
+        });
+      }
+      throw new Error(`Unexpected request: ${url}`);
+    },
+  });
+
+  assert.deepEqual(fetchCalls, [
+    'http://localhost:8282/api/summarizer-config?key=secret',
+    'http://localhost:8282/api/theme-config?key=secret',
+  ]);
+  assert.equal(result.summarizerConfig.provider, 'groq');
+  assert.equal(result.appearanceConfig.theme, 'minimal');
+});
+
+test('saveSettings preserves the current backend contracts', async () => {
+  const bodies = [];
+  const apiURL = (path) => path;
+
+  const result = await saveSettings({
+    apiURL,
+    provider: 'groq',
+    model: 'llama-3.3-70b-versatile',
+    keys: { gemini: '', groq: 'gsk_saved', openrouter: '' },
+    appearanceConfig: {
+      theme: 'dark',
+      summaryDownloadFormat: 'txt',
+      ocrPromotionBehavior: 'replace',
+      summaryPromotionBehavior: 'append',
+    },
+    fetchImpl: async (_url, options) => {
+      bodies.push(JSON.parse(options.body));
+      return Response.json(JSON.parse(options.body));
+    },
+  });
+
+  assert.deepEqual(bodies, [
+    {
+      provider: 'groq',
+      model: 'llama-3.3-70b-versatile',
+      keys: { gemini: '', groq: 'gsk_saved', openrouter: '' },
+    },
+    {
+      theme: 'dark',
+      summaryDownloadFormat: 'txt',
+      ocrPromotionBehavior: 'replace',
+      summaryPromotionBehavior: 'append',
+    },
+  ]);
+  assert.equal(result.summarizerConfig.model, 'llama-3.3-70b-versatile');
+  assert.equal(result.appearanceConfig.summaryDownloadFormat, 'txt');
+});
+
+test('clearSummarizerSettings resets only provider-side settings', async () => {
+  const result = await clearSummarizerSettings({
+    apiURL: (path) => path,
+    fetchImpl: async (_url, options) => {
+      assert.deepEqual(JSON.parse(options.body), {
+        provider: '',
+        model: '',
+        keys: { gemini: '', groq: '', openrouter: '' },
+      });
+      return Response.json({
+        provider: '',
+        model: '',
+        keys: { gemini: '', groq: '', openrouter: '' },
+      });
+    },
+  });
+
+  assert.equal(result.provider, '');
+  assert.deepEqual(result.keys, { gemini: '', groq: '', openrouter: '' });
+});

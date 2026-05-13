@@ -1,7 +1,1 @@
-import { S as t, w as e, T as n, C as r, U as a, O as s } from "./dom.js";
-function i() {
-  t && (t.textContent = `${e.value.length} characters`), n && (n.textContent = `${r.innerText.trim().length} characters`), a && (a.textContent = `${s.dataset.previewTextLength || e.value.length} characters`);
-}
-export {
-  i as updateTextMetrics
-};
+import{S as t,w as e,T as n,C as r,U as a,O as s}from"./dom.js";function i(){t&&(t.textContent=`${e.value.length} characters`),n&&(n.textContent=`${r.innerText.trim().length} characters`),a&&(a.textContent=`${s.dataset.previewTextLength||e.value.length} characters`)}export{i as updateTextMetrics};
