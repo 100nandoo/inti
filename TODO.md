@@ -27,10 +27,11 @@
 
 ### Medium
 
-- Migrate svelte file to ts
 - Migrate test file to ts
 - Migrate the web frontend styling and theme system to daisyUI in a follow-on pass
 - Add full web frontend test coverage after the Svelte migration lands
+- current imports like renderAppShell, createProtectedPage, api-keys-service, and settings-service are still .js.
+- TS strictness increased
 - Add keyboard shortcut → [keyboard-shortcuts.md](docs/plan/keyboard-shortcuts.md)
 - Add light/dark mode switch → [light-dark-mode.md](docs/plan/light-dark-mode.md)
 
