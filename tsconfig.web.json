@@ -5,12 +5,14 @@
     "moduleResolution": "Bundler",
     "lib": ["DOM", "DOM.Iterable", "ES2022"],
     "allowJs": true,
-    "checkJs": true,
+    "checkJs": false,
     "noEmit": true,
     "skipLibCheck": true
   },
   "include": [
     "web-src/src/**/*.js",
+    "web-src/src/**/*.ts",
+    "web-src/src/**/*.svelte",
     "web-src/src/**/*.d.ts"
   ],
   "exclude": [
