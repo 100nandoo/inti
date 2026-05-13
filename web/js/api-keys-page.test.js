@@ -1,0 +1,121 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+
+import {
+  flushAsyncWork,
+  installDom,
+  setInputValue,
+  teardownPage,
+} from './svelte-page-test-helpers.js';
+
+test('api keys route uses the Svelte secondary-page entrypoint', () => {
+  const html = readFileSync(new URL('../../web-src/api-keys.html', import.meta.url), 'utf8');
+
+  assert.match(html, /<script type="module" src="\.\/src\/entries\/api-keys\.js"><\/script>/);
+});
+
+test('API keys page preserves authenticated admin flows', async (t) => {
+  let copiedValue = '';
+  let createdCount = 1;
+  let keys = [
+    {
+      id: 'k1',
+      name: 'Bootstrap Key',
+      prefix: 'inti_boot',
+      createdAt: '2026-05-13T00:00:00Z',
+      lastUsedAt: '2026-05-13T12:00:00Z',
+    },
+  ];
+  const requests = [];
+
+  const dom = installDom('http://localhost:8282/api-keys.html?key=main-secret');
+  t.after(() => teardownPage(dom));
+
+  navigator.clipboard = {
+    writeText: async (value) => {
+      copiedValue = value;
+    },
+  };
+  window.confirm = () => true;
+
+  globalThis.fetch = async (url, options = {}) => {
+    const method = options.method || 'GET';
+    requests.push({ url, method, body: options.body ? JSON.parse(options.body) : null });
+
+    if (method === 'GET' && url === 'http://localhost:8282/api/admin/keys?key=main-secret') {
+      return Response.json({ keys });
+    }
+
+    if (method === 'GET' && url === 'http://localhost:8282/api/admin/keys?key=inti_secret_1') {
+      return Response.json({ keys });
+    }
+
+    if (method === 'POST' && url === 'http://localhost:8282/api/admin/keys?key=main-secret') {
+      const nextKey = {
+        id: `k${keys.length + 1}`,
+        name: options.body ? JSON.parse(options.body).name : '',
+        prefix: `inti_created_${createdCount}`,
+        createdAt: '2026-05-13T13:00:00Z',
+        lastUsedAt: '',
+      };
+      const raw = `inti_secret_${createdCount}`;
+      createdCount += 1;
+      keys = [...keys, nextKey];
+      return Response.json({ key: nextKey, raw });
+    }
+
+    if (method === 'DELETE' && url === 'http://localhost:8282/api/admin/keys/k2?key=inti_secret_1') {
+      keys = keys.filter((key) => key.id !== 'k2');
+      return new Response(null, { status: 204 });
+    }
+
+    throw new Error(`Unexpected fetch to ${method} ${url}`);
+  };
+
+  await import(`../../web/assets/api-keys.js?test=${Date.now()}`);
+  await flushAsyncWork();
+
+  assert.match(document.body.textContent, /Bootstrap Key/);
+  assert.deepEqual(
+    [...document.querySelectorAll('.header-settings-link')].map((link) => link.getAttribute('href')),
+    ['/settings.html?key=main-secret', '/?key=main-secret'],
+  );
+
+  setInputValue(document.getElementById('new-key-name'), 'Desktop');
+  document.getElementById('create-key-btn').click();
+  await flushAsyncWork();
+
+  assert.equal(requests[1].body.name, 'Desktop');
+  assert.match(document.body.textContent, /API Key Created/);
+  assert.equal(document.getElementById('key-modal-value').textContent, 'inti_secret_1');
+
+  document.getElementById('key-modal-copy').click();
+  await flushAsyncWork();
+  assert.equal(copiedValue, 'inti_secret_1');
+
+  document.getElementById('key-modal-save').click();
+  await flushAsyncWork();
+
+  assert.equal(window.location.search, '?key=inti_secret_1');
+  assert.deepEqual(
+    [...document.querySelectorAll('.header-settings-link')].map((link) => link.getAttribute('href')),
+    ['/settings.html?key=inti_secret_1', '/?key=inti_secret_1'],
+  );
+  assert.match(document.body.textContent, /Desktop/);
+
+  const desktopDeleteButton = [...document.querySelectorAll('tbody tr')]
+    .find((row) => row.textContent.includes('Desktop'))
+    .querySelector('button');
+  desktopDeleteButton.click();
+  await flushAsyncWork();
+
+  assert.ok(
+    requests.some(
+      (request) =>
+        request.method === 'DELETE' &&
+        request.url === 'http://localhost:8282/api/admin/keys/k2?key=inti_secret_1',
+    ),
+  );
+  assert.doesNotMatch(document.body.textContent, /Desktop/);
+});
