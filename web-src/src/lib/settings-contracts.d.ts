@@ -6,7 +6,7 @@ import type {
 } from './workspace-contracts';
 
 export type SummarizerProvider = '' | 'gemini' | 'groq' | 'openrouter' | 'mock';
-export type ThemeChoice = '' | 'light' | 'dark' | 'minimal' | 'minimal-dark';
+export type ThemeChoice = 'light' | 'dark';
 export type ProviderDisplayName = 'Gemini' | 'Groq' | 'OpenRouter';
 
 export interface SettingsOption<T extends string> {

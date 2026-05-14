@@ -149,15 +149,15 @@
 </script>
 
 <PageShell badge="API Keys" {navLinks}>
-  <div class="card">
-    <div class="info-row">
-      <span class="pill">Manage Keys</span>
-      <span class="ocr-hint">Keys are stored server-side. This page requires a valid <code>?key=...</code> in the URL.</span>
+  <div class="card inti-page-card">
+    <div class="info-row inti-section-heading">
+      <span class="pill inti-kicker">Manage Keys</span>
+      <span class="ocr-hint inti-muted">Keys are stored server-side. This page requires a valid <code>?key=...</code> in the URL.</span>
     </div>
 
     <div class="settings-actions-row" style="margin-top:4px;">
-      <input type="text" id="new-key-name" class="settings-key-input" bind:value={newKeyName} placeholder="Key name (optional)" style="flex:1;max-width:260px;" />
-      <button id="create-key-btn" class="btn-primary" on:click={handleCreate}>+ Create Key</button>
+      <input type="text" id="new-key-name" class="input input-bordered settings-key-input" bind:value={newKeyName} placeholder="Key name (optional)" style="flex:1;max-width:260px;" />
+      <button id="create-key-btn" class="btn-primary btn btn-primary" on:click={handleCreate}>+ Create Key</button>
       <span class="status-text">{createStatus}</span>
     </div>
 
@@ -166,7 +166,8 @@
     </div>
 
     {#if keys.length > 0}
-      <table class="keys-table">
+      <div class="overflow-x-auto">
+        <table class="keys-table table table-zebra">
         <thead>
           <tr>
             <th>Name</th>
@@ -184,43 +185,45 @@
               <td>{formatDate(key.createdAt)}</td>
               <td>{formatDate(key.lastUsedAt)}</td>
               <td>
-                <button class="btn-secondary" style="font-size:12px;padding:4px 10px;" on:click={() => handleDelete(key.id, key.name)}>
+                <button class="btn-secondary btn btn-ghost btn-sm border border-base-300" style="font-size:12px;padding:4px 10px;" on:click={() => handleDelete(key.id, key.name)}>
                   Delete
                 </button>
               </td>
             </tr>
           {/each}
         </tbody>
-      </table>
+        </table>
+      </div>
     {:else}
-      <p style="font-size:13px;color:var(--muted);margin:16px 0 0;">
+      <p class="inti-muted" style="font-size:13px;color:var(--muted);margin:16px 0 0;">
         No keys yet. Create one above to enable authentication.
       </p>
     {/if}
 
     {#if errorMessage}
-      <p style="font-size:13px;color:var(--error);margin:16px 0 0;">{errorMessage}</p>
+      <p class="inti-muted" style="font-size:13px;color:var(--error);margin:16px 0 0;">{errorMessage}</p>
     {/if}
   </div>
 </PageShell>
 
 {#if modalState.open}
-  <div id="key-modal" style="display:flex;">
+  <div id="key-modal" class="modal modal-open" style="display:flex;">
     <div
       id="key-modal-backdrop"
+      class="modal-backdrop"
       role="button"
       tabindex="0"
       aria-label="Close API key modal"
       on:click={closeModal}
       on:keydown={(event) => (event.key === 'Enter' || event.key === ' ') && closeModal()}
     ></div>
-    <div id="key-modal-box">
+    <div id="key-modal-box" class="modal-box inti-page-card">
       <h3>API Key Created</h3>
       <p class="key-warning">Copy this key now - it won't be shown again.</p>
       <code id="key-modal-value" class="key-display">{modalState.value}</code>
       <div class="modal-actions">
-        <button id="key-modal-copy" class="btn-secondary" on:click={handleCopy}>{modalState.copyLabel}</button>
-        <button id="key-modal-save" class="btn-primary" on:click={useCreatedKey}>Use This Key</button>
+        <button id="key-modal-copy" class="btn-secondary btn btn-ghost border border-base-300" on:click={handleCopy}>{modalState.copyLabel}</button>
+        <button id="key-modal-save" class="btn-primary btn btn-primary" on:click={useCreatedKey}>Use This Key</button>
       </div>
     </div>
   </div>

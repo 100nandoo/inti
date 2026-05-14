@@ -56,7 +56,7 @@ test('settings page loads and saves through the current backend APIs', async (t)
 
     if (method === 'GET' && urlText === 'http://localhost:8282/api/theme-config?key=main-secret') {
       return Response.json({
-        theme: 'minimal',
+        theme: 'dark',
         summaryDownloadFormat: 'md',
         ocrPromotionBehavior: 'append',
         summaryPromotionBehavior: 'replace',
@@ -90,7 +90,11 @@ test('settings page loads and saves through the current backend APIs', async (t)
   );
   assert.equal(requiredElement<HTMLSelectElement>('sum-provider-select').value, 'groq');
   assert.equal(requiredElement<HTMLSelectElement>('sum-model-select').value, 'llama-3.3-70b-versatile');
-  assert.equal(requiredElement<HTMLSelectElement>('appearance-theme-select').value, 'minimal');
+  assert.equal(requiredElement<HTMLSelectElement>('appearance-theme-select').value, 'dark');
+  assert.deepEqual(
+    [...requiredElement<HTMLSelectElement>('appearance-theme-select').options].map((option) => option.value),
+    ['light', 'dark'],
+  );
   assert.equal(requiredElement<HTMLSelectElement>('summary-download-format-select').value, 'md');
   assert.equal(requiredElement<HTMLSelectElement>('ocr-promotion-behavior-select').value, 'append');
   assert.equal(requiredElement<HTMLSelectElement>('summary-promotion-behavior-select').value, 'replace');
@@ -177,7 +181,7 @@ test('settings page labels and scopes clear provider settings narrowly', async (
 
     if (method === 'GET' && urlText === 'http://localhost:8282/api/theme-config?key=main-secret') {
       return Response.json({
-        theme: 'minimal',
+        theme: 'dark',
         summaryDownloadFormat: 'txt',
         ocrPromotionBehavior: 'replace',
         summaryPromotionBehavior: 'append',
@@ -201,7 +205,7 @@ test('settings page labels and scopes clear provider settings narrowly', async (
   await flushAsyncWork();
 
   assert.equal(requiredElement<HTMLButtonElement>('sum-clear-btn').textContent.trim(), 'Clear Provider Settings');
-  assert.equal(requiredElement<HTMLSelectElement>('appearance-theme-select').value, 'minimal');
+  assert.equal(requiredElement<HTMLSelectElement>('appearance-theme-select').value, 'dark');
   assert.equal(requiredElement<HTMLSelectElement>('summary-download-format-select').value, 'txt');
   assert.equal(requiredElement<HTMLSelectElement>('ocr-promotion-behavior-select').value, 'replace');
   assert.equal(requiredElement<HTMLSelectElement>('summary-promotion-behavior-select').value, 'append');
@@ -226,7 +230,7 @@ test('settings page labels and scopes clear provider settings narrowly', async (
   assert.equal(requiredElement<HTMLInputElement>('key-gemini').value, '');
   assert.equal(requiredElement<HTMLInputElement>('key-groq').value, '');
   assert.equal(requiredElement<HTMLInputElement>('key-openrouter').value, '');
-  assert.equal(requiredElement<HTMLSelectElement>('appearance-theme-select').value, 'minimal');
+  assert.equal(requiredElement<HTMLSelectElement>('appearance-theme-select').value, 'dark');
   assert.equal(requiredElement<HTMLSelectElement>('summary-download-format-select').value, 'txt');
   assert.equal(requiredElement<HTMLSelectElement>('ocr-promotion-behavior-select').value, 'replace');
   assert.equal(requiredElement<HTMLSelectElement>('summary-promotion-behavior-select').value, 'append');

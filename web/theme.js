@@ -1,11 +1,10 @@
 (() => {
   const THEME_STORAGE_KEY = 'inti-theme';
-  const THEMES = ['light', 'dark', 'minimal', 'minimal-dark'];
+  const DEFAULT_THEME = 'dark';
+  const THEMES = ['light', 'dark'];
   const THEME_LABELS = {
     light: 'Light',
     dark: 'Dark',
-    minimal: 'Minimal',
-    'minimal-dark': 'Minimal Dark',
   };
   const root = document.documentElement;
 
@@ -14,9 +13,7 @@
   }
 
   function nextTheme(theme) {
-    const currentIndex = THEMES.indexOf(theme);
-    if (currentIndex === -1) return THEMES[0];
-    return THEMES[(currentIndex + 1) % THEMES.length];
+    return theme === 'light' ? 'dark' : 'light';
   }
 
   function readStoredTheme() {
@@ -31,13 +28,15 @@
   function getActiveTheme() {
     const explicitTheme = root.dataset.theme;
     if (isKnownTheme(explicitTheme)) return explicitTheme;
-    return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    return DEFAULT_THEME;
   }
 
   function applyTheme(theme) {
-    root.dataset.theme = theme;
-    updateToggle(theme);
-    updateThemeSelect(theme);
+    const nextThemeValue = isKnownTheme(theme) ? theme : DEFAULT_THEME;
+    root.dataset.theme = nextThemeValue;
+    root.style.colorScheme = nextThemeValue;
+    updateToggle(nextThemeValue);
+    updateThemeSelect(nextThemeValue);
   }
 
   function persistTheme(theme) {
@@ -85,8 +84,8 @@
 
   function updateThemeSelect(theme = getActiveTheme()) {
     const select = document.getElementById('appearance-theme-select');
-    if (!select || select.value === '') return;
-    select.value = isKnownTheme(theme) ? theme : '';
+    if (!select) return;
+    select.value = isKnownTheme(theme) ? theme : DEFAULT_THEME;
   }
 
   function updateToggle(theme = getActiveTheme()) {
@@ -121,11 +120,10 @@
       const res = await fetch(apiPath('/api/theme-config'));
       if (!res.ok) return;
       const config = await res.json();
-      if (isKnownTheme(config.theme)) {
-        applyTheme(config.theme);
-        persistTheme(config.theme);
-      }
-      window.IntiTheme.serverTheme = config.theme || '';
+      const serverTheme = isKnownTheme(config.theme) ? config.theme : DEFAULT_THEME;
+      applyTheme(serverTheme);
+      persistTheme(serverTheme);
+      window.IntiTheme.serverTheme = serverTheme;
       window.IntiTheme.summaryDownloadFormat = config.summaryDownloadFormat || '';
       window.IntiTheme.ocrPromotionBehavior = config.ocrPromotionBehavior || 'append';
       window.IntiTheme.summaryPromotionBehavior = config.summaryPromotionBehavior || 'append';
@@ -141,9 +139,7 @@
   }
 
   const storedTheme = readStoredTheme();
-  if (storedTheme) {
-    root.dataset.theme = storedTheme;
-  }
+  applyTheme(storedTheme || DEFAULT_THEME);
 
   window.IntiTheme = {
     apply: applyTheme,

@@ -7,6 +7,7 @@ test('unauthorized page renderer source preserves the server-side message inject
 
   assert.match(source, /renderUnauthorizedPage\(message = '__MESSAGE__'\)/);
   assert.match(source, /UnauthorizedPage\.svelte/);
+  assert.match(source, /<link rel="stylesheet" href="\/tailwind\.css" \/>/);
   assert.match(source, /<link rel="stylesheet" href="\/style\.css" \/>/);
   assert.match(source, /<script defer src="\/theme\.js"><\/script>/);
 });
@@ -16,5 +17,6 @@ test('built unauthorized page keeps the generated Svelte output on disk', () => 
 
   assert.match(html, /401 Unauthorized/);
   assert.match(html, /__MESSAGE__/);
-  assert.match(html, /<main class="card/);
+  assert.match(html, /tailwind\.css/);
+  assert.match(html, /<main class="inti-unauthorized"/);
 });

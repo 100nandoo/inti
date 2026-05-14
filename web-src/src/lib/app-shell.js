@@ -1,6 +1,6 @@
 export function renderHeader() {
   return `
-    <header class="header">
+    <header class="header navbar inti-shell-header">
       <div class="logo">
         <div class="logo-icon" aria-hidden="true">
           <img class="logo-icon-dark" src="/icons/inti-logo.svg" alt="" />
@@ -9,19 +9,17 @@ export function renderHeader() {
         <span class="logo-name">Inti</span>
       </div>
       <div class="header-nav">
-        <a href="/api-keys.html" class="header-settings-link" title="Manage API keys">
+        <a href="/api-keys.html" class="header-settings-link inti-nav-link" title="Manage API keys">
           <span class="icon icon-key" aria-hidden="true"></span>
           API Keys
         </a>
-        <a href="/settings.html" class="header-settings-link" title="Summarizer settings">
+        <a href="/settings.html" class="header-settings-link inti-nav-link" title="Summarizer settings">
           <span class="icon icon-settings" aria-hidden="true"></span>
           Settings
         </a>
-        <button id="theme-toggle" class="theme-toggle" type="button" title="Switch theme" aria-label="Switch theme">
+        <button id="theme-toggle" class="theme-toggle inti-theme-toggle" type="button" title="Switch theme" aria-label="Switch theme">
           <span class="theme-icon theme-icon-light icon icon-sun" aria-hidden="true"></span>
           <span class="theme-icon theme-icon-dark icon icon-moon" aria-hidden="true"></span>
-          <span class="theme-icon theme-icon-minimal icon icon-minimal" aria-hidden="true"></span>
-          <span class="theme-icon theme-icon-minimal-dark icon icon-minimal-dark" aria-hidden="true"></span>
           <span id="theme-toggle-label">Theme</span>
         </button>
       </div>
@@ -260,9 +258,9 @@ export function renderImagePreviewModal() {
 
 export function renderAppShell() {
   return `
-    <div class="app">
+    <div class="app inti-shell">
       ${renderHeader()}
-      <main class="main-grid">
+      <main class="main-grid inti-shell-main">
         ${renderWorkingTextPanel()}
         ${renderResultSurface()}
         ${renderSpeechPanel()}

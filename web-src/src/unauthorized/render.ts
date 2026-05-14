@@ -25,6 +25,7 @@ export function renderUnauthorizedPage(message = '__MESSAGE__'): string {
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   ${head}
   <link rel="icon" href="/icons/inti.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/tailwind.css" />
   <link rel="stylesheet" href="/style.css" />
   <script defer src="/theme.js"></script>
 </head>

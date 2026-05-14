@@ -43,11 +43,8 @@
   ];
 
   const themeOptions: SettingsOption<ThemeChoice>[] = [
-    { value: '', label: 'Server default' },
     { value: 'light', label: 'Light' },
     { value: 'dark', label: 'Dark' },
-    { value: 'minimal', label: 'Minimal' },
-    { value: 'minimal-dark', label: 'Minimal Dark' },
   ];
 
   const summaryFormatOptions: SettingsOption<SummaryDownloadFormat>[] = [
@@ -82,7 +79,7 @@
   let provider: SummarizerProvider = '';
   let model = '';
   let modelOptions: SummarizerModelOption[] = [];
-  let theme: ThemeChoice = '';
+  let theme: ThemeChoice = 'dark';
   let summaryDownloadFormat: SummaryDownloadFormat = 'md';
   let ocrPromotionBehavior: PromotionBehavior = 'append';
   let summaryPromotionBehavior: PromotionBehavior = 'append';
@@ -115,15 +112,7 @@
   }
 
   function normalizeThemeChoice(value?: string): ThemeChoice {
-    switch (value) {
-      case 'light':
-      case 'dark':
-      case 'minimal':
-      case 'minimal-dark':
-        return value;
-      default:
-        return '';
-    }
+    return value === 'light' ? 'light' : 'dark';
   }
 
   function normalizeSummaryDownloadFormat(value?: string): SummaryDownloadFormat {
@@ -317,16 +306,16 @@
 </script>
 
 <PageShell badge="Settings" {navLinks}>
-  <div class="card">
-    <div class="info-row">
-      <span class="pill">Summarizer</span>
-      <span class="ocr-hint">Choose which AI provider to use for summarization</span>
+  <div class="card inti-page-card">
+    <div class="info-row inti-section-heading">
+      <span class="pill inti-kicker">Summarizer</span>
+      <span class="ocr-hint inti-muted">Choose which AI provider to use for summarization</span>
     </div>
-    <div class="settings-form">
+    <div class="settings-form inti-form-grid">
       <div class="settings-field">
         <label class="settings-label" for="sum-provider-select">Active provider</label>
         <div class="select-wrap">
-          <select id="sum-provider-select" bind:value={provider} title="Active summarizer provider" on:change={handleProviderChange}>
+          <select class="select select-bordered w-full" id="sum-provider-select" bind:value={provider} title="Active summarizer provider" on:change={handleProviderChange}>
             {#each providerOptions as option}
               <option value={option.value}>{option.label}</option>
             {/each}
@@ -336,7 +325,7 @@
       <div class="settings-field" hidden={modelOptions.length === 0}>
         <label class="settings-label" for="sum-model-select">Model</label>
         <div class="select-wrap">
-          <select id="sum-model-select" bind:value={model} title="Active summarizer model">
+          <select class="select select-bordered w-full" id="sum-model-select" bind:value={model} title="Active summarizer model">
             {#each modelOptions as option}
               <option value={option.value}>{option.label}</option>
             {/each}
@@ -346,29 +335,29 @@
     </div>
   </div>
 
-  <div class="card">
-    <div class="info-row">
-      <span class="pill">Appearance</span>
-      <span class="ocr-hint">Save interface defaults in the server config</span>
+  <div class="card inti-page-card">
+    <div class="info-row inti-section-heading">
+      <span class="pill inti-kicker">Appearance</span>
+      <span class="ocr-hint inti-muted">Save interface defaults in the server config</span>
     </div>
-    <div class="settings-form">
+    <div class="settings-form inti-form-grid">
       <div class="settings-field">
         <label class="settings-label" for="appearance-theme-select">Theme</label>
         <div class="select-wrap">
-          <select id="appearance-theme-select" bind:value={theme} title="Server theme" on:change={handleThemePreview}>
+          <select class="select select-bordered w-full" id="appearance-theme-select" bind:value={theme} title="Server theme" on:change={handleThemePreview}>
             {#each themeOptions as option}
               <option value={option.value}>{option.label}</option>
             {/each}
           </select>
         </div>
         <p class="settings-hint">
-          A saved server theme overrides each browser's local theme after the page loads.
+          The server persists only explicit light or dark themes. Missing or legacy values fall back to dark.
         </p>
       </div>
       <div class="settings-field">
         <label class="settings-label" for="summary-download-format-select">Summary download format</label>
         <div class="select-wrap">
-          <select id="summary-download-format-select" bind:value={summaryDownloadFormat} title="Default summary download format">
+          <select class="select select-bordered w-full" id="summary-download-format-select" bind:value={summaryDownloadFormat} title="Default summary download format">
             {#each summaryFormatOptions as option}
               <option value={option.value}>{option.label}</option>
             {/each}
@@ -381,7 +370,7 @@
       <div class="settings-field">
         <label class="settings-label" for="ocr-promotion-behavior-select">OCR promotion default</label>
         <div class="select-wrap">
-          <select id="ocr-promotion-behavior-select" bind:value={ocrPromotionBehavior} title="Default OCR promotion behavior">
+          <select class="select select-bordered w-full" id="ocr-promotion-behavior-select" bind:value={ocrPromotionBehavior} title="Default OCR promotion behavior">
             {#each promotionOptions as option}
               <option value={option.value}>{option.label}</option>
             {/each}
@@ -394,7 +383,7 @@
       <div class="settings-field">
         <label class="settings-label" for="summary-promotion-behavior-select">Summary promotion default</label>
         <div class="select-wrap">
-          <select id="summary-promotion-behavior-select" bind:value={summaryPromotionBehavior} title="Default summary promotion behavior">
+          <select class="select select-bordered w-full" id="summary-promotion-behavior-select" bind:value={summaryPromotionBehavior} title="Default summary promotion behavior">
             {#each promotionOptions as option}
               <option value={option.value}>{option.label}</option>
             {/each}
@@ -407,15 +396,15 @@
     </div>
   </div>
 
-  <div class="card">
-    <div class="info-row">
-      <span class="pill">Providers</span>
-      <span class="ocr-hint">Store per-provider API keys used by the summarizer</span>
+  <div class="card inti-page-card">
+    <div class="info-row inti-section-heading">
+      <span class="pill inti-kicker">Providers</span>
+      <span class="ocr-hint inti-muted">Store per-provider API keys used by the summarizer</span>
     </div>
 
-    <div class="provider-sections">
-      <section class="provider-section">
-        <div class="provider-section-header">
+    <div class="provider-sections inti-provider-stack">
+      <section class="provider-section inti-provider-card">
+        <div class="provider-section-header inti-provider-header">
           <div>
             <h2 class="provider-section-title">Gemini</h2>
             <p class="provider-section-subtitle">Google AI Studio</p>
@@ -424,11 +413,11 @@
         <div class="settings-form">
           <div class="settings-field">
             <label class="settings-label" for="key-gemini">API Key</label>
-            <div class="settings-key-row">
-              <input type={revealGeminiKey ? 'text' : 'password'} id="key-gemini" class="settings-key-input" bind:value={keyGemini} placeholder="AIza…" autocomplete="off" />
+            <div class="settings-key-row inti-key-row">
+              <input type={revealGeminiKey ? 'text' : 'password'} id="key-gemini" class="input input-bordered w-full settings-key-input" bind:value={keyGemini} placeholder="AIza…" autocomplete="off" />
               <button
                 type="button"
-                class="settings-key-toggle"
+                class="settings-key-toggle btn btn-square btn-ghost"
                 aria-label={keyVisibilityLabel(revealGeminiKey, 'Gemini')}
                 aria-pressed={revealGeminiKey}
                 on:click={() => (revealGeminiKey = !revealGeminiKey)}
@@ -446,8 +435,8 @@
 
       <hr class="provider-divider" />
 
-      <section class="provider-section">
-        <div class="provider-section-header">
+      <section class="provider-section inti-provider-card">
+        <div class="provider-section-header inti-provider-header">
           <div>
             <h2 class="provider-section-title">Groq</h2>
             <p class="provider-section-subtitle">Free tier · no billing required</p>
@@ -517,11 +506,11 @@
         <div class="settings-form">
           <div class="settings-field">
             <label class="settings-label" for="key-groq">API Key</label>
-            <div class="settings-key-row">
-              <input type={revealGroqKey ? 'text' : 'password'} id="key-groq" class="settings-key-input" bind:value={keyGroq} placeholder="gsk_…" autocomplete="off" />
+            <div class="settings-key-row inti-key-row">
+              <input type={revealGroqKey ? 'text' : 'password'} id="key-groq" class="input input-bordered w-full settings-key-input" bind:value={keyGroq} placeholder="gsk_…" autocomplete="off" />
               <button
                 type="button"
-                class="settings-key-toggle"
+                class="settings-key-toggle btn btn-square btn-ghost"
                 aria-label={keyVisibilityLabel(revealGroqKey, 'Groq')}
                 aria-pressed={revealGroqKey}
                 on:click={() => (revealGroqKey = !revealGroqKey)}
@@ -541,8 +530,8 @@
 
       <hr class="provider-divider" />
 
-      <section class="provider-section">
-        <div class="provider-section-header">
+      <section class="provider-section inti-provider-card">
+        <div class="provider-section-header inti-provider-header">
           <div>
             <h2 class="provider-section-title">OpenRouter</h2>
             <p class="provider-section-subtitle">Free models available · no credits consumed</p>
@@ -551,11 +540,11 @@
         <div class="settings-form">
           <div class="settings-field">
             <label class="settings-label" for="key-openrouter">API Key</label>
-            <div class="settings-key-row">
-              <input type={revealOpenRouterKey ? 'text' : 'password'} id="key-openrouter" class="settings-key-input" bind:value={keyOpenRouter} placeholder="sk-or-…" autocomplete="off" />
+            <div class="settings-key-row inti-key-row">
+              <input type={revealOpenRouterKey ? 'text' : 'password'} id="key-openrouter" class="input input-bordered w-full settings-key-input" bind:value={keyOpenRouter} placeholder="sk-or-…" autocomplete="off" />
               <button
                 type="button"
-                class="settings-key-toggle"
+                class="settings-key-toggle btn btn-square btn-ghost"
                 aria-label={keyVisibilityLabel(revealOpenRouterKey, 'OpenRouter')}
                 aria-pressed={revealOpenRouterKey}
                 on:click={() => (revealOpenRouterKey = !revealOpenRouterKey)}
@@ -573,9 +562,9 @@
     </div>
   </div>
 
-  <div class="settings-actions-row" style="padding-bottom: 32px">
-    <button id="sum-save-btn" class="btn-primary" on:click={handleSave}>Save</button>
-    <button id="sum-clear-btn" class="btn-secondary" on:click={handleClear}>Clear Provider Settings</button>
+  <div class="settings-actions-row inti-actions">
+    <button id="sum-save-btn" class="btn-primary btn btn-primary" on:click={handleSave}>Save</button>
+    <button id="sum-clear-btn" class="btn-secondary btn btn-ghost border border-base-300" on:click={handleClear}>Clear Provider Settings</button>
     <span class:error={status.isError} class="status-text">{status.message}</span>
   </div>
 </PageShell>

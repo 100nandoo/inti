@@ -21,7 +21,7 @@ test('loadSettings fetches summarizer and appearance settings together', async (
       }
       if (urlText.includes('/api/theme-config')) {
         return Response.json({
-          theme: 'minimal',
+          theme: 'dark',
           summaryDownloadFormat: 'md',
           ocrPromotionBehavior: 'append',
           summaryPromotionBehavior: 'replace',
@@ -36,7 +36,7 @@ test('loadSettings fetches summarizer and appearance settings together', async (
     'http://localhost:8282/api/theme-config?key=secret',
   ]);
   assert.equal(result.summarizerConfig.provider, 'groq');
-  assert.equal(result.appearanceConfig.theme, 'minimal');
+  assert.equal(result.appearanceConfig.theme, 'dark');
 });
 
 test('saveSettings preserves the current backend contracts', async () => {

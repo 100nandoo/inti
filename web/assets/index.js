@@ -1,6 +1,6 @@
 const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/feed.js","assets/dom.js","assets/metrics.js","assets/ocr.js","assets/workspace.js","assets/legacy.js","assets/providers.js","assets/summarizer.js","assets/download.js","assets/tts.js","assets/voices.js"])))=>i.map(i=>d[i]);
-import{t as w,a as y,b as f,g as v,r as k,c as _,N as x,d as E,o as P,i as S,e as A,f as T,h as L,p as R,j as C,m as I}from"./legacy.js";function z(d,u,r=!1,c=!1,s=!1,m=!1){var i=d,e="";if(r)var l=d;w(()=>{var t=y;if(e!==(e=u()??"")){if(r){t.nodes=null,l.innerHTML=e,e!==""&&f(v(l),l.lastChild);return}if(t.nodes!==null&&(k(t.nodes.start,t.nodes.end),t.nodes=null),e!==""){var o=c?x:s?E:void 0,n=_(c?"svg":s?"math":"template",o);n.innerHTML=e;var a=c||s?n:n.content;if(f(v(a),a.lastChild),c||s)for(;v(a);)i.before(v(a));else i.before(a)}}})}const O="modulepreload",D=function(d){return"/"+d},g={},p=function(u,r,c){let s=Promise.resolve();if(r&&r.length>0){let i=function(t){return Promise.all(t.map(o=>Promise.resolve(o).then(n=>({status:"fulfilled",value:n}),n=>({status:"rejected",reason:n}))))};document.getElementsByTagName("link");const e=document.querySelector("meta[property=csp-nonce]"),l=(e==null?void 0:e.nonce)||(e==null?void 0:e.getAttribute("nonce"));s=i(r.map(t=>{if(t=D(t),t in g)return;g[t]=!0;const o=t.endsWith(".css"),n=o?'[rel="stylesheet"]':"";if(document.querySelector(`link[href="${t}"]${n}`))return;const a=document.createElement("link");if(a.rel=o?"stylesheet":O,o||(a.as="script"),a.crossOrigin="",a.href=t,l&&a.setAttribute("nonce",l),document.head.appendChild(a),o)return new Promise((h,b)=>{a.addEventListener("load",h),a.addEventListener("error",()=>b(new Error(`Unable to preload CSS for ${t}`)))})}))}function m(i){const e=new Event("vite:preloadError",{cancelable:!0});if(e.payload=i,window.dispatchEvent(e),!e.defaultPrevented)throw i}return s.then(i=>{for(const e of i||[])e.status==="rejected"&&m(e.reason);return u().catch(m)})};function M(){return`
-    <header class="header">
+import{t as w,a as y,b as f,g as m,r as k,c as _,N as x,d as E,o as P,i as S,e as A,f as T,h as L,p as R,j as C,m as I}from"./legacy.js";function z(d,u,r=!1,c=!1,s=!1,v=!1){var i=d,e="";if(r)var l=d;w(()=>{var t=y;if(e!==(e=u()??"")){if(r){t.nodes=null,l.innerHTML=e,e!==""&&f(m(l),l.lastChild);return}if(t.nodes!==null&&(k(t.nodes.start,t.nodes.end),t.nodes=null),e!==""){var o=c?x:s?E:void 0,n=_(c?"svg":s?"math":"template",o);n.innerHTML=e;var a=c||s?n:n.content;if(f(m(a),a.lastChild),c||s)for(;m(a);)i.before(m(a));else i.before(a)}}})}const O="modulepreload",D=function(d){return"/"+d},g={},p=function(u,r,c){let s=Promise.resolve();if(r&&r.length>0){let i=function(t){return Promise.all(t.map(o=>Promise.resolve(o).then(n=>({status:"fulfilled",value:n}),n=>({status:"rejected",reason:n}))))};document.getElementsByTagName("link");const e=document.querySelector("meta[property=csp-nonce]"),l=(e==null?void 0:e.nonce)||(e==null?void 0:e.getAttribute("nonce"));s=i(r.map(t=>{if(t=D(t),t in g)return;g[t]=!0;const o=t.endsWith(".css"),n=o?'[rel="stylesheet"]':"";if(document.querySelector(`link[href="${t}"]${n}`))return;const a=document.createElement("link");if(a.rel=o?"stylesheet":O,o||(a.as="script"),a.crossOrigin="",a.href=t,l&&a.setAttribute("nonce",l),document.head.appendChild(a),o)return new Promise((h,b)=>{a.addEventListener("load",h),a.addEventListener("error",()=>b(new Error(`Unable to preload CSS for ${t}`)))})}))}function v(i){const e=new Event("vite:preloadError",{cancelable:!0});if(e.payload=i,window.dispatchEvent(e),!e.defaultPrevented)throw i}return s.then(i=>{for(const e of i||[])e.status==="rejected"&&v(e.reason);return u().catch(v)})};function M(){return`
+    <header class="header navbar inti-shell-header">
       <div class="logo">
         <div class="logo-icon" aria-hidden="true">
           <img class="logo-icon-dark" src="/icons/inti-logo.svg" alt="" />
@@ -9,19 +9,17 @@ import{t as w,a as y,b as f,g as v,r as k,c as _,N as x,d as E,o as P,i as S,e a
         <span class="logo-name">Inti</span>
       </div>
       <div class="header-nav">
-        <a href="/api-keys.html" class="header-settings-link" title="Manage API keys">
+        <a href="/api-keys.html" class="header-settings-link inti-nav-link" title="Manage API keys">
           <span class="icon icon-key" aria-hidden="true"></span>
           API Keys
         </a>
-        <a href="/settings.html" class="header-settings-link" title="Summarizer settings">
+        <a href="/settings.html" class="header-settings-link inti-nav-link" title="Summarizer settings">
           <span class="icon icon-settings" aria-hidden="true"></span>
           Settings
         </a>
-        <button id="theme-toggle" class="theme-toggle" type="button" title="Switch theme" aria-label="Switch theme">
+        <button id="theme-toggle" class="theme-toggle inti-theme-toggle" type="button" title="Switch theme" aria-label="Switch theme">
           <span class="theme-icon theme-icon-light icon icon-sun" aria-hidden="true"></span>
           <span class="theme-icon theme-icon-dark icon icon-moon" aria-hidden="true"></span>
-          <span class="theme-icon theme-icon-minimal icon icon-minimal" aria-hidden="true"></span>
-          <span class="theme-icon theme-icon-minimal-dark icon icon-minimal-dark" aria-hidden="true"></span>
           <span id="theme-toggle-label">Theme</span>
         </button>
       </div>
@@ -236,9 +234,9 @@ import{t as w,a as y,b as f,g as v,r as k,c as _,N as x,d as E,o as P,i as S,e a
       </div>
     </div>
   `}function F(){return`
-    <div class="app">
+    <div class="app inti-shell">
       ${M()}
-      <main class="main-grid">
+      <main class="main-grid inti-shell-main">
         ${V()}
         ${W()}
         ${$()}
@@ -246,4 +244,4 @@ import{t as w,a as y,b as f,g as v,r as k,c as _,N as x,d as E,o as P,i as S,e a
       </main>
     </div>
     ${j()}
-  `}function N(d,u){C(u,!1);const r=F();async function c(){const[{initFeed:i},{updateTextMetrics:e},{initOCR:l},{initProviders:t},{initSummarizer:o},{initTTS:n,synthesizeText:a},{initVoices:h}]=await Promise.all([p(()=>import("./feed.js").then(b=>b.c),__vite__mapDeps([0,1])),p(()=>import("./metrics.js"),__vite__mapDeps([2,1])),p(()=>import("./ocr.js"),__vite__mapDeps([3,1,0,4,5])),p(()=>import("./providers.js"),__vite__mapDeps([6,1,0,4,5])),p(()=>import("./summarizer.js"),__vite__mapDeps([7,1,0,2,4,5,8])),p(()=>import("./tts.js"),__vite__mapDeps([9,1,0,2,4,5,8])),p(()=>import("./voices.js"),__vite__mapDeps([10,1]))]);i(),t(),h(),l(),o({synthesizeText:a}),n(),e()}P(()=>{if(!window.__intiLegacyWorkspaceInitialized)return window.__intiLegacyWorkspaceInitialized=!0,c()}),S();var s=A(),m=T(s);z(m,()=>r),L(d,s),R()}I(N,{target:document.getElementById("app")});
+  `}function N(d,u){C(u,!1);const r=F();async function c(){const[{initFeed:i},{updateTextMetrics:e},{initOCR:l},{initProviders:t},{initSummarizer:o},{initTTS:n,synthesizeText:a},{initVoices:h}]=await Promise.all([p(()=>import("./feed.js").then(b=>b.c),__vite__mapDeps([0,1])),p(()=>import("./metrics.js"),__vite__mapDeps([2,1])),p(()=>import("./ocr.js"),__vite__mapDeps([3,1,0,4,5])),p(()=>import("./providers.js"),__vite__mapDeps([6,1,0,4,5])),p(()=>import("./summarizer.js"),__vite__mapDeps([7,1,0,2,4,5,8])),p(()=>import("./tts.js"),__vite__mapDeps([9,1,0,2,4,5,8])),p(()=>import("./voices.js"),__vite__mapDeps([10,1]))]);i(),t(),h(),l(),o({synthesizeText:a}),n(),e()}P(()=>{if(!window.__intiLegacyWorkspaceInitialized)return window.__intiLegacyWorkspaceInitialized=!0,c()}),S();var s=A(),v=T(s);z(v,()=>r),L(d,s),R()}I(N,{target:document.getElementById("app")});

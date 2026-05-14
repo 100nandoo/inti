@@ -29,6 +29,9 @@ test('dev entrypoint verifies prerequisites and preserves build parity', () => {
 });
 
 test('package scripts preserve one-shot build parity and separate watch mode', () => {
-  assert.equal(packageJson.scripts['build:web'], 'vite build && node scripts/render-unauthorized-page.mjs');
+  assert.equal(
+    packageJson.scripts['build:web'],
+    'npm run build:web:css && vite build && node scripts/render-unauthorized-page.mjs',
+  );
   assert.equal(packageJson.scripts['watch:web'], 'node scripts/watch-web.mjs');
 });

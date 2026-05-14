@@ -1,3 +1,4 @@
+import { spawn } from 'node:child_process';
 import { mkdir, rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -38,6 +39,39 @@ function logEvent(label, event) {
   }
 }
 
+function startTailwindWatcher() {
+  const watcher = spawn(
+    resolve(repoRoot, 'node_modules/.bin/tailwindcss'),
+    ['-i', './web-src/src/tailwind.css', '-o', './web/tailwind.css', '--watch'],
+    {
+      cwd: repoRoot,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    },
+  );
+
+  watcher.stdout.on('data', (chunk) => {
+    const message = String(chunk).trim();
+    if (message) {
+      log(`tailwind ${message}`);
+    }
+  });
+
+  watcher.stderr.on('data', (chunk) => {
+    const message = String(chunk).trim();
+    if (message) {
+      console.error(`[watch:web] tailwind ${message}`);
+    }
+  });
+
+  watcher.on('exit', (code) => {
+    if (code !== 0 && code !== null) {
+      console.error(`[watch:web] tailwind watcher exited with code ${code}`);
+    }
+  });
+
+  return watcher;
+}
+
 async function startWatcher(label, config) {
   const watcher = await build(config);
   watcher.on('event', (event) => {
@@ -51,6 +85,7 @@ async function main() {
   await mkdir(tempRoot, { recursive: true });
   const unauthorizedOutDir = resolve(tempRoot, 'inti-unauthorized-watch');
   await rm(unauthorizedOutDir, { recursive: true, force: true });
+  const tailwindWatcher = startTailwindWatcher();
 
   const watchers = await Promise.all([
     startWatcher('embedded web', {
@@ -84,6 +119,7 @@ async function main() {
     }
     closed = true;
 
+    tailwindWatcher.kill('SIGTERM');
     await Promise.allSettled(watchers.map((watcher) => watcher.close()));
     await rm(unauthorizedOutDir, { recursive: true, force: true });
     process.exit(exitCode);

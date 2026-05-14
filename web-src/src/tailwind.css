@@ -1,0 +1,93 @@
+@import "tailwindcss";
+@plugin "daisyui" {
+  themes: light --default, dark --prefersdark;
+}
+@source "../**/*.{html,js,svelte,ts}";
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  :root[data-theme="light"] {
+    color-scheme: light;
+  }
+
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+  }
+}
+
+@layer components {
+  .inti-shell {
+    @apply mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-4 md:px-6 md:py-6;
+  }
+
+  .inti-shell-header {
+    @apply sticky top-3 z-20 rounded-[1.75rem] border border-base-300/80 bg-base-100/88 px-4 py-3 shadow-2xl shadow-base-content/10 backdrop-blur-xl;
+  }
+
+  .inti-shell-main {
+    @apply flex flex-col gap-5;
+  }
+
+  .inti-nav-link {
+    @apply btn btn-sm btn-ghost border border-base-300/70 bg-base-100/40 text-base-content hover:border-primary/40 hover:bg-base-200;
+  }
+
+  .inti-theme-toggle {
+    @apply btn btn-sm btn-primary text-primary-content shadow-lg shadow-primary/20;
+  }
+
+  .inti-badge {
+    @apply badge badge-warning badge-outline uppercase tracking-[0.24em];
+  }
+
+  .inti-page-card {
+    @apply border border-base-300/80 bg-base-100/90 shadow-2xl shadow-base-content/10 backdrop-blur;
+  }
+
+  .inti-section-heading {
+    @apply mb-4 flex flex-wrap items-center gap-3;
+  }
+
+  .inti-kicker {
+    @apply badge badge-outline badge-warning;
+  }
+
+  .inti-muted {
+    @apply text-sm text-base-content/70;
+  }
+
+  .inti-form-grid {
+    @apply grid gap-4 md:grid-cols-2;
+  }
+
+  .inti-provider-stack {
+    @apply flex flex-col gap-6;
+  }
+
+  .inti-provider-card {
+    @apply rounded-3xl border border-base-300/70 bg-base-200/45 p-5;
+  }
+
+  .inti-provider-header {
+    @apply mb-4 flex flex-wrap items-start justify-between gap-3;
+  }
+
+  .inti-key-row {
+    @apply flex items-center gap-2;
+  }
+
+  .inti-actions {
+    @apply flex flex-wrap items-center gap-3 pb-8;
+  }
+
+  .inti-unauthorized {
+    @apply flex min-h-screen items-center justify-center px-4 py-10;
+  }
+
+  .inti-unauthorized-card {
+    @apply card w-full max-w-xl border border-base-300/80 bg-base-100/92 shadow-2xl shadow-base-content/10;
+  }
+}

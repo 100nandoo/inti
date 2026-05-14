@@ -12,41 +12,24 @@
   <title>401 Unauthorized</title>
 </svelte:head>
 
-<main class="card">
-  <h1>401 Unauthorized</h1>
-  <p>{message}. Open this page with a valid <code>?key=...</code> query parameter.</p>
+<main class="inti-unauthorized">
+  <section class="inti-unauthorized-card">
+    <div class="card-body gap-4">
+      <div class="flex items-center gap-3">
+        <span class="badge badge-warning badge-outline">Protected</span>
+        <span class="text-sm text-base-content/70">API key required</span>
+      </div>
+      <h1 class="text-3xl font-semibold tracking-tight text-base-content">401 Unauthorized</h1>
+      <p class="text-base leading-7 text-base-content/80">
+        {message}. Open this page with a valid <code>?key=...</code> query parameter.
+      </p>
+    </div>
+  </section>
 </main>
 
 <style>
   :global(body) {
     margin: 0;
-    min-height: 100vh;
-    display: grid;
-    place-items: center;
-    padding: 16px;
-  }
-
-  .card {
-    width: min(520px, calc(100vw - 32px));
-    padding: 28px;
-    border-radius: 18px;
-    background: color-mix(in srgb, var(--paper-2) 88%, transparent);
-    border: 1px solid var(--line);
-    box-shadow: var(--panel-shadow);
-    backdrop-filter: blur(8px);
-  }
-
-  h1 {
-    margin: 0 0 12px;
-    color: var(--ink);
-    font-size: 28px;
-    line-height: 1.1;
-  }
-
-  p {
-    margin: 0;
-    color: var(--ink-soft);
-    line-height: 1.6;
   }
 
   code {

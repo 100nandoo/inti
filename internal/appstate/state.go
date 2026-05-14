@@ -238,7 +238,10 @@ func LoadTheme() string {
 	defer fileMu.Unlock()
 	vc := readConfigUnlocked()
 	if !IsValidTheme(vc.Appearance.Theme) {
-		return ""
+		return "dark"
+	}
+	if vc.Appearance.Theme == "" {
+		return "dark"
 	}
 	return vc.Appearance.Theme
 }
@@ -247,6 +250,9 @@ func SaveTheme(theme string) error {
 	fileMu.Lock()
 	defer fileMu.Unlock()
 	vc := readConfigUnlocked()
+	if !IsValidTheme(theme) {
+		theme = "dark"
+	}
 	vc.Appearance.Theme = theme
 	return writeConfigUnlocked(vc)
 }
@@ -306,7 +312,7 @@ func SaveSummaryPromotionBehavior(behavior string) error {
 }
 
 func IsValidTheme(theme string) bool {
-	return theme == "" || theme == "light" || theme == "dark" || theme == "minimal" || theme == "minimal-dark"
+	return theme == "light" || theme == "dark"
 }
 
 func IsValidSummaryDownloadFormat(format string) bool {
