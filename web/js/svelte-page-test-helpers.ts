@@ -10,9 +10,11 @@ function defineGlobal(name: PropertyKey, value: unknown) {
 }
 
 export function installDom(url: string): JSDOM {
-  const dom = new JSDOM('<!DOCTYPE html><html lang="en"><body><div id="app"></div></body></html>', {
-    url,
-  });
+  return installDomWithHTML(url, '<div id="app"></div>');
+}
+
+export function installDomWithHTML(url: string, bodyHtml: string): JSDOM {
+  const dom = new JSDOM(`<!DOCTYPE html><html lang="en"><body>${bodyHtml}</body></html>`, { url });
 
   const windowLike = dom.window as unknown as typeof globalThis & Window;
   defineGlobal('window', windowLike);
@@ -24,6 +26,7 @@ export function installDom(url: string): JSDOM {
   defineGlobal('KeyboardEvent', windowLike.KeyboardEvent);
   defineGlobal('Element', windowLike.Element);
   defineGlobal('HTMLElement', windowLike.HTMLElement);
+  defineGlobal('HTMLLabelElement', windowLike.HTMLLabelElement);
   defineGlobal('HTMLMediaElement', windowLike.HTMLMediaElement);
   defineGlobal('HTMLInputElement', windowLike.HTMLInputElement);
   defineGlobal('HTMLButtonElement', windowLike.HTMLButtonElement);
@@ -33,8 +36,25 @@ export function installDom(url: string): JSDOM {
   defineGlobal('Node', windowLike.Node);
   defineGlobal('Text', windowLike.Text);
   defineGlobal('Comment', windowLike.Comment);
+  defineGlobal('Blob', globalThis.Blob || windowLike.Blob);
+  defineGlobal('File', globalThis.File || windowLike.File);
+  defineGlobal('FileReader', globalThis.FileReader || windowLike.FileReader);
+  defineGlobal('FormData', globalThis.FormData || windowLike.FormData);
   defineGlobal('MutationObserver', windowLike.MutationObserver);
   defineGlobal('getComputedStyle', windowLike.getComputedStyle.bind(windowLike));
+  defineGlobal('atob', globalThis.atob || windowLike.atob.bind(windowLike));
+  defineGlobal('btoa', globalThis.btoa || windowLike.btoa.bind(windowLike));
+
+  const createObjectURL = (() => {
+    let objectUrlCounter = 0;
+    return () => `blob:mock-${objectUrlCounter += 1}`;
+  })();
+  const revokeObjectURL = () => {};
+  defineGlobal('URL', globalThis.URL || windowLike.URL);
+  globalThis.URL.createObjectURL = createObjectURL;
+  globalThis.URL.revokeObjectURL = revokeObjectURL;
+  windowLike.URL.createObjectURL = createObjectURL;
+  windowLike.URL.revokeObjectURL = revokeObjectURL;
 
   const requestAnimationFrame = (callback: FrameRequestCallback) =>
     setTimeout(() => callback(Date.now()), 0) as unknown as number;
@@ -56,6 +76,18 @@ export function installDom(url: string): JSDOM {
       },
       media: '',
       onchange: null,
+    });
+  }
+
+  if (!Object.getOwnPropertyDescriptor(windowLike.HTMLElement.prototype, 'innerText')) {
+    Object.defineProperty(windowLike.HTMLElement.prototype, 'innerText', {
+      configurable: true,
+      get() {
+        return this.textContent;
+      },
+      set(value: string) {
+        this.textContent = value;
+      },
     });
   }
 

@@ -1,10 +1,14 @@
-import test, { before, beforeEach } from 'node:test';
+import test, { after, before, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { JSDOM } from 'jsdom';
 import { renderAppShell } from '../../web-src/src/lib/app-shell.js';
 import { createOCRTextResult } from '../../web-src/src/lib/ocr-result.js';
-
-const html = `<!DOCTYPE html><html lang="en"><body>${renderAppShell()}</body></html>`;
+import {
+  flushAsyncWork,
+  installDomWithHTML,
+  requiredElement,
+  setInputValue,
+  teardownPage,
+} from './svelte-page-test-helpers.ts';
 
 type WorkspaceModule = typeof import('./workspace.js');
 type OCRModule = typeof import('./ocr.js');
@@ -36,51 +40,7 @@ let summarizer: SummarizerModule;
 let tts: TTSModule;
 let elements: WorkspaceElements;
 let fetchCalls: FetchCall[];
-let objectUrlCounter = 0;
-
-function requiredElement<T extends HTMLElement>(id: string): T {
-  const element = document.getElementById(id);
-  assert.ok(element, `Expected #${id} to exist`);
-  return element as T;
-}
-
-function exposeWindowToGlobals(domWindow: JSDOM['window']) {
-  const windowLike = domWindow as unknown as typeof globalThis & Window;
-  globalThis.window = windowLike;
-  globalThis.document = windowLike.document;
-  Object.defineProperty(globalThis, 'navigator', {
-    configurable: true,
-    value: windowLike.navigator,
-  });
-  globalThis.CustomEvent = windowLike.CustomEvent;
-  globalThis.Event = windowLike.Event;
-  globalThis.HTMLElement = windowLike.HTMLElement;
-  globalThis.HTMLLabelElement = windowLike.HTMLLabelElement;
-  globalThis.Blob = globalThis.Blob || windowLike.Blob;
-  globalThis.File = globalThis.File || windowLike.File;
-  globalThis.FileReader = globalThis.FileReader || windowLike.FileReader;
-  globalThis.FormData = globalThis.FormData || windowLike.FormData;
-  globalThis.atob = globalThis.atob || windowLike.atob.bind(windowLike);
-  globalThis.btoa = globalThis.btoa || windowLike.btoa.bind(windowLike);
-  const createObjectURL = () => `blob:mock-${objectUrlCounter += 1}`;
-  const revokeObjectURL = () => {};
-  globalThis.URL = globalThis.URL || windowLike.URL;
-  globalThis.URL.createObjectURL = createObjectURL;
-  globalThis.URL.revokeObjectURL = revokeObjectURL;
-  windowLike.URL.createObjectURL = createObjectURL;
-  windowLike.URL.revokeObjectURL = revokeObjectURL;
-  if (!Object.getOwnPropertyDescriptor(windowLike.HTMLElement.prototype, 'innerText')) {
-    Object.defineProperty(windowLike.HTMLElement.prototype, 'innerText', {
-      configurable: true,
-      get() {
-        return this.textContent;
-      },
-      set(value: string) {
-        this.textContent = value;
-      },
-    });
-  }
-}
+let dom: ReturnType<typeof installDomWithHTML> | null = null;
 
 function cacheElements() {
   elements = {
@@ -151,18 +111,11 @@ function resetWorkspaceState() {
 }
 
 function typeWorkingText(text: string) {
-  elements.workingText.value = text;
-  elements.workingText.dispatchEvent(new window.Event('input', { bubbles: true }));
-}
-
-async function flushAsyncWork() {
-  await new Promise((resolve) => setTimeout(resolve, 0));
-  await new Promise((resolve) => setTimeout(resolve, 0));
+  setInputValue(elements.workingText, text);
 }
 
 before(async () => {
-  const dom = new JSDOM(html, { url: 'http://localhost:8282/' });
-  exposeWindowToGlobals(dom.window);
+  dom = installDomWithHTML('http://localhost:8282/', renderAppShell());
   (window as typeof window & { apiURL: (path: string) => string }).apiURL = (path) => path;
   (
     window as typeof window & {
@@ -202,6 +155,10 @@ before(async () => {
   ocr.initOCR();
   summarizer.initSummarizer({ synthesizeText: tts.synthesizeText });
   tts.initTTS();
+});
+
+after(() => {
+  teardownPage(dom);
 });
 
 beforeEach(() => {
