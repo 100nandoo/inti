@@ -63,6 +63,22 @@
     @apply grid gap-4 md:grid-cols-2;
   }
 
+  .inti-form-section {
+    @apply grid gap-4;
+  }
+
+  .inti-field {
+    @apply fieldset gap-2 rounded-2xl border border-base-300/70 bg-base-200/30 p-4;
+  }
+
+  .inti-field-legend {
+    @apply fieldset-legend text-sm font-semibold text-base-content;
+  }
+
+  .inti-field-help {
+    @apply text-sm leading-6 text-base-content/70;
+  }
+
   .inti-provider-stack {
     @apply flex flex-col gap-6;
   }
