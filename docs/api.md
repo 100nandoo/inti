@@ -8,6 +8,8 @@ The web server exposes a JSON REST API on `http://localhost:8282` (default). All
 - [`POST /api/ocr`](#post-apiocr)
 - [`POST /api/summarize`](#post-apisummarize)
 - [`GET /api/summarizer-config`](#get-apisummarizer-config)
+- [`GET /api/theme-config`](#get-apitheme-config)
+- [`POST /api/theme-config`](#post-apitheme-config)
 - [`GET /api/voices`](#get-apivoices)
 - [`GET /api/models`](#get-apimodels)
 - [Playing Opus audio in the browser](#playing-opus-audio-in-the-browser)
@@ -216,6 +218,80 @@ Both fields are empty strings when no provider is configured server-side.
 
 ```sh
 curl -s http://localhost:8282/api/summarizer-config | jq .
+```
+
+---
+
+## `GET /api/theme-config`
+
+Returns the current persisted runtime appearance settings for the web frontend.
+
+`theme` is always normalized to the current two-theme product model:
+
+- `dark` when the saved value is missing, empty, invalid, or from a removed legacy theme
+- `light` only when light is explicitly saved
+
+**Response `200 OK`**
+
+```json
+{
+  "theme": "dark",
+  "summaryDownloadFormat": "md",
+  "ocrPromotionBehavior": "append",
+  "summaryPromotionBehavior": "append"
+}
+```
+
+**curl example**
+
+```sh
+curl -s http://localhost:8282/api/theme-config | jq .
+```
+
+---
+
+## `POST /api/theme-config`
+
+Persists runtime appearance settings for the web frontend.
+
+**Request body**
+
+```json
+{
+  "theme": "light",
+  "summaryDownloadFormat": "md",
+  "ocrPromotionBehavior": "append",
+  "summaryPromotionBehavior": "replace"
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `theme` | string | yes | Explicit visual theme: `light` or `dark` |
+| `summaryDownloadFormat` | string | yes | Default summary download format: `txt` or `md` |
+| `ocrPromotionBehavior` | string | yes | Default OCR promotion behavior: `append` or `replace` |
+| `summaryPromotionBehavior` | string | yes | Default summary promotion behavior: `append` or `replace` |
+
+**Response `200 OK`**
+
+Returns the saved settings payload.
+
+**Errors**
+
+| Status | Body | When |
+|--------|------|------|
+| `400` | `{"error": "invalid theme"}` | `theme` is not `light` or `dark` |
+| `400` | `{"error": "invalid summary download format"}` | Unknown summary download format |
+| `400` | `{"error": "invalid OCR promotion behavior"}` | Unknown OCR promotion setting |
+| `400` | `{"error": "invalid summary promotion behavior"}` | Unknown summary promotion setting |
+
+**curl example**
+
+```sh
+curl -s -X POST http://localhost:8282/api/theme-config \
+  -H 'Content-Type: application/json' \
+  -d '{"theme":"dark","summaryDownloadFormat":"md","ocrPromotionBehavior":"append","summaryPromotionBehavior":"append"}' \
+  | jq .
 ```
 
 ---

@@ -61,11 +61,11 @@ INTI_MAIN_KEY=change_me_to_a_strong_secret
 
 Runtime settings changed via the web UI (summarizer provider, model, appearance theme), API keys created via the API keys page, and Telegram bot auth/session preferences are persisted to `inti.toml` on disk.
 
-The light/dark toggle still stores an immediate local preference in browser `localStorage` under `inti-theme`. When `[appearance] theme` is set in `inti.toml`, the server-saved theme overrides that local preference after the page loads.
+The web frontend paints dark on first load. The light/dark toggle still stores an immediate local preference in browser `localStorage` under `inti-theme`, but the persisted `[appearance] theme` value overrides that local preference after the page loads.
 
 ```toml
 [appearance]
-theme = "dark" # "light", "dark", or omitted/empty for browser default behavior
+theme = "dark" # "light" or "dark"; missing or legacy values fall back to dark
 ```
 
 | OS | Default path |

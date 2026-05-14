@@ -87,6 +87,7 @@ The separate editable `Text to speak` field should be removed because it duplica
 
 Settings should include separate defaults for:
 
+- Visual Theme: `light` or `dark`, with `dark` as the first-paint default
 - OCR promotion behavior: `append` or `replace`
 - Summary promotion behavior: `append` or `replace`
 
