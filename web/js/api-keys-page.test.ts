@@ -28,34 +28,39 @@ test('API keys page preserves authenticated admin flows', async (t) => {
       lastUsedAt: '2026-05-13T12:00:00Z',
     },
   ];
-  const requests = [];
+  const requests: Array<{ url: string; method: string; body: unknown }> = [];
 
   const dom = installDom('http://localhost:8282/api-keys.html?key=main-secret');
   t.after(() => teardownPage(dom));
 
-  navigator.clipboard = {
-    writeText: async (value) => {
-      copiedValue = value;
+  Object.defineProperty(navigator, 'clipboard', {
+    configurable: true,
+    value: {
+      writeText: async (value: string) => {
+        copiedValue = value;
+      },
     },
-  };
+  });
   window.confirm = () => true;
 
   globalThis.fetch = async (url, options = {}) => {
     const method = options.method || 'GET';
-    requests.push({ url, method, body: options.body ? JSON.parse(options.body) : null });
+    const urlText = String(url);
+    requests.push({ url: urlText, method, body: options.body ? JSON.parse(options.body as string) : null });
 
-    if (method === 'GET' && url === 'http://localhost:8282/api/admin/keys?key=main-secret') {
+    if (method === 'GET' && urlText === 'http://localhost:8282/api/admin/keys?key=main-secret') {
       return Response.json({ keys });
     }
 
-    if (method === 'GET' && url === 'http://localhost:8282/api/admin/keys?key=inti_secret_1') {
+    if (method === 'GET' && urlText === 'http://localhost:8282/api/admin/keys?key=inti_secret_1') {
       return Response.json({ keys });
     }
 
-    if (method === 'POST' && url === 'http://localhost:8282/api/admin/keys?key=main-secret') {
+    if (method === 'POST' && urlText === 'http://localhost:8282/api/admin/keys?key=main-secret') {
+      const body = options.body ? (JSON.parse(options.body as string) as { name: string }) : { name: '' };
       const nextKey = {
         id: `k${keys.length + 1}`,
-        name: options.body ? JSON.parse(options.body).name : '',
+        name: body.name,
         prefix: `inti_created_${createdCount}`,
         createdAt: '2026-05-13T13:00:00Z',
         lastUsedAt: '',
@@ -66,36 +71,36 @@ test('API keys page preserves authenticated admin flows', async (t) => {
       return Response.json({ key: nextKey, raw });
     }
 
-    if (method === 'DELETE' && url === 'http://localhost:8282/api/admin/keys/k2?key=inti_secret_1') {
+    if (method === 'DELETE' && urlText === 'http://localhost:8282/api/admin/keys/k2?key=inti_secret_1') {
       keys = keys.filter((key) => key.id !== 'k2');
       return new Response(null, { status: 204 });
     }
 
-    throw new Error(`Unexpected fetch to ${method} ${url}`);
+    throw new Error(`Unexpected fetch to ${method} ${urlText}`);
   };
 
   await import(`../../web/assets/api-keys.js?test=${Date.now()}`);
   await flushAsyncWork();
 
-  assert.match(document.body.textContent, /Bootstrap Key/);
+  assert.match(document.body.textContent ?? '', /Bootstrap Key/);
   assert.deepEqual(
     [...document.querySelectorAll('.header-settings-link')].map((link) => link.getAttribute('href')),
     ['/settings.html?key=main-secret', '/?key=main-secret'],
   );
 
-  setInputValue(requiredElement('new-key-name'), 'Desktop');
-  requiredElement('create-key-btn').click();
+  setInputValue(requiredElement<HTMLInputElement>('new-key-name'), 'Desktop');
+  requiredElement<HTMLButtonElement>('create-key-btn').click();
   await flushAsyncWork();
 
-  assert.equal(requests[1].body.name, 'Desktop');
-  assert.match(document.body.textContent, /API Key Created/);
-  assert.equal(requiredElement('key-modal-value').textContent, 'inti_secret_1');
+  assert.equal((requests[1]?.body as { name?: string } | undefined)?.name, 'Desktop');
+  assert.match(document.body.textContent ?? '', /API Key Created/);
+  assert.equal(requiredElement<HTMLElement>('key-modal-value').textContent, 'inti_secret_1');
 
-  requiredElement('key-modal-copy').click();
+  requiredElement<HTMLButtonElement>('key-modal-copy').click();
   await flushAsyncWork();
   assert.equal(copiedValue, 'inti_secret_1');
 
-  requiredElement('key-modal-save').click();
+  requiredElement<HTMLButtonElement>('key-modal-save').click();
   await flushAsyncWork();
 
   assert.equal(window.location.search, '?key=inti_secret_1');
@@ -103,11 +108,12 @@ test('API keys page preserves authenticated admin flows', async (t) => {
     [...document.querySelectorAll('.header-settings-link')].map((link) => link.getAttribute('href')),
     ['/settings.html?key=inti_secret_1', '/?key=inti_secret_1'],
   );
-  assert.match(document.body.textContent, /Desktop/);
+  assert.match(document.body.textContent ?? '', /Desktop/);
 
   const desktopDeleteButton = [...document.querySelectorAll('tbody tr')]
-    .find((row) => row.textContent.includes('Desktop'))
-    .querySelector('button');
+    .find((row) => row.textContent?.includes('Desktop'))
+    ?.querySelector('button');
+  assert.ok(desktopDeleteButton);
   desktopDeleteButton.click();
   await flushAsyncWork();
 
@@ -118,5 +124,5 @@ test('API keys page preserves authenticated admin flows', async (t) => {
         request.url === 'http://localhost:8282/api/admin/keys/k2?key=inti_secret_1',
     ),
   );
-  assert.doesNotMatch(document.body.textContent, /Desktop/);
+  assert.doesNotMatch(document.body.textContent ?? '', /Desktop/);
 });
