@@ -6,45 +6,76 @@ import { createOCRTextResult } from '../../web-src/src/lib/ocr-result.js';
 
 const html = `<!DOCTYPE html><html lang="en"><body>${renderAppShell()}</body></html>`;
 
-let workspace;
-let ocr;
-let summarizer;
-let tts;
-let elements;
-let fetchCalls;
+type WorkspaceModule = typeof import('./workspace.js');
+type OCRModule = typeof import('./ocr.js');
+type SummarizerModule = typeof import('./summarizer.js');
+type TTSModule = typeof import('./tts.js');
+
+type WorkspaceElements = {
+  workingText: HTMLTextAreaElement;
+  summarizeBtn: HTMLButtonElement;
+  runOcrBtn: HTMLButtonElement;
+  generateWorkingAudioBtn: HTMLButtonElement;
+  generateResultAudioBtn: HTMLButtonElement;
+  resultPromoteDefaultBtn: HTMLButtonElement;
+  resultPromoteDefaultLabel: HTMLElement;
+  audioResultCard: HTMLElement;
+  textResultTitle: HTMLElement;
+  textResultContent: HTMLElement;
+};
+
+type FetchCall = {
+  url: string;
+  options: RequestInit;
+  body: unknown;
+};
+
+let workspace: WorkspaceModule;
+let ocr: OCRModule;
+let summarizer: SummarizerModule;
+let tts: TTSModule;
+let elements: WorkspaceElements;
+let fetchCalls: FetchCall[];
 let objectUrlCounter = 0;
 
-function exposeWindowToGlobals(window) {
-  globalThis.window = window;
-  globalThis.document = window.document;
+function requiredElement<T extends HTMLElement>(id: string): T {
+  const element = document.getElementById(id);
+  assert.ok(element, `Expected #${id} to exist`);
+  return element as T;
+}
+
+function exposeWindowToGlobals(domWindow: JSDOM['window']) {
+  const windowLike = domWindow as unknown as typeof globalThis & Window;
+  globalThis.window = windowLike;
+  globalThis.document = windowLike.document;
   Object.defineProperty(globalThis, 'navigator', {
     configurable: true,
-    value: window.navigator,
+    value: windowLike.navigator,
   });
-  globalThis.CustomEvent = window.CustomEvent;
-  globalThis.Event = window.Event;
-  globalThis.HTMLElement = window.HTMLElement;
-  globalThis.HTMLLabelElement = window.HTMLLabelElement;
-  globalThis.Blob = globalThis.Blob || window.Blob;
-  globalThis.File = globalThis.File || window.File;
-  globalThis.FileReader = globalThis.FileReader || window.FileReader;
-  globalThis.FormData = globalThis.FormData || window.FormData;
-  globalThis.atob = globalThis.atob || window.atob.bind(window);
-  globalThis.btoa = globalThis.btoa || window.btoa.bind(window);
+  globalThis.CustomEvent = windowLike.CustomEvent;
+  globalThis.Event = windowLike.Event;
+  globalThis.HTMLElement = windowLike.HTMLElement;
+  globalThis.HTMLLabelElement = windowLike.HTMLLabelElement;
+  globalThis.Blob = globalThis.Blob || windowLike.Blob;
+  globalThis.File = globalThis.File || windowLike.File;
+  globalThis.FileReader = globalThis.FileReader || windowLike.FileReader;
+  globalThis.FormData = globalThis.FormData || windowLike.FormData;
+  globalThis.atob = globalThis.atob || windowLike.atob.bind(windowLike);
+  globalThis.btoa = globalThis.btoa || windowLike.btoa.bind(windowLike);
   const createObjectURL = () => `blob:mock-${objectUrlCounter += 1}`;
   const revokeObjectURL = () => {};
-  globalThis.URL = globalThis.URL || window.URL;
+  globalThis.URL = globalThis.URL || windowLike.URL;
   globalThis.URL.createObjectURL = createObjectURL;
   globalThis.URL.revokeObjectURL = revokeObjectURL;
-  window.URL.createObjectURL = createObjectURL;
-  window.URL.revokeObjectURL = revokeObjectURL;
-  if (!Object.getOwnPropertyDescriptor(window.HTMLElement.prototype, 'innerText')) {
-    Object.defineProperty(window.HTMLElement.prototype, 'innerText', {
+  windowLike.URL.createObjectURL = createObjectURL;
+  windowLike.URL.revokeObjectURL = revokeObjectURL;
+  if (!Object.getOwnPropertyDescriptor(windowLike.HTMLElement.prototype, 'innerText')) {
+    Object.defineProperty(windowLike.HTMLElement.prototype, 'innerText', {
       configurable: true,
       get() {
         return this.textContent;
       },
-      set(value) {
+      set(value: string) {
         this.textContent = value;
       },
     });
@@ -53,32 +84,33 @@ function exposeWindowToGlobals(window) {
 
 function cacheElements() {
   elements = {
-    workingText: document.getElementById('working-text'),
-    summarizeBtn: document.getElementById('summarize-btn'),
-    runOcrBtn: document.getElementById('run-ocr-btn'),
-    generateWorkingAudioBtn: document.getElementById('generate-working-audio-btn'),
-    generateResultAudioBtn: document.getElementById('generate-result-audio-btn'),
-    resultPromoteDefaultBtn: document.getElementById('result-promote-default-btn'),
-    resultPromoteDefaultLabel: document.getElementById('result-promote-default-label'),
-    audioResultCard: document.getElementById('audio-result-card'),
-    textResultTitle: document.getElementById('text-result-title'),
-    textResultContent: document.getElementById('text-result-content'),
+    workingText: requiredElement<HTMLTextAreaElement>('working-text'),
+    summarizeBtn: requiredElement<HTMLButtonElement>('summarize-btn'),
+    runOcrBtn: requiredElement<HTMLButtonElement>('run-ocr-btn'),
+    generateWorkingAudioBtn: requiredElement<HTMLButtonElement>('generate-working-audio-btn'),
+    generateResultAudioBtn: requiredElement<HTMLButtonElement>('generate-result-audio-btn'),
+    resultPromoteDefaultBtn: requiredElement<HTMLButtonElement>('result-promote-default-btn'),
+    resultPromoteDefaultLabel: requiredElement<HTMLElement>('result-promote-default-label'),
+    audioResultCard: requiredElement<HTMLElement>('audio-result-card'),
+    textResultTitle: requiredElement<HTMLElement>('text-result-title'),
+    textResultContent: requiredElement<HTMLElement>('text-result-content'),
   };
 }
 
 function resetFetchMock() {
   fetchCalls = [];
   globalThis.fetch = async (url, options = {}) => {
-    const isFormDataBody = typeof window.FormData !== 'undefined' && options.body instanceof window.FormData;
+    const formDataBody = options.body instanceof window.FormData ? options.body : null;
+    const urlText = typeof url === 'string' ? url : url.toString();
     fetchCalls.push({
-      url,
+      url: urlText,
       options,
-      body: isFormDataBody
-        ? { files: options.body.getAll('files').map((file) => file.name) }
-        : (options.body ? JSON.parse(options.body) : null),
+      body: formDataBody
+        ? { files: formDataBody.getAll('files').map((file) => (file as File).name) }
+        : (options.body ? JSON.parse(options.body as string) : null),
     });
 
-    if (url === '/api/summarize') {
+    if (urlText === '/api/summarize') {
       return Response.json({
         provider: 'mock',
         model: 'mock-model',
@@ -86,19 +118,19 @@ function resetFetchMock() {
       });
     }
 
-    if (url === '/api/speak') {
+    if (urlText === '/api/speak') {
       return Response.json({
         opus: Buffer.from('opus-audio').toString('base64'),
       });
     }
 
-    if (url === '/api/ocr') {
+    if (urlText === '/api/ocr') {
       return Response.json({
         text: 'Scanned text from OCR',
       });
     }
 
-    throw new Error(`Unexpected fetch to ${url}`);
+    throw new Error(`Unexpected fetch to ${urlText}`);
   };
 }
 
@@ -113,11 +145,12 @@ function resetWorkspaceState() {
     ocrPromotionBehavior: 'append',
     summaryPromotionBehavior: 'append',
   });
-  document.getElementById('feed').innerHTML = '<p class="feed-empty" id="feed-empty">No activity yet.</p>';
-  document.getElementById('status-text').textContent = '';
+  requiredElement<HTMLElement>('feed').innerHTML =
+    '<p class="feed-empty" id="feed-empty">No activity yet.</p>';
+  requiredElement<HTMLElement>('status-text').textContent = '';
 }
 
-function typeWorkingText(text) {
+function typeWorkingText(text: string) {
   elements.workingText.value = text;
   elements.workingText.dispatchEvent(new window.Event('input', { bubbles: true }));
 }
@@ -130,13 +163,24 @@ async function flushAsyncWork() {
 before(async () => {
   const dom = new JSDOM(html, { url: 'http://localhost:8282/' });
   exposeWindowToGlobals(dom.window);
-  window.apiURL = (path) => path;
-  window.IntiTheme = {
+  (window as typeof window & { apiURL: (path: string) => string }).apiURL = (path) => path;
+  (
+    window as typeof window & {
+      IntiTheme: {
+        summaryDownloadFormat: string;
+        ocrPromotionBehavior: string;
+        summaryPromotionBehavior: string;
+      };
+    }
+  ).IntiTheme = {
     summaryDownloadFormat: 'md',
     ocrPromotionBehavior: 'append',
     summaryPromotionBehavior: 'append',
   };
-  navigator.clipboard = { writeText: async () => {} };
+  Object.defineProperty(navigator, 'clipboard', {
+    configurable: true,
+    value: { writeText: async () => {} },
+  });
 
   cacheElements();
   resetFetchMock();
@@ -146,11 +190,12 @@ before(async () => {
   summarizer = await import('./summarizer.js');
   tts = await import('./tts.js');
 
-  const modelSelect = document.getElementById('model-select');
-  modelSelect.innerHTML = '<option value="gemini-2.5-flash-preview-tts">gemini-2.5-flash-preview-tts</option>';
+  const modelSelect = requiredElement<HTMLSelectElement>('model-select');
+  modelSelect.innerHTML =
+    '<option value="gemini-2.5-flash-preview-tts">gemini-2.5-flash-preview-tts</option>';
   modelSelect.value = 'gemini-2.5-flash-preview-tts';
 
-  const voiceSelect = document.getElementById('voice-select');
+  const voiceSelect = requiredElement<HTMLSelectElement>('voice-select');
   voiceSelect.innerHTML = '<option value="Kore">Kore</option>';
   voiceSelect.value = 'Kore';
 
@@ -209,7 +254,7 @@ test('ocr results publish to the shared result surface without mutating working 
   assert.equal(workspace.getWorkspace().workingText, '');
   assert.equal(elements.workingText.value, '');
   assert.equal(elements.textResultTitle.textContent, 'OCR Result');
-  assert.match(elements.textResultContent.textContent, /Scanned text from OCR/);
+  assert.match(elements.textResultContent.textContent ?? '', /Scanned text from OCR/);
   assert.equal(elements.resultPromoteDefaultLabel.textContent, 'Append to Working Text');
 
   elements.resultPromoteDefaultBtn.click();
@@ -222,8 +267,8 @@ test('speech generation works from working text and latest text result', async (
   elements.generateWorkingAudioBtn.click();
   await flushAsyncWork();
 
-  assert.equal(fetchCalls[0].url, '/api/speak');
-  assert.equal(fetchCalls[0].body.text, 'Alpha beta');
+  assert.equal(fetchCalls[0]?.url, '/api/speak');
+  assert.equal((fetchCalls[0]?.body as { text?: string } | undefined)?.text, 'Alpha beta');
   assert.equal(workspace.getWorkspace().lastAudioSourceLabel, 'Working Text');
   assert.equal(workspace.getWorkspace().lastAudioSourceText, 'Alpha beta');
 
@@ -238,8 +283,8 @@ test('speech generation works from working text and latest text result', async (
   elements.generateResultAudioBtn.click();
   await flushAsyncWork();
 
-  assert.equal(fetchCalls[1].url, '/api/speak');
-  assert.equal(fetchCalls[1].body.text, 'Listen to this');
+  assert.equal(fetchCalls[1]?.url, '/api/speak');
+  assert.equal((fetchCalls[1]?.body as { text?: string } | undefined)?.text, 'Listen to this');
   assert.equal(workspace.getWorkspace().lastAudioSourceLabel, 'Summary Result');
   assert.equal(workspace.getWorkspace().lastAudioSourceText, 'Listen to this');
 });
@@ -260,5 +305,5 @@ test('latest audio result persists after later working text edits', async () => 
 
   assert.ok(workspace.getWorkspace().lastAudioBlob);
   assert.equal(workspace.getWorkspace().lastAudioSourceText, 'Stable audio snapshot');
-  assert.match(elements.audioResultCard.textContent, /Stable audio snapshot/);
+  assert.match(elements.audioResultCard.textContent ?? '', /Stable audio snapshot/);
 });
