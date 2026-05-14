@@ -51,7 +51,8 @@ _Avoid_: provider picker logic, backend routing
 - The **Result Surface** presents the latest **Transform Result** and lets the user apply a **Promotion Rule**
 - A **Transform Result** does not change **Working Text** until a **Promotion Rule** is applied
 - **Runtime Settings** stores the default **Promotion Rule** for OCR imports and summary promotions
-- **Runtime Settings** may store one **Visual Theme** for the web interface
+- **Runtime Settings** may store one explicit **Visual Theme** for the web interface
+- The default **Visual Theme** is `dark`; `light` is the only other valid persisted mode
 - An **Audio Result** belongs to the text snapshot used to generate it and may remain available after **Working Text** changes
 
 ## Example dialogue

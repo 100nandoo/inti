@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { JSDOM } from 'jsdom';
 
 const themeSource = readFileSync(new URL('../../web/theme.js', import.meta.url), 'utf8');
@@ -51,4 +51,10 @@ test('theme runtime falls back to dark for removed themes and toggles only betwe
   assert.equal(root.dataset.theme, 'light');
   toggle.click();
   assert.equal(root.dataset.theme, 'dark');
+});
+
+test('shipped theme assets do not retain removed minimal theme variants', () => {
+  const styleSource = readFileSync(new URL('../../web/style.css', import.meta.url), 'utf8');
+  assert.doesNotMatch(styleSource, /minimal-dark|minimal"/);
+  assert.equal(existsSync(new URL('../../web/assets/page-auth.js', import.meta.url)), false);
 });

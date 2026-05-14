@@ -27,7 +27,7 @@ Text-to-speech powered by Google Gemini, with an OCR and summarization workspace
 
 ## Features
 
-- **Web UI** — parchment-inspired interface with a persisted light/dark theme toggle, organized into Import/OCR, Text Workspace, Text to Speech, and Activity panels
+- **Web UI** — dark-first text workspace with an explicit light/dark Visual Theme, organized into Import/OCR, Text Workspace, Text to Speech, and Activity panels
 - **Image OCR** — drag-and-drop or browse to upload images (multi-file supported); extracted text lands in an editable OCR output and can be sent into the workspace or TTS flow
 - **Summarizer** — summarize text with Gemini, Groq (free tier), or OpenRouter (free models); results rendered as Markdown with copy, speak, and split-button download actions for `.txt` or `.md`; provider and API keys configurable in the Settings page without restarting the server
 - **Browser extension** — summarize article pages directly in Chrome desktop, Firefox desktop, and Firefox Android via the bundled `extension/` app
@@ -100,7 +100,7 @@ When a summary is shown, the summary action row lets you **Copy**, **Use Summary
 
 To configure the summarizer provider and API key, click **Settings** in the top-right corner. To manage API keys for access control, click **API Keys**.
 
-Use the **Light** / **Dark** toggle beside **Settings** to switch themes locally. To make a theme global for the web UI, open **Settings**, choose an Appearance theme, and save it to the server config.
+The web UI paints **dark** on first load. Use the **Light** / **Dark** toggle beside **Settings** to switch themes locally. To make a theme global for the web UI, open **Settings**, choose an Appearance theme, and save it to the server config.
 
 Flags: `--port 3000`, `--host 0.0.0.0`
 
@@ -148,8 +148,8 @@ POST /api/summarize          { "text": "...", "instruction"?, "provider"?, "apiK
                              → { "summary": "...", "provider": "...", "model": "..." }
 
 GET  /api/summarizer-config  → { "provider": "...", "model": "..." }
-GET  /api/theme-config       → { "theme": "light" | "dark" | "minimal" | "minimal-dark" | "" }
-POST /api/theme-config       { "theme": "light" | "dark" | "minimal" | "minimal-dark" | "" }
+GET  /api/theme-config       → { "theme": "light" | "dark", ... }
+POST /api/theme-config       { "theme": "light" | "dark", ... }
 GET  /api/voices             → { "voices": [...], "default": "Kore" }
 GET  /api/models             → { "models": [...], "default": "..." }
 

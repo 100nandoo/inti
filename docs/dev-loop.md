@@ -60,6 +60,9 @@ When changing the dev-loop tooling, verify these cases:
    Run `npm run test:web` and `npm run typecheck:web`.
    Expect the existing Text Workspace and related pages to behave the same after tooling changes.
 
+6. Theme-model baseline
+   Verify dark first paint, explicit light/dark persistence, protected secondary pages, and the migrated Text Workspace behavior still pass under `npm run test:web`.
+
 ## Notes For Maintainers
 
 - The watcher uses a dedicated temp directory under `.tmp/inti-unauthorized-watch` and should clean it up on shutdown.
