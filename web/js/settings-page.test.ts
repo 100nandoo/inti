@@ -88,6 +88,9 @@ test('settings page loads and saves through the current backend APIs', async (t)
     [...document.querySelectorAll('.header-settings-link')].map((link) => link.getAttribute('href')),
     ['/api-keys.html?key=main-secret', '/?key=main-secret'],
   );
+  assert.match(document.body.textContent ?? '', /Runtime Settings/);
+  assert.match(document.body.textContent ?? '', /Visual Theme/);
+  assert.match(document.body.textContent ?? '', /Providers/);
   assert.equal(requiredElement<HTMLSelectElement>('sum-provider-select').value, 'groq');
   assert.equal(requiredElement<HTMLSelectElement>('sum-model-select').value, 'llama-3.3-70b-versatile');
   assert.equal(requiredElement<HTMLSelectElement>('appearance-theme-select').value, 'dark');
@@ -234,4 +237,95 @@ test('settings page labels and scopes clear provider settings narrowly', async (
   assert.equal(requiredElement<HTMLSelectElement>('summary-download-format-select').value, 'txt');
   assert.equal(requiredElement<HTMLSelectElement>('ocr-promotion-behavior-select').value, 'replace');
   assert.equal(requiredElement<HTMLSelectElement>('summary-promotion-behavior-select').value, 'append');
+});
+
+test('settings page falls back removed theme values to dark before saving', async (t) => {
+  const requests: Array<{ url: string; method: string; body: unknown }> = [];
+
+  const dom = installDom('http://localhost:8282/settings.html?key=main-secret');
+  t.after(() => teardownPage(dom));
+
+  (
+    window as typeof window & {
+      IntiTheme: {
+        apply: (theme: string) => void;
+        persist: (theme: string) => void;
+      };
+    }
+  ).IntiTheme = {
+    apply() {},
+    persist() {},
+  };
+
+  globalThis.fetch = async (url, options = {}) => {
+    const method = options.method || 'GET';
+    const body = options.body ? JSON.parse(options.body as string) : null;
+    const urlText = String(url);
+    requests.push({ url: urlText, method, body });
+
+    if (method === 'GET' && urlText === 'http://localhost:8282/api/summarizer-config?key=main-secret') {
+      return Response.json({
+        provider: '',
+        model: '',
+        keys: {
+          gemini: '',
+          groq: '',
+          openrouter: '',
+        },
+      });
+    }
+
+    if (method === 'GET' && urlText === 'http://localhost:8282/api/theme-config?key=main-secret') {
+      return Response.json({
+        theme: 'minimal',
+        summaryDownloadFormat: 'md',
+        ocrPromotionBehavior: 'append',
+        summaryPromotionBehavior: 'append',
+      });
+    }
+
+    if (method === 'POST' && urlText === 'http://localhost:8282/api/summarizer-config?key=main-secret') {
+      return Response.json(body);
+    }
+
+    if (method === 'POST' && urlText === 'http://localhost:8282/api/theme-config?key=main-secret') {
+      return Response.json(body);
+    }
+
+    throw new Error(`Unexpected fetch to ${method} ${urlText}`);
+  };
+
+  await import(`../../web/assets/settings.js?test=${Date.now()}`);
+  await flushAsyncWork();
+
+  assert.equal(requiredElement<HTMLSelectElement>('appearance-theme-select').value, 'dark');
+
+  requiredElement<HTMLButtonElement>('sum-save-btn').click();
+  await flushAsyncWork();
+
+  assert.deepEqual(requests.slice(-2), [
+    {
+      url: 'http://localhost:8282/api/summarizer-config?key=main-secret',
+      method: 'POST',
+      body: {
+        provider: '',
+        model: '',
+        keys: {
+          gemini: '',
+          groq: '',
+          openrouter: '',
+        },
+      },
+    },
+    {
+      url: 'http://localhost:8282/api/theme-config?key=main-secret',
+      method: 'POST',
+      body: {
+        theme: 'dark',
+        summaryDownloadFormat: 'md',
+        ocrPromotionBehavior: 'append',
+        summaryPromotionBehavior: 'append',
+      },
+    },
+  ]);
 });

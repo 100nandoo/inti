@@ -306,261 +306,264 @@
 </script>
 
 <PageShell badge="Settings" {navLinks}>
-  <div class="card inti-page-card">
-    <div class="info-row inti-section-heading">
-      <span class="pill inti-kicker">Summarizer</span>
-      <span class="ocr-hint inti-muted">Choose which AI provider to use for summarization</span>
+  <section class="card inti-page-card">
+    <div class="card-body gap-5">
+      <div class="inti-section-heading">
+        <span class="inti-kicker">Runtime Settings</span>
+        <span class="inti-muted">Save appearance defaults and summarizer behavior in the server config.</span>
+      </div>
+
+      <div class="alert border border-base-300/70 bg-base-200/50 text-base-content/80">
+        <span>
+          Visual Theme saves only explicit <strong>light</strong> or <strong>dark</strong> values. Missing or legacy values fall back to dark.
+        </span>
+      </div>
     </div>
-    <div class="settings-form inti-form-grid">
-      <div class="settings-field">
-        <label class="settings-label" for="sum-provider-select">Active provider</label>
-        <div class="select-wrap">
+  </section>
+
+  <section class="card inti-page-card">
+    <div class="card-body gap-6">
+      <div class="inti-section-heading">
+        <span class="inti-kicker">Summarizer</span>
+        <span class="inti-muted">Choose which AI provider and model power summaries.</span>
+      </div>
+
+      <div class="inti-form-grid">
+        <fieldset class="inti-field">
+          <legend class="inti-field-legend">Active provider</legend>
           <select class="select select-bordered w-full" id="sum-provider-select" bind:value={provider} title="Active summarizer provider" on:change={handleProviderChange}>
             {#each providerOptions as option}
               <option value={option.value}>{option.label}</option>
             {/each}
           </select>
-        </div>
-      </div>
-      <div class="settings-field" hidden={modelOptions.length === 0}>
-        <label class="settings-label" for="sum-model-select">Model</label>
-        <div class="select-wrap">
+        </fieldset>
+        <fieldset class="inti-field" hidden={modelOptions.length === 0}>
+          <legend class="inti-field-legend">Model</legend>
           <select class="select select-bordered w-full" id="sum-model-select" bind:value={model} title="Active summarizer model">
             {#each modelOptions as option}
               <option value={option.value}>{option.label}</option>
             {/each}
           </select>
-        </div>
+        </fieldset>
       </div>
     </div>
-  </div>
+  </section>
 
-  <div class="card inti-page-card">
-    <div class="info-row inti-section-heading">
-      <span class="pill inti-kicker">Appearance</span>
-      <span class="ocr-hint inti-muted">Save interface defaults in the server config</span>
-    </div>
-    <div class="settings-form inti-form-grid">
-      <div class="settings-field">
-        <label class="settings-label" for="appearance-theme-select">Theme</label>
-        <div class="select-wrap">
+  <section class="card inti-page-card">
+    <div class="card-body gap-6">
+      <div class="inti-section-heading">
+        <span class="inti-kicker">Appearance</span>
+        <span class="inti-muted">Choose how saved workspace defaults behave when new pages load.</span>
+      </div>
+
+      <div class="inti-form-grid">
+        <fieldset class="inti-field">
+          <legend class="inti-field-legend">Visual Theme</legend>
           <select class="select select-bordered w-full" id="appearance-theme-select" bind:value={theme} title="Server theme" on:change={handleThemePreview}>
             {#each themeOptions as option}
               <option value={option.value}>{option.label}</option>
             {/each}
           </select>
-        </div>
-        <p class="settings-hint">
-          The server persists only explicit light or dark themes. Missing or legacy values fall back to dark.
-        </p>
-      </div>
-      <div class="settings-field">
-        <label class="settings-label" for="summary-download-format-select">Summary download format</label>
-        <div class="select-wrap">
+          <p class="inti-field-help">Applies immediately for preview and persists as the saved interface default.</p>
+        </fieldset>
+        <fieldset class="inti-field">
+          <legend class="inti-field-legend">Summary download format</legend>
           <select class="select select-bordered w-full" id="summary-download-format-select" bind:value={summaryDownloadFormat} title="Default summary download format">
             {#each summaryFormatOptions as option}
               <option value={option.value}>{option.label}</option>
             {/each}
           </select>
-        </div>
-        <p class="settings-hint">
-          Sets the default format used by the Summary download button on the main page.
-        </p>
-      </div>
-      <div class="settings-field">
-        <label class="settings-label" for="ocr-promotion-behavior-select">OCR promotion default</label>
-        <div class="select-wrap">
+          <p class="inti-field-help">Sets the default format used by the Summary download action on the main page.</p>
+        </fieldset>
+        <fieldset class="inti-field">
+          <legend class="inti-field-legend">OCR promotion default</legend>
           <select class="select select-bordered w-full" id="ocr-promotion-behavior-select" bind:value={ocrPromotionBehavior} title="Default OCR promotion behavior">
             {#each promotionOptions as option}
               <option value={option.value}>{option.label}</option>
             {/each}
           </select>
-        </div>
-        <p class="settings-hint">
-          Sets the default action when promoting an OCR result into the main workspace.
-        </p>
-      </div>
-      <div class="settings-field">
-        <label class="settings-label" for="summary-promotion-behavior-select">Summary promotion default</label>
-        <div class="select-wrap">
+          <p class="inti-field-help">Controls the default action when promoting OCR output into the main workspace.</p>
+        </fieldset>
+        <fieldset class="inti-field">
+          <legend class="inti-field-legend">Summary promotion default</legend>
           <select class="select select-bordered w-full" id="summary-promotion-behavior-select" bind:value={summaryPromotionBehavior} title="Default summary promotion behavior">
             {#each promotionOptions as option}
               <option value={option.value}>{option.label}</option>
             {/each}
           </select>
-        </div>
-        <p class="settings-hint">
-          Sets the default action when promoting a summary result into the main workspace.
-        </p>
+          <p class="inti-field-help">Controls the default action when promoting a summary result into the main workspace.</p>
+        </fieldset>
       </div>
     </div>
-  </div>
+  </section>
 
-  <div class="card inti-page-card">
-    <div class="info-row inti-section-heading">
-      <span class="pill inti-kicker">Providers</span>
-      <span class="ocr-hint inti-muted">Store per-provider API keys used by the summarizer</span>
-    </div>
+  <section class="card inti-page-card">
+    <div class="card-body gap-6">
+      <div class="inti-section-heading">
+        <span class="inti-kicker">Providers</span>
+        <span class="inti-muted">Store per-provider API keys used by the summarizer.</span>
+      </div>
 
-    <div class="provider-sections inti-provider-stack">
-      <section class="provider-section inti-provider-card">
-        <div class="provider-section-header inti-provider-header">
-          <div>
-            <h2 class="provider-section-title">Gemini</h2>
-            <p class="provider-section-subtitle">Google AI Studio</p>
-          </div>
-        </div>
-        <div class="settings-form">
-          <div class="settings-field">
-            <label class="settings-label" for="key-gemini">API Key</label>
-            <div class="settings-key-row inti-key-row">
-              <input type={revealGeminiKey ? 'text' : 'password'} id="key-gemini" class="input input-bordered w-full settings-key-input" bind:value={keyGemini} placeholder="AIza…" autocomplete="off" />
-              <button
-                type="button"
-                class="settings-key-toggle btn btn-square btn-ghost"
-                aria-label={keyVisibilityLabel(revealGeminiKey, 'Gemini')}
-                aria-pressed={revealGeminiKey}
-                on:click={() => (revealGeminiKey = !revealGeminiKey)}
-              >
-                <span class={`icon ${revealGeminiKey ? 'icon-eye-off' : 'icon-eye'}`} aria-hidden="true"></span>
-              </button>
+      <div class="inti-provider-stack">
+        <section class="provider-section inti-provider-card">
+          <div class="provider-section-header inti-provider-header">
+            <div>
+              <h2 class="provider-section-title">Gemini</h2>
+              <p class="provider-section-subtitle">Google AI Studio</p>
             </div>
-            <p class="settings-hint">
-              Get your key at
-              <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" class="settings-link">aistudio.google.com</a>
-            </p>
           </div>
-        </div>
-      </section>
-
-      <hr class="provider-divider" />
-
-      <section class="provider-section inti-provider-card">
-        <div class="provider-section-header inti-provider-header">
-          <div>
-            <h2 class="provider-section-title">Groq</h2>
-            <p class="provider-section-subtitle">Free tier · no billing required</p>
+          <div class="settings-form">
+            <div class="settings-field">
+              <label class="settings-label" for="key-gemini">API Key</label>
+              <div class="settings-key-row inti-key-row">
+                <input type={revealGeminiKey ? 'text' : 'password'} id="key-gemini" class="input input-bordered w-full settings-key-input" bind:value={keyGemini} placeholder="AIza…" autocomplete="off" />
+                <button
+                  type="button"
+                  class="settings-key-toggle btn btn-square btn-ghost"
+                  aria-label={keyVisibilityLabel(revealGeminiKey, 'Gemini')}
+                  aria-pressed={revealGeminiKey}
+                  on:click={() => (revealGeminiKey = !revealGeminiKey)}
+                >
+                  <span class={`icon ${revealGeminiKey ? 'icon-eye-off' : 'icon-eye'}`} aria-hidden="true"></span>
+                </button>
+              </div>
+              <p class="settings-hint">
+                Get your key at
+                <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" class="settings-link">aistudio.google.com</a>
+              </p>
+            </div>
           </div>
-          <div class="provider-section-actions">
-            <div class="usage-popover">
-              <button type="button" class="usage-trigger" aria-label="View Groq usage">
-                <span class="icon icon-bolt" aria-hidden="true"></span>
-                <span>Usage</span>
-              </button>
+        </section>
 
-              <div class="rate-usage-section" hidden={!groqLimits}>
-                {#if groqLimits}
-                  <div class="rate-usage-header">
-                    <span class="rate-usage-title">Current Usage</span>
-                    <span class="rate-usage-ts">
-                      {#if groqLimits.capturedAt}
-                        Updated {fmtAgo(groqNow - groqLimits.capturedAt)}
-                      {/if}
-                    </span>
-                  </div>
-                  <div class="rate-usage-row">
-                    <span class="rate-usage-label">Requests remaining today (RPD)</span>
-                    <div class="rate-usage-bar-wrap">
-                      <div class="rate-usage-bar">
-                        <div
-                          class:low={Number(groqLimits.limitRequests) > 0 && Math.round((Number(groqLimits.remainingRequests) / Number(groqLimits.limitRequests)) * 100) < 20}
-                          class="rate-usage-bar-fill"
-                          style={`width:${Number(groqLimits.limitRequests) > 0 ? Math.round((Number(groqLimits.remainingRequests) / Number(groqLimits.limitRequests)) * 100) : 0}%`}
-                        ></div>
-                      </div>
-                      <span class="rate-usage-numbers">
-                        {Number(groqLimits.remainingRequests || 0).toLocaleString()} / {Number(groqLimits.limitRequests || 0).toLocaleString()}
+        <hr class="provider-divider" />
+
+        <section class="provider-section inti-provider-card">
+          <div class="provider-section-header inti-provider-header">
+            <div>
+              <h2 class="provider-section-title">Groq</h2>
+              <p class="provider-section-subtitle">Free tier · no billing required</p>
+            </div>
+            <div class="provider-section-actions">
+              <div class="usage-popover">
+                <button type="button" class="usage-trigger" aria-label="View Groq usage">
+                  <span class="icon icon-bolt" aria-hidden="true"></span>
+                  <span>Usage</span>
+                </button>
+
+                <div class="rate-usage-section" hidden={!groqLimits}>
+                  {#if groqLimits}
+                    <div class="rate-usage-header">
+                      <span class="rate-usage-title">Current Usage</span>
+                      <span class="rate-usage-ts">
+                        {#if groqLimits.capturedAt}
+                          Updated {fmtAgo(groqNow - groqLimits.capturedAt)}
+                        {/if}
                       </span>
                     </div>
-                    <span class="rate-usage-reset">
-                      {#if groqLimits.resetRequestsAt}
-                        Resets in {fmtDuration(groqLimits.resetRequestsAt - groqNow)}
-                      {/if}
-                    </span>
-                  </div>
-                  <div class="rate-usage-row">
-                    <span class="rate-usage-label">Tokens remaining this minute (TPM)</span>
-                    <div class="rate-usage-bar-wrap">
-                      <div class="rate-usage-bar">
-                        <div
-                          class:low={Number(groqLimits.limitTokens) > 0 && Math.round((Number(groqLimits.remainingTokens) / Number(groqLimits.limitTokens)) * 100) < 20}
-                          class="rate-usage-bar-fill"
-                          style={`width:${Number(groqLimits.limitTokens) > 0 ? Math.round((Number(groqLimits.remainingTokens) / Number(groqLimits.limitTokens)) * 100) : 0}%`}
-                        ></div>
+                    <div class="rate-usage-row">
+                      <span class="rate-usage-label">Requests remaining today (RPD)</span>
+                      <div class="rate-usage-bar-wrap">
+                        <div class="rate-usage-bar">
+                          <div
+                            class:low={Number(groqLimits.limitRequests) > 0 && Math.round((Number(groqLimits.remainingRequests) / Number(groqLimits.limitRequests)) * 100) < 20}
+                            class="rate-usage-bar-fill"
+                            style={`width:${Number(groqLimits.limitRequests) > 0 ? Math.round((Number(groqLimits.remainingRequests) / Number(groqLimits.limitRequests)) * 100) : 0}%`}
+                          ></div>
+                        </div>
+                        <span class="rate-usage-numbers">
+                          {Number(groqLimits.remainingRequests || 0).toLocaleString()} / {Number(groqLimits.limitRequests || 0).toLocaleString()}
+                        </span>
                       </div>
-                      <span class="rate-usage-numbers">
-                        {Number(groqLimits.remainingTokens || 0).toLocaleString()} / {Number(groqLimits.limitTokens || 0).toLocaleString()}
+                      <span class="rate-usage-reset">
+                        {#if groqLimits.resetRequestsAt}
+                          Resets in {fmtDuration(groqLimits.resetRequestsAt - groqNow)}
+                        {/if}
                       </span>
                     </div>
-                    <span class="rate-usage-reset">
-                      {#if groqLimits.resetTokensAt}
-                        Resets in {fmtDuration(groqLimits.resetTokensAt - groqNow)}
-                      {/if}
-                    </span>
-                  </div>
-                {/if}
+                    <div class="rate-usage-row">
+                      <span class="rate-usage-label">Tokens remaining this minute (TPM)</span>
+                      <div class="rate-usage-bar-wrap">
+                        <div class="rate-usage-bar">
+                          <div
+                            class:low={Number(groqLimits.limitTokens) > 0 && Math.round((Number(groqLimits.remainingTokens) / Number(groqLimits.limitTokens)) * 100) < 20}
+                            class="rate-usage-bar-fill"
+                            style={`width:${Number(groqLimits.limitTokens) > 0 ? Math.round((Number(groqLimits.remainingTokens) / Number(groqLimits.limitTokens)) * 100) : 0}%`}
+                          ></div>
+                        </div>
+                        <span class="rate-usage-numbers">
+                          {Number(groqLimits.remainingTokens || 0).toLocaleString()} / {Number(groqLimits.limitTokens || 0).toLocaleString()}
+                        </span>
+                      </div>
+                      <span class="rate-usage-reset">
+                        {#if groqLimits.resetTokensAt}
+                          Resets in {fmtDuration(groqLimits.resetTokensAt - groqNow)}
+                        {/if}
+                      </span>
+                    </div>
+                  {/if}
+                </div>
               </div>
             </div>
           </div>
-        </div>
-        <div class="settings-form">
-          <div class="settings-field">
-            <label class="settings-label" for="key-groq">API Key</label>
-            <div class="settings-key-row inti-key-row">
-              <input type={revealGroqKey ? 'text' : 'password'} id="key-groq" class="input input-bordered w-full settings-key-input" bind:value={keyGroq} placeholder="gsk_…" autocomplete="off" />
-              <button
-                type="button"
-                class="settings-key-toggle btn btn-square btn-ghost"
-                aria-label={keyVisibilityLabel(revealGroqKey, 'Groq')}
-                aria-pressed={revealGroqKey}
-                on:click={() => (revealGroqKey = !revealGroqKey)}
-              >
-                <span class={`icon ${revealGroqKey ? 'icon-eye-off' : 'icon-eye'}`} aria-hidden="true"></span>
-              </button>
+          <div class="settings-form">
+            <div class="settings-field">
+              <label class="settings-label" for="key-groq">API Key</label>
+              <div class="settings-key-row inti-key-row">
+                <input type={revealGroqKey ? 'text' : 'password'} id="key-groq" class="input input-bordered w-full settings-key-input" bind:value={keyGroq} placeholder="gsk_…" autocomplete="off" />
+                <button
+                  type="button"
+                  class="settings-key-toggle btn btn-square btn-ghost"
+                  aria-label={keyVisibilityLabel(revealGroqKey, 'Groq')}
+                  aria-pressed={revealGroqKey}
+                  on:click={() => (revealGroqKey = !revealGroqKey)}
+                >
+                  <span class={`icon ${revealGroqKey ? 'icon-eye-off' : 'icon-eye'}`} aria-hidden="true"></span>
+                </button>
+              </div>
+              <p class="settings-hint">
+                Get your key at
+                <a href="https://console.groq.com/keys" target="_blank" rel="noopener" class="settings-link">console.groq.com</a>
+                <span class="settings-hint-separator">·</span>
+                <a href="https://console.groq.com/docs/rate-limits" target="_blank" rel="noopener" class="settings-link">Rate limits ↗</a>
+              </p>
             </div>
-            <p class="settings-hint">
-              Get your key at
-              <a href="https://console.groq.com/keys" target="_blank" rel="noopener" class="settings-link">console.groq.com</a>
-              <span class="settings-hint-separator">·</span>
-              <a href="https://console.groq.com/docs/rate-limits" target="_blank" rel="noopener" class="settings-link">Rate limits ↗</a>
-            </p>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <hr class="provider-divider" />
+        <hr class="provider-divider" />
 
-      <section class="provider-section inti-provider-card">
-        <div class="provider-section-header inti-provider-header">
-          <div>
-            <h2 class="provider-section-title">OpenRouter</h2>
-            <p class="provider-section-subtitle">Free models available · no credits consumed</p>
-          </div>
-        </div>
-        <div class="settings-form">
-          <div class="settings-field">
-            <label class="settings-label" for="key-openrouter">API Key</label>
-            <div class="settings-key-row inti-key-row">
-              <input type={revealOpenRouterKey ? 'text' : 'password'} id="key-openrouter" class="input input-bordered w-full settings-key-input" bind:value={keyOpenRouter} placeholder="sk-or-…" autocomplete="off" />
-              <button
-                type="button"
-                class="settings-key-toggle btn btn-square btn-ghost"
-                aria-label={keyVisibilityLabel(revealOpenRouterKey, 'OpenRouter')}
-                aria-pressed={revealOpenRouterKey}
-                on:click={() => (revealOpenRouterKey = !revealOpenRouterKey)}
-              >
-                <span class={`icon ${revealOpenRouterKey ? 'icon-eye-off' : 'icon-eye'}`} aria-hidden="true"></span>
-              </button>
+        <section class="provider-section inti-provider-card">
+          <div class="provider-section-header inti-provider-header">
+            <div>
+              <h2 class="provider-section-title">OpenRouter</h2>
+              <p class="provider-section-subtitle">Free models available · no credits consumed</p>
             </div>
-            <p class="settings-hint">
-              Get your key at
-              <a href="https://openrouter.ai/keys" target="_blank" rel="noopener" class="settings-link">openrouter.ai/keys</a>
-            </p>
           </div>
-        </div>
-      </section>
+          <div class="settings-form">
+            <div class="settings-field">
+              <label class="settings-label" for="key-openrouter">API Key</label>
+              <div class="settings-key-row inti-key-row">
+                <input type={revealOpenRouterKey ? 'text' : 'password'} id="key-openrouter" class="input input-bordered w-full settings-key-input" bind:value={keyOpenRouter} placeholder="sk-or-…" autocomplete="off" />
+                <button
+                  type="button"
+                  class="settings-key-toggle btn btn-square btn-ghost"
+                  aria-label={keyVisibilityLabel(revealOpenRouterKey, 'OpenRouter')}
+                  aria-pressed={revealOpenRouterKey}
+                  on:click={() => (revealOpenRouterKey = !revealOpenRouterKey)}
+                >
+                  <span class={`icon ${revealOpenRouterKey ? 'icon-eye-off' : 'icon-eye'}`} aria-hidden="true"></span>
+                </button>
+              </div>
+              <p class="settings-hint">
+                Get your key at
+                <a href="https://openrouter.ai/keys" target="_blank" rel="noopener" class="settings-link">openrouter.ai/keys</a>
+              </p>
+            </div>
+          </div>
+        </section>
+      </div>
     </div>
-  </div>
+  </section>
 
   <div class="settings-actions-row inti-actions">
     <button id="sum-save-btn" class="btn-primary btn btn-primary" on:click={handleSave}>Save</button>
