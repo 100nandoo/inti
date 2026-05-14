@@ -12,7 +12,7 @@ import { formatWatchEvent } from '../../scripts/watch-web.mjs';
 test('createUnauthorizedBuildConfig enables watch mode when requested', () => {
   const config = createUnauthorizedBuildConfig({
     outDir: '/tmp/inti-web-watch',
-    watch: {},
+    watch: {} as never,
   });
 
   assert.equal(config.build.outDir, '/tmp/inti-web-watch');

@@ -5,9 +5,10 @@ import { readFileSync } from 'node:fs';
 import {
   flushAsyncWork,
   installDom,
+  requiredElement,
   setInputValue,
   teardownPage,
-} from './svelte-page-test-helpers.js';
+} from './svelte-page-test-helpers.ts';
 
 test('api keys route uses the Svelte secondary-page entrypoint', () => {
   const html = readFileSync(new URL('../../web-src/api-keys.html', import.meta.url), 'utf8');
@@ -82,19 +83,19 @@ test('API keys page preserves authenticated admin flows', async (t) => {
     ['/settings.html?key=main-secret', '/?key=main-secret'],
   );
 
-  setInputValue(document.getElementById('new-key-name'), 'Desktop');
-  document.getElementById('create-key-btn').click();
+  setInputValue(requiredElement('new-key-name'), 'Desktop');
+  requiredElement('create-key-btn').click();
   await flushAsyncWork();
 
   assert.equal(requests[1].body.name, 'Desktop');
   assert.match(document.body.textContent, /API Key Created/);
-  assert.equal(document.getElementById('key-modal-value').textContent, 'inti_secret_1');
+  assert.equal(requiredElement('key-modal-value').textContent, 'inti_secret_1');
 
-  document.getElementById('key-modal-copy').click();
+  requiredElement('key-modal-copy').click();
   await flushAsyncWork();
   assert.equal(copiedValue, 'inti_secret_1');
 
-  document.getElementById('key-modal-save').click();
+  requiredElement('key-modal-save').click();
   await flushAsyncWork();
 
   assert.equal(window.location.search, '?key=inti_secret_1');

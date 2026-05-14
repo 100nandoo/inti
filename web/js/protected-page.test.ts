@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { createProtectedPage } from '../../web-src/src/lib/protected-page.js';
 
 test('protected page utilities preserve key-aware links and requests', async () => {
-  const requests = [];
+  const requests: Array<{ url: string; init: RequestInit }> = [];
   const win = {
     location: {
       origin: 'http://localhost:8282',
@@ -12,13 +12,13 @@ test('protected page utilities preserve key-aware links and requests', async () 
       href: 'http://localhost:8282/settings.html?key=secret',
     },
     history: {
-      replaceState(_state, _title, nextUrl) {
+      replaceState(_state: unknown, _title: string, nextUrl: string) {
         win.location.href = `http://localhost:8282${nextUrl}`;
         const next = new URL(win.location.href);
         win.location.search = next.search;
       },
     },
-  };
+  } as Pick<Window, 'location' | 'history'> as Window & typeof globalThis;
 
   const protectedPage = createProtectedPage({
     navItems: [
@@ -37,14 +37,14 @@ test('protected page utilities preserve key-aware links and requests', async () 
     ],
     win,
     fetchImpl: async (url, init = {}) => {
-      requests.push({ url, init });
-      return { ok: true, json: async () => ({ ok: true }) };
+      requests.push({ url: String(url), init });
+      return Response.json({ ok: true });
     },
   });
 
   assert.equal(protectedPage.currentAPIKey(), 'secret');
   assert.deepEqual(
-    protectedPage.navLinks().map((link) => link.href),
+    protectedPage.navLinks().map((link: { href: string }) => link.href),
     ['/api-keys.html?key=secret', '/?key=secret'],
   );
 
@@ -57,7 +57,7 @@ test('protected page utilities preserve key-aware links and requests', async () 
   ]);
 
   assert.deepEqual(
-    protectedPage.setCurrentAPIKey('next-secret').map((link) => link.href),
+    protectedPage.setCurrentAPIKey('next-secret').map((link: { href: string }) => link.href),
     ['/api-keys.html?key=next-secret', '/?key=next-secret'],
   );
   assert.equal(win.location.href, 'http://localhost:8282/settings.html?key=next-secret');

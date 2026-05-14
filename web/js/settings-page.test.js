@@ -5,10 +5,11 @@ import { readFileSync } from 'node:fs';
 import {
   flushAsyncWork,
   installDom,
+  requiredElement,
   setInputValue,
   setSelectValue,
   teardownPage,
-} from './svelte-page-test-helpers.js';
+} from './svelte-page-test-helpers.ts';
 
 test('settings route uses the Svelte secondary-page entrypoint', () => {
   const html = readFileSync(new URL('../../web-src/settings.html', import.meta.url), 'utf8');
@@ -79,23 +80,23 @@ test('settings page loads and saves through the current backend APIs', async (t)
     [...document.querySelectorAll('.header-settings-link')].map((link) => link.getAttribute('href')),
     ['/api-keys.html?key=main-secret', '/?key=main-secret'],
   );
-  assert.equal(document.getElementById('sum-provider-select').value, 'groq');
-  assert.equal(document.getElementById('sum-model-select').value, 'llama-3.3-70b-versatile');
-  assert.equal(document.getElementById('appearance-theme-select').value, 'minimal');
-  assert.equal(document.getElementById('summary-download-format-select').value, 'md');
-  assert.equal(document.getElementById('ocr-promotion-behavior-select').value, 'append');
-  assert.equal(document.getElementById('summary-promotion-behavior-select').value, 'replace');
-  assert.equal(document.getElementById('key-groq').value, 'gsk_existing');
+  assert.equal(requiredElement('sum-provider-select').value, 'groq');
+  assert.equal(requiredElement('sum-model-select').value, 'llama-3.3-70b-versatile');
+  assert.equal(requiredElement('appearance-theme-select').value, 'minimal');
+  assert.equal(requiredElement('summary-download-format-select').value, 'md');
+  assert.equal(requiredElement('ocr-promotion-behavior-select').value, 'append');
+  assert.equal(requiredElement('summary-promotion-behavior-select').value, 'replace');
+  assert.equal(requiredElement('key-groq').value, 'gsk_existing');
 
-  setSelectValue(document.getElementById('sum-model-select'), 'mixtral-scout');
-  setSelectValue(document.getElementById('appearance-theme-select'), 'dark');
-  setSelectValue(document.getElementById('summary-download-format-select'), 'txt');
-  setSelectValue(document.getElementById('ocr-promotion-behavior-select'), 'replace');
-  setSelectValue(document.getElementById('summary-promotion-behavior-select'), 'append');
-  setInputValue(document.getElementById('key-groq'), 'gsk_saved');
-  setInputValue(document.getElementById('key-openrouter'), 'sk-or-saved');
+  setSelectValue(requiredElement('sum-model-select'), 'mixtral-scout');
+  setSelectValue(requiredElement('appearance-theme-select'), 'dark');
+  setSelectValue(requiredElement('summary-download-format-select'), 'txt');
+  setSelectValue(requiredElement('ocr-promotion-behavior-select'), 'replace');
+  setSelectValue(requiredElement('summary-promotion-behavior-select'), 'append');
+  setInputValue(requiredElement('key-groq'), 'gsk_saved');
+  setInputValue(requiredElement('key-openrouter'), 'sk-or-saved');
 
-  document.getElementById('sum-save-btn').click();
+  requiredElement('sum-save-btn').click();
   await flushAsyncWork();
 
   assert.deepEqual(themePreviewCalls, [
@@ -183,13 +184,13 @@ test('settings page labels and scopes clear provider settings narrowly', async (
   await import(`../../web/assets/settings.js?test=${Date.now()}`);
   await flushAsyncWork();
 
-  assert.equal(document.getElementById('sum-clear-btn').textContent.trim(), 'Clear Provider Settings');
-  assert.equal(document.getElementById('appearance-theme-select').value, 'minimal');
-  assert.equal(document.getElementById('summary-download-format-select').value, 'txt');
-  assert.equal(document.getElementById('ocr-promotion-behavior-select').value, 'replace');
-  assert.equal(document.getElementById('summary-promotion-behavior-select').value, 'append');
+  assert.equal(requiredElement('sum-clear-btn').textContent.trim(), 'Clear Provider Settings');
+  assert.equal(requiredElement('appearance-theme-select').value, 'minimal');
+  assert.equal(requiredElement('summary-download-format-select').value, 'txt');
+  assert.equal(requiredElement('ocr-promotion-behavior-select').value, 'replace');
+  assert.equal(requiredElement('summary-promotion-behavior-select').value, 'append');
 
-  document.getElementById('sum-clear-btn').click();
+  requiredElement('sum-clear-btn').click();
   await flushAsyncWork();
 
   assert.deepEqual(requests.at(-1), {
@@ -205,12 +206,12 @@ test('settings page labels and scopes clear provider settings narrowly', async (
       },
     },
   });
-  assert.equal(document.getElementById('sum-provider-select').value, '');
-  assert.equal(document.getElementById('key-gemini').value, '');
-  assert.equal(document.getElementById('key-groq').value, '');
-  assert.equal(document.getElementById('key-openrouter').value, '');
-  assert.equal(document.getElementById('appearance-theme-select').value, 'minimal');
-  assert.equal(document.getElementById('summary-download-format-select').value, 'txt');
-  assert.equal(document.getElementById('ocr-promotion-behavior-select').value, 'replace');
-  assert.equal(document.getElementById('summary-promotion-behavior-select').value, 'append');
+  assert.equal(requiredElement('sum-provider-select').value, '');
+  assert.equal(requiredElement('key-gemini').value, '');
+  assert.equal(requiredElement('key-groq').value, '');
+  assert.equal(requiredElement('key-openrouter').value, '');
+  assert.equal(requiredElement('appearance-theme-select').value, 'minimal');
+  assert.equal(requiredElement('summary-download-format-select').value, 'txt');
+  assert.equal(requiredElement('ocr-promotion-behavior-select').value, 'replace');
+  assert.equal(requiredElement('summary-promotion-behavior-select').value, 'append');
 });

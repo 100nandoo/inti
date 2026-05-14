@@ -4,12 +4,17 @@ import { readFileSync } from 'node:fs';
 
 const airConfig = readFileSync(new URL('../../.air.toml', import.meta.url), 'utf8');
 const devScript = readFileSync(new URL('../../scripts/dev.sh', import.meta.url), 'utf8');
-const packageJson = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8'));
+const packageJson = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8')) as {
+  scripts: Record<string, string>;
+};
 
 test('Air watches Go sources and generated web output, not raw web sources', () => {
   assert.match(airConfig, /include_dir = \["cmd", "internal", "web"\]/);
   assert.match(airConfig, /include_file = \["main\.go", "embed\.go"\]/);
-  assert.match(airConfig, /exclude_dir = \["tmp", "\.tmp", "dist", "build", "node_modules", "extension", "web-src", "\.git",\]/);
+  assert.match(
+    airConfig,
+    /exclude_dir = \["tmp", "\.tmp", "dist", "build", "node_modules", "extension", "web-src", "\.git",\]/,
+  );
   assert.match(airConfig, /exclude_unchanged = true/);
 });
 
