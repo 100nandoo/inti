@@ -9,13 +9,13 @@ import {
 
 test('requestSpeechSynthesis returns an audio blob from the speak API payload', async () => {
   const result = await requestSpeechSynthesis({
-    apiURL: (path) => path,
+    apiURL: (path: string) => path,
     text: 'Alpha beta',
     voice: 'Kore',
     model: 'flash',
-    fetchImpl: async (url, options) => {
-      assert.equal(url, '/api/speak');
-      assert.deepEqual(JSON.parse(options.body), {
+    fetchImpl: async (url, options = {}) => {
+      assert.equal(String(url), '/api/speak');
+      assert.deepEqual(JSON.parse(options.body as string), {
         text: 'Alpha beta',
         voice: 'Kore',
         model: 'flash',
@@ -33,7 +33,7 @@ test('requestSpeechSynthesis returns an audio blob from the speak API payload', 
 test('requestSpeechSynthesis rejects malformed speak API payloads', async () => {
   await assert.rejects(
     requestSpeechSynthesis({
-      apiURL: (path) => path,
+      apiURL: (path: string) => path,
       text: 'Alpha beta',
       voice: 'Kore',
       model: 'flash',
@@ -49,6 +49,10 @@ test('buildSpeechPanelViewModel preserves latest audio snapshot metadata after l
     processing: false,
     workingText: 'Edited after audio generation',
     latestTextResult: {
+      kind: 'summary',
+      title: 'Summary Result',
+      format: 'plain',
+      rawText: 'Latest result',
       plainText: 'Latest result',
     },
     lastAudioBlob: blob,

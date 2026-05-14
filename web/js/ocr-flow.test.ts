@@ -24,8 +24,8 @@ test('OCR staging helpers keep accepted files and count rejected image types', (
   const { allowedFiles, rejectedCount } = filterAllowedImageFiles(files);
 
   assert.equal(allowedFiles.length, 1);
-  assert.equal(allowedFiles[0].name, 'receipt.png');
-  assert.equal(allowedFiles[0].type, 'image/png');
+  assert.equal(allowedFiles[0]?.name, 'receipt.png');
+  assert.equal(allowedFiles[0]?.type, 'image/png');
   assert.equal(rejectedCount, 1);
   assert.equal(formatStagedCount(1), '1 file');
   assert.equal(formatStagedCount(2), '2 files');
@@ -51,25 +51,28 @@ test('OCR clipboard helpers create stable names for pasted image items and rejec
   const unsupportedSvg = new File(['vector'], 'diagram.svg', { type: 'image/svg+xml' });
   const plainText = new File(['notes'], 'notes.txt', { type: 'text/plain' });
 
-  const pastedImages = getImageFilesFromClipboard({
-    items: [
-      {
-        kind: 'file',
-        type: 'image/png',
-        getAsFile: () => pastedFile,
-      },
-    ],
-  }, { now: () => 1234 });
+  const pastedImages = getImageFilesFromClipboard(
+    {
+      items: [
+        {
+          kind: 'file',
+          type: 'image/png',
+          getAsFile: () => pastedFile,
+        },
+      ] as unknown as DataTransferItemList,
+    } as unknown as DataTransfer,
+    { now: () => 1234 },
+  );
 
   assert.equal(pastedImages.rejectedCount, 0);
   assert.equal(pastedImages.files.length, 1);
-  assert.equal(pastedImages.files[0].name, 'clipboard-image-1234-0.png');
-  assert.equal(pastedImages.files[0].type, 'image/png');
+  assert.equal(pastedImages.files[0]?.name, 'clipboard-image-1234-0.png');
+  assert.equal(pastedImages.files[0]?.type, 'image/png');
 
   const fallbackImages = getImageFilesFromClipboard({
-    items: [],
-    files: [unsupportedSvg, plainText],
-  });
+    items: [] as unknown as DataTransferItemList,
+    files: [unsupportedSvg, plainText] as unknown as FileList,
+  } as unknown as DataTransfer);
 
   assert.deepEqual(fallbackImages.files, []);
   assert.equal(fallbackImages.rejectedCount, 1);

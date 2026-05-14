@@ -39,7 +39,7 @@ test('promotion defaults stay scoped to summary and OCR result kinds', () => {
 
   assert.equal(getDefaultPromotionBehavior('summary'), 'replace');
   assert.equal(getDefaultPromotionBehavior('ocr'), 'append');
-  assert.equal(getDefaultPromotionBehavior('unknown'), 'append');
+  assert.equal(getDefaultPromotionBehavior('unknown' as Parameters<typeof getDefaultPromotionBehavior>[0]), 'append');
 });
 
 test('promoting the latest text result preserves append and replace semantics', () => {

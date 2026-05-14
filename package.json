@@ -6,7 +6,7 @@
     "build:web": "vite build && node scripts/render-unauthorized-page.mjs",
     "dev:web": "vite",
     "watch:web": "node scripts/watch-web.mjs",
-    "test:web": "tsx --test web/js/*.test.js web/js/*.test.ts",
+    "test:web": "tsx --test web/js/*.test.ts",
     "typecheck:web": "svelte-check --tsconfig ./tsconfig.web.json",
     "typecheck:web:test": "tsc -p ./tsconfig.web-tests.json"
   },

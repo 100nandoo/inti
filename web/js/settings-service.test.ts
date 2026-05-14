@@ -8,17 +8,18 @@ import {
 } from '../../web-src/src/lib/settings-service.js';
 
 test('loadSettings fetches summarizer and appearance settings together', async () => {
-  const fetchCalls = [];
-  const apiURL = (path) => `http://localhost:8282${path}?key=secret`;
+  const fetchCalls: string[] = [];
+  const apiURL = (path: string) => `http://localhost:8282${path}?key=secret`;
 
   const result = await loadSettings({
     apiURL,
     fetchImpl: async (url) => {
-      fetchCalls.push(url);
-      if (url.includes('/api/summarizer-config')) {
+      const urlText = String(url);
+      fetchCalls.push(urlText);
+      if (urlText.includes('/api/summarizer-config')) {
         return Response.json({ provider: 'groq', model: 'llama', keys: { groq: 'gsk_test' } });
       }
-      if (url.includes('/api/theme-config')) {
+      if (urlText.includes('/api/theme-config')) {
         return Response.json({
           theme: 'minimal',
           summaryDownloadFormat: 'md',
@@ -26,7 +27,7 @@ test('loadSettings fetches summarizer and appearance settings together', async (
           summaryPromotionBehavior: 'replace',
         });
       }
-      throw new Error(`Unexpected request: ${url}`);
+      throw new Error(`Unexpected request: ${urlText}`);
     },
   });
 
@@ -39,8 +40,8 @@ test('loadSettings fetches summarizer and appearance settings together', async (
 });
 
 test('saveSettings preserves the current backend contracts', async () => {
-  const bodies = [];
-  const apiURL = (path) => path;
+  const bodies: unknown[] = [];
+  const apiURL = (path: string) => path;
 
   const result = await saveSettings({
     apiURL,
@@ -53,9 +54,10 @@ test('saveSettings preserves the current backend contracts', async () => {
       ocrPromotionBehavior: 'replace',
       summaryPromotionBehavior: 'append',
     },
-    fetchImpl: async (_url, options) => {
-      bodies.push(JSON.parse(options.body));
-      return Response.json(JSON.parse(options.body));
+    fetchImpl: async (_url, options = {}) => {
+      const body = JSON.parse(options.body as string);
+      bodies.push(body);
+      return Response.json(body);
     },
   });
 
@@ -78,9 +80,9 @@ test('saveSettings preserves the current backend contracts', async () => {
 
 test('clearSummarizerSettings resets only provider-side settings', async () => {
   const result = await clearSummarizerSettings({
-    apiURL: (path) => path,
-    fetchImpl: async (_url, options) => {
-      assert.deepEqual(JSON.parse(options.body), {
+    apiURL: (path: string) => path,
+    fetchImpl: async (_url, options = {}) => {
+      assert.deepEqual(JSON.parse(options.body as string), {
         provider: '',
         model: '',
         keys: { gemini: '', groq: '', openrouter: '' },
