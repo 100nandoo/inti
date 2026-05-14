@@ -36,6 +36,10 @@ _Avoid_: pipeline, engine
 The persisted preferences and credentials that shape how the product behaves across sessions.
 _Avoid_: config blob, app state
 
+**Visual Theme**:
+The named appearance mode applied to the web interface and stored in **Runtime Settings**.
+_Avoid_: skin, palette, CSS mode
+
 **Provider Policy**:
 The rules that select summarizer providers and models and account for provider-specific capabilities.
 _Avoid_: provider picker logic, backend routing
@@ -47,6 +51,7 @@ _Avoid_: provider picker logic, backend routing
 - The **Result Surface** presents the latest **Transform Result** and lets the user apply a **Promotion Rule**
 - A **Transform Result** does not change **Working Text** until a **Promotion Rule** is applied
 - **Runtime Settings** stores the default **Promotion Rule** for OCR imports and summary promotions
+- **Runtime Settings** may store one **Visual Theme** for the web interface
 - An **Audio Result** belongs to the text snapshot used to generate it and may remain available after **Working Text** changes
 
 ## Example dialogue
@@ -58,3 +63,4 @@ _Avoid_: provider picker logic, backend routing
 
 - "source text", "OCR output", and "text to speak" were being used as separate editable concepts in the UI. Resolved: the web frontend has one **Working Text**
 - The numbered four-panel frontend implied a fixed process. Resolved: the product is a **Text Workspace** with optional transforms
+- "theme" was overloaded between implementation details and the user-facing appearance choice. Resolved: use **Visual Theme** for the persisted product setting
