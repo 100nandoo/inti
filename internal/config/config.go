@@ -10,6 +10,8 @@ import (
 
 type Config struct {
 	GeminiAPIKey     string
+	SpeechProvider   string
+	KokoroHeartURL   string
 	DefaultVoice     string
 	DefaultModel     string
 	Port             int
@@ -24,6 +26,12 @@ type Config struct {
 	OpenRouterModel    string
 }
 
+const (
+	SpeechProviderGemini      = "gemini"
+	SpeechProviderKokoroHeart = "kokoro-heart"
+	DefaultKokoroHeartURL     = "https://koboldai-koboldcpp-tiefighter.hf.space/v1/audio/speech"
+)
+
 var validVoices = []string{
 	"Zephyr", "Puck", "Charon", "Kore", "Fenrir",
 	"Leda", "Orus", "Aoede", "Callirrhoe", "Autonoe",
@@ -33,6 +41,8 @@ var validVoices = []string{
 	"Zubenelgenubi", "Vindemiatrix", "Sadachbia", "Sadaltager", "Sulafat",
 }
 
+var kokoroHeartVoices = []string{"cheery"}
+
 var validModels = []string{
 	"gemini-2.5-flash-preview-tts",
 	"gemini-2.5-pro-preview-tts",
@@ -40,6 +50,8 @@ var validModels = []string{
 }
 
 const DefaultModelName = "gemini-3.1-flash-tts-preview"
+const DefaultGeminiVoice = "Kore"
+const DefaultKokoroHeartVoice = "cheery"
 
 var placeholderSecretValues = map[string]struct{}{
 	"":                 {},
@@ -51,6 +63,17 @@ var placeholderSecretValues = map[string]struct{}{
 
 func ValidVoices() []string { return validVoices }
 
+func ValidVoicesForProvider(provider string) []string {
+	switch provider {
+	case SpeechProviderGemini:
+		return append([]string(nil), validVoices...)
+	case SpeechProviderKokoroHeart:
+		return append([]string(nil), kokoroHeartVoices...)
+	default:
+		return nil
+	}
+}
+
 func IsValidVoice(name string) bool {
 	for _, v := range validVoices {
 		if v == name {
@@ -60,7 +83,27 @@ func IsValidVoice(name string) bool {
 	return false
 }
 
+func IsValidVoiceForProvider(provider, name string) bool {
+	for _, v := range ValidVoicesForProvider(provider) {
+		if v == name {
+			return true
+		}
+	}
+	return false
+}
+
 func ValidModels() []string { return validModels }
+
+func ValidModelsForProvider(provider string) []string {
+	switch provider {
+	case SpeechProviderGemini:
+		return append([]string(nil), validModels...)
+	case SpeechProviderKokoroHeart:
+		return []string{}
+	default:
+		return nil
+	}
+}
 
 func IsValidModel(name string) bool {
 	for _, m := range validModels {
@@ -69,6 +112,53 @@ func IsValidModel(name string) bool {
 		}
 	}
 	return false
+}
+
+func IsValidModelForProvider(provider, name string) bool {
+	if provider == SpeechProviderKokoroHeart {
+		return name == ""
+	}
+	for _, m := range ValidModelsForProvider(provider) {
+		if m == name {
+			return true
+		}
+	}
+	return false
+}
+
+func DefaultVoiceForProvider(provider string) string {
+	switch provider {
+	case SpeechProviderKokoroHeart:
+		return DefaultKokoroHeartVoice
+	case SpeechProviderGemini:
+		fallthrough
+	default:
+		return DefaultGeminiVoice
+	}
+}
+
+func DefaultModelForProvider(provider string) string {
+	switch provider {
+	case SpeechProviderKokoroHeart:
+		return ""
+	case SpeechProviderGemini:
+		fallthrough
+	default:
+		return DefaultModelName
+	}
+}
+
+func ValidSpeechProviders() []string {
+	return []string{SpeechProviderGemini, SpeechProviderKokoroHeart}
+}
+
+func IsValidSpeechProvider(provider string) bool {
+	switch provider {
+	case SpeechProviderGemini, SpeechProviderKokoroHeart:
+		return true
+	default:
+		return false
+	}
 }
 
 func loadSecret(names ...string) string {
@@ -107,14 +197,24 @@ func Load() (*Config, error) {
 		host = h
 	}
 
-	voice := "Kore"
-	if v := os.Getenv("DEFAULT_VOICE"); v != "" && IsValidVoice(v) {
+	speechProvider := strings.TrimSpace(os.Getenv("SPEECH_PROVIDER"))
+	if !IsValidSpeechProvider(speechProvider) {
+		speechProvider = SpeechProviderGemini
+	}
+
+	voice := DefaultVoiceForProvider(speechProvider)
+	if v := os.Getenv("DEFAULT_VOICE"); v != "" && IsValidVoiceForProvider(speechProvider, v) {
 		voice = v
 	}
 
-	model := DefaultModelName
-	if m := os.Getenv("DEFAULT_MODEL"); m != "" && IsValidModel(m) {
+	model := DefaultModelForProvider(speechProvider)
+	if m := os.Getenv("DEFAULT_MODEL"); m != "" && IsValidModelForProvider(speechProvider, m) {
 		model = m
+	}
+
+	kokoroHeartURL := strings.TrimSpace(os.Getenv("KOKORO_HEART_URL"))
+	if kokoroHeartURL == "" {
+		kokoroHeartURL = DefaultKokoroHeartURL
 	}
 
 	// Auto-detect summarizer provider if not explicitly set.
@@ -147,6 +247,8 @@ func Load() (*Config, error) {
 
 	return &Config{
 		GeminiAPIKey:       key,
+		SpeechProvider:     speechProvider,
+		KokoroHeartURL:     kokoroHeartURL,
 		DefaultVoice:       voice,
 		DefaultModel:       model,
 		Port:               port,

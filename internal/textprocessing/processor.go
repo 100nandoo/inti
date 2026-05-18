@@ -1,11 +1,19 @@
 package textprocessing
 
-import "github.com/100nandoo/inti/internal/config"
+import (
+	"net/http"
+
+	"github.com/100nandoo/inti/internal/config"
+)
 
 type Processor struct {
-	cfg *config.Config
+	cfg        *config.Config
+	httpClient *http.Client
 }
 
 func New(cfg *config.Config) *Processor {
-	return &Processor{cfg: cfg}
+	return &Processor{
+		cfg:        cfg,
+		httpClient: http.DefaultClient,
+	}
 }

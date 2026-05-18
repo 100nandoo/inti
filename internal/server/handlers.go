@@ -10,15 +10,15 @@ import (
 	"strings"
 
 	"github.com/100nandoo/inti/internal/config"
-	"github.com/100nandoo/inti/internal/gemini"
 	"github.com/100nandoo/inti/internal/settings"
 	"github.com/100nandoo/inti/internal/textprocessing"
 )
 
 type speakRequest struct {
-	Text  string `json:"text"`
-	Voice string `json:"voice"`
-	Model string `json:"model"`
+	Text     string `json:"text"`
+	Provider string `json:"provider"`
+	Voice    string `json:"voice"`
+	Model    string `json:"model"`
 }
 
 type speakResponse struct {
@@ -26,13 +26,15 @@ type speakResponse struct {
 }
 
 type voicesResponse struct {
-	Voices  []string `json:"voices"`
-	Default string   `json:"default"`
+	Provider string   `json:"provider"`
+	Voices   []string `json:"voices"`
+	Default  string   `json:"default"`
 }
 
 type modelsResponse struct {
-	Models  []string `json:"models"`
-	Default string   `json:"default"`
+	Provider string   `json:"provider"`
+	Models   []string `json:"models"`
+	Default  string   `json:"default"`
 }
 
 type healthResponse struct {
@@ -57,12 +59,8 @@ type themeConfigResponse struct {
 	SummaryPromotionBehavior string `json:"summaryPromotionBehavior"`
 }
 
-func handleSpeak(g *gemini.Client, cfg *config.Config, processor *textprocessing.Processor) http.HandlerFunc {
+func handleSpeak(cfg *config.Config, processor *textprocessing.Processor) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if g == nil {
-			writeJSON(w, http.StatusServiceUnavailable, errResponse{"TTS unavailable — GEMINI_API_KEY not configured"})
-			return
-		}
 		if r.Method != http.MethodPost {
 			writeJSON(w, http.StatusMethodNotAllowed, errResponse{"method not allowed"})
 			return
@@ -79,33 +77,56 @@ func handleSpeak(g *gemini.Client, cfg *config.Config, processor *textprocessing
 			return
 		}
 
+		provider := req.Provider
+		if provider == "" {
+			provider = cfg.SpeechProvider
+		}
+		if provider == "" {
+			provider = config.SpeechProviderGemini
+		}
+		if !config.IsValidSpeechProvider(provider) {
+			writeJSON(w, http.StatusBadRequest, errResponse{"invalid provider: " + provider})
+			return
+		}
+
 		voice := req.Voice
 		if voice == "" {
-			voice = cfg.DefaultVoice
+			if cfg.DefaultVoice != "" && config.IsValidVoiceForProvider(provider, cfg.DefaultVoice) {
+				voice = cfg.DefaultVoice
+			} else {
+				voice = config.DefaultVoiceForProvider(provider)
+			}
 		}
-		if !config.IsValidVoice(voice) {
+		if !config.IsValidVoiceForProvider(provider, voice) {
 			writeJSON(w, http.StatusBadRequest, errResponse{"invalid voice: " + voice})
 			return
 		}
 
 		model := req.Model
-		if model == "" {
-			model = cfg.DefaultModel
+		if model == "" && provider == config.SpeechProviderGemini {
+			if cfg.DefaultModel != "" && config.IsValidModelForProvider(provider, cfg.DefaultModel) {
+				model = cfg.DefaultModel
+			} else {
+				model = config.DefaultModelForProvider(provider)
+			}
 		}
-		if !config.IsValidModel(model) {
+		if !config.IsValidModelForProvider(provider, model) {
 			writeJSON(w, http.StatusBadRequest, errResponse{"invalid model: " + model})
 			return
 		}
 
 		result, err := processor.SynthesizeSpeech(r.Context(), textprocessing.SpeechRequest{
-			Text:   req.Text,
-			Voice:  voice,
-			Model:  model,
-			APIKey: cfg.GeminiAPIKey,
+			Text:     req.Text,
+			Provider: provider,
+			Voice:    voice,
+			Model:    model,
+			APIKey:   cfg.GeminiAPIKey,
 		})
 		if err != nil {
 			if textprocessing.IsRateLimited(err) {
 				writeJSON(w, http.StatusTooManyRequests, errResponse{"rate limited — wait a moment and try again"})
+			} else if textprocessing.IsTTSUnavailable(err) {
+				writeJSON(w, http.StatusServiceUnavailable, errResponse{err.Error()})
 			} else {
 				writeJSON(w, http.StatusInternalServerError, errResponse{err.Error()})
 			}
@@ -120,18 +141,57 @@ func handleSpeak(g *gemini.Client, cfg *config.Config, processor *textprocessing
 
 func handleVoices(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		provider := r.URL.Query().Get("provider")
+		if provider == "" {
+			provider = cfg.SpeechProvider
+		}
+		if provider == "" {
+			provider = config.SpeechProviderGemini
+		}
+		if !config.IsValidSpeechProvider(provider) {
+			writeJSON(w, http.StatusBadRequest, errResponse{"invalid provider: " + provider})
+			return
+		}
+
+		defaultVoice := config.DefaultVoiceForProvider(provider)
+		if cfg.DefaultVoice != "" && config.IsValidVoiceForProvider(provider, cfg.DefaultVoice) {
+			defaultVoice = cfg.DefaultVoice
+		}
+
 		writeJSON(w, http.StatusOK, voicesResponse{
-			Voices:  config.ValidVoices(),
-			Default: cfg.DefaultVoice,
+			Provider: provider,
+			Voices:   config.ValidVoicesForProvider(provider),
+			Default:  defaultVoice,
 		})
 	}
 }
 
 func handleModels(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		provider := r.URL.Query().Get("provider")
+		if provider == "" {
+			provider = cfg.SpeechProvider
+		}
+		if provider == "" {
+			provider = config.SpeechProviderGemini
+		}
+		if !config.IsValidSpeechProvider(provider) {
+			writeJSON(w, http.StatusBadRequest, errResponse{"invalid provider: " + provider})
+			return
+		}
+
+		defaultModel := ""
+		if provider == config.SpeechProviderGemini {
+			defaultModel = config.DefaultModelForProvider(provider)
+			if cfg.DefaultModel != "" && config.IsValidModelForProvider(provider, cfg.DefaultModel) {
+				defaultModel = cfg.DefaultModel
+			}
+		}
+
 		writeJSON(w, http.StatusOK, modelsResponse{
-			Models:  config.ValidModels(),
-			Default: cfg.DefaultModel,
+			Provider: provider,
+			Models:   config.ValidModelsForProvider(provider),
+			Default:  defaultModel,
 		})
 	}
 }

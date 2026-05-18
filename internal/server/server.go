@@ -7,28 +7,18 @@ import (
 	"net/http"
 
 	"github.com/100nandoo/inti/internal/config"
-	"github.com/100nandoo/inti/internal/gemini"
 	"github.com/100nandoo/inti/internal/settings"
 	"github.com/100nandoo/inti/internal/textprocessing"
 )
 
 func New(cfg *config.Config, webFS embed.FS, state *settings.Runtime) (*http.Server, error) {
-	var g *gemini.Client
-	if cfg.GeminiAPIKey != "" {
-		var err error
-		g, err = gemini.New(cfg.GeminiAPIKey)
-		if err != nil {
-			return nil, fmt.Errorf("init gemini: %w", err)
-		}
-	}
-
 	if state == nil {
 		state = settings.LoadRuntime(cfg)
 	}
 	processor := textprocessing.New(cfg)
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/api/speak", handleSpeak(g, cfg, processor))
+	mux.HandleFunc("/api/speak", handleSpeak(cfg, processor))
 	mux.HandleFunc("/api/voices", handleVoices(cfg))
 	mux.HandleFunc("/api/models", handleModels(cfg))
 	mux.HandleFunc("/health", handleHealth())
