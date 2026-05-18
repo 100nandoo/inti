@@ -46,12 +46,13 @@ npm run watch:web
 ./inti speak [flags] <text>
 ```
 
-Synthesizes the given text and plays it. Exits when playback finishes. Requires `GEMINI_API_KEY`.
+Synthesizes the given text and plays it. Exits when playback finishes. Gemini requires `GEMINI_API_KEY`; `kokoro-heart` is provider-selected and does not use Gemini model selection.
 
 | Flag | Default | Description |
 |------|---------|-------------|
+| `--provider <name>` | `$SPEECH_PROVIDER` | Speech provider: `gemini` or `kokoro-heart` |
 | `--voice <name>` | `$DEFAULT_VOICE` | Voice name (see [Voices](#voices)) |
-| `--model <name>` | `$DEFAULT_MODEL` | TTS model (see [Models](#models)) |
+| `--model <name>` | `$DEFAULT_MODEL` | TTS model (see [Models](#models)); Gemini only |
 | `--export <path>` | — | Save audio to `.opus` file (skips playback unless `--play` is also set) |
 | `--play` | `false` | Play audio even when `--export` is set |
 
@@ -66,6 +67,9 @@ Synthesizes the given text and plays it. Exits when playback finishes. Requires 
 
 # Choose a model
 ./inti speak --model gemini-2.5-pro-preview-tts "Hello, world!"
+
+# Switch to kokoro heart
+./inti speak --provider kokoro-heart --voice cheery "Hello, world!"
 
 # Save to file (no playback)
 ./inti speak --export hello.opus "Hello, world!"
@@ -126,8 +130,9 @@ Optionally synthesizes the extracted text with TTS using `--speak`.
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--speak` | `false` | Synthesize and play the extracted text |
+| `--provider <name>` | `$SPEECH_PROVIDER` | Speech provider used with `--speak`: `gemini` or `kokoro-heart` |
 | `--voice <name>` | `$DEFAULT_VOICE` | Voice name (only used with `--speak`) |
-| `--model <name>` | `$DEFAULT_MODEL` | TTS model (only used with `--speak`) |
+| `--model <name>` | `$DEFAULT_MODEL` | TTS model (only used with `--speak`; Gemini only) |
 | `--export <path>` | — | Save audio to `.opus` file (only used with `--speak`) |
 | `--play` | `false` | Play audio even when `--export` is set (only used with `--speak`) |
 
@@ -145,6 +150,9 @@ Optionally synthesizes the extracted text with TTS using `--speak`.
 
 # Extract with a specific voice
 ./inti ocr --speak --voice Fenrir notes.png
+
+# Extract and speak with kokoro heart
+./inti ocr --speak --provider kokoro-heart --voice cheery notes.png
 ```
 
 ---
@@ -155,7 +163,7 @@ Optionally synthesizes the extracted text with TTS using `--speak`.
 ./inti serve [flags]
 ```
 
-Starts an HTTP server serving the web UI at `http://localhost:8282`. `GEMINI_API_KEY` is only required if you use TTS; summarization works with Groq or OpenRouter keys alone.
+Starts an HTTP server serving the web UI at `http://localhost:8282`. `GEMINI_API_KEY` is only required for Gemini speech or Gemini summarization; summarization still works with Groq or OpenRouter keys alone, and `kokoro-heart` can be selected as the speech provider.
 
 If `TELEGRAM_BOT_TOKEN` is set, `serve` also starts the Telegram bot in the same process. If the token is not set, `serve` remains web-only.
 
@@ -163,7 +171,7 @@ The web UI is organized into four panels:
 
 - **Import / OCR** — stage one or more images, extract text, and edit the OCR output.
 - **Text Workspace** — paste or import OCR text, choose a summarizer provider/model, and generate a Markdown summary.
-- **Text to Speech** — choose a TTS model, voice, and voice filter, then generate speech with optional auto-play or download.
+- **Text to Speech** — choose a speech provider plus provider-specific voice and model options, then generate speech with optional auto-play or download.
 - **Activity** — review recent OCR, summarization, synthesis, and download events.
 
 Use the **Light** / **Dark** toggle beside **Settings** to switch themes. The preference is stored in the browser for the current origin.
@@ -230,15 +238,19 @@ To install the Quick Action and refresh the `inti` symlink used by Finder:
 
 ## Models
 
+Gemini speech models:
+
 | Model | Notes |
 |-------|-------|
 | `gemini-2.5-flash-preview-tts` | Fast |
 | `gemini-2.5-pro-preview-tts` | Higher quality |
 | `gemini-3.1-flash-tts-preview` | Latest preview (default) |
 
+`kokoro-heart` does not expose model selection in Inti.
+
 ## Voices
 
-30 voices available:
+Gemini voices:
 
 | Voice | Gender | Style |
 |-------|--------|-------|
@@ -272,3 +284,5 @@ To install the Quick Action and refresh the `inti` symlink used by Finder:
 | Sadachbia | Male | Lively |
 | Sadaltager | Male | Knowledgeable |
 | Sulafat | Female | Warm |
+
+`kokoro-heart` currently exposes the `cheery` voice.

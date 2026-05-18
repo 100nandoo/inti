@@ -44,6 +44,10 @@ _Avoid_: skin, palette, CSS mode
 The rules that select summarizer providers and models and account for provider-specific capabilities.
 _Avoid_: provider picker logic, backend routing
 
+**Speech Provider Policy**:
+The rules that select which speech provider generates an **Audio Result**, including provider-specific voice and model capabilities.
+_Avoid_: TTS backend switch, voice routing, provider hack
+
 ## Relationships
 
 - The **Text Workspace** owns exactly one **Working Text**
@@ -54,6 +58,7 @@ _Avoid_: provider picker logic, backend routing
 - **Runtime Settings** may store one explicit **Visual Theme** for the web interface
 - The default **Visual Theme** is `dark`; `light` is the only other valid persisted mode
 - An **Audio Result** belongs to the text snapshot used to generate it and may remain available after **Working Text** changes
+- **Speech Provider Policy** governs how **Text Processing** turns a text snapshot into an **Audio Result**
 
 ## Example dialogue
 

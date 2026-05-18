@@ -18,23 +18,25 @@ The web server exposes a JSON REST API on `http://localhost:8282` (default). All
 
 ## `POST /api/speak`
 
-Synthesize text to Ogg Opus audio. Requires `GEMINI_API_KEY`.
+Synthesize text to Ogg Opus audio. Speech is provider-aware, but Inti normalizes every provider to the same base64-encoded Opus response contract.
 
 **Request body**
 
 ```json
 {
-  "text":  "Hello, world!",
-  "voice": "Kore",
-  "model": "gemini-2.5-flash-preview-tts"
+  "text":     "Hello, world!",
+  "provider": "gemini",
+  "voice":    "Kore",
+  "model":    "gemini-2.5-flash-preview-tts"
 }
 ```
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `text` | string | yes | Text to synthesize |
-| `voice` | string | no | Voice name. Defaults to `DEFAULT_VOICE` env var |
-| `model` | string | no | TTS model. Defaults to `DEFAULT_MODEL` env var |
+| `provider` | string | no | Override the active speech provider: `gemini` or `kokoro-heart` |
+| `voice` | string | no | Voice name. Defaults to the selected provider's default voice |
+| `model` | string | no | Speech model. Defaults to `DEFAULT_MODEL` for Gemini and is omitted for `kokoro-heart` |
 
 **Response `200 OK`**
 
@@ -46,15 +48,18 @@ Synthesize text to Ogg Opus audio. Requires `GEMINI_API_KEY`.
 
 Decode the `opus` field from base64 to get the raw Ogg Opus bytes (24 kHz · PCM-16 · mono).
 
+`kokoro-heart` may use an upstream WAV-based endpoint internally, but Inti still returns Opus from `/api/speak`.
+
 **Errors**
 
 | Status | Body | When |
 |--------|------|------|
 | `400` | `{"error": "text is required"}` | Empty text |
+| `400` | `{"error": "invalid provider: ..."}` | Unknown speech provider |
 | `400` | `{"error": "invalid voice: ..."}` | Unknown voice name |
 | `400` | `{"error": "invalid model: ..."}` | Unknown model name |
-| `429` | `{"error": "rate limited — wait a moment and try again"}` | Gemini quota exceeded |
-| `503` | `{"error": "TTS unavailable — GEMINI_API_KEY not configured"}` | Missing API key |
+| `429` | `{"error": "rate limited — wait a moment and try again"}` | Provider quota exceeded |
+| `503` | `{"error": "TTS unavailable — ..."}` | Selected provider is not configured or unavailable |
 | `500` | `{"error": "..."}` | Unexpected server error |
 
 **curl example**
@@ -62,11 +67,18 @@ Decode the `opus` field from base64 to get the raw Ogg Opus bytes (24 kHz · PCM
 ```sh
 curl -s -X POST http://localhost:8282/api/speak \
   -H 'Content-Type: application/json' \
-  -d '{"text": "Hello, world!", "voice": "Kore", "model": "gemini-2.5-flash-preview-tts"}' \
+  -d '{"text": "Hello, world!", "provider": "gemini", "voice": "Kore", "model": "gemini-2.5-flash-preview-tts"}' \
   | jq -r '.opus' \
   | base64 -d > hello.opus
 
 mpv hello.opus
+
+# kokoro heart
+curl -s -X POST http://localhost:8282/api/speak \
+  -H 'Content-Type: application/json' \
+  -d '{"text": "Hello, world!", "provider": "kokoro-heart", "voice": "cheery"}' \
+  | jq -r '.opus' \
+  | base64 -d > hello-kokoro.opus
 ```
 
 ---
@@ -298,42 +310,64 @@ curl -s -X POST http://localhost:8282/api/theme-config \
 
 ## `GET /api/voices`
 
-List all available voices.
+List provider-aware speech voices. Use `?provider=...` to request a specific speech provider catalog; otherwise the server returns the active speech provider catalog.
 
 **Response `200 OK`**
 
 ```json
 {
+  "provider": "gemini",
   "voices":  ["Achernar", "Achird", "Algenib", "..."],
   "default": "Kore"
+}
+```
+
+Providers with narrower catalogs may return a shorter list, for example:
+
+```json
+{
+  "provider": "kokoro-heart",
+  "voices":  ["cheery"],
+  "default": "cheery"
 }
 ```
 
 **curl example**
 
 ```sh
-curl -s http://localhost:8282/api/voices | jq '.voices[]'
+curl -s 'http://localhost:8282/api/voices?provider=gemini' | jq '.voices[]'
 ```
 
 ---
 
 ## `GET /api/models`
 
-List all available TTS models.
+List provider-aware speech models. Use `?provider=...` to request a specific speech provider catalog; otherwise the server returns the active speech provider catalog.
 
 **Response `200 OK`**
 
 ```json
 {
+  "provider": "gemini",
   "models":  ["gemini-2.5-flash-preview-tts", "gemini-2.5-pro-preview-tts", "..."],
   "default": "gemini-3.1-flash-tts-preview"
+}
+```
+
+Providers with no model selection return an empty list:
+
+```json
+{
+  "provider": "kokoro-heart",
+  "models": [],
+  "default": ""
 }
 ```
 
 **curl example**
 
 ```sh
-curl -s http://localhost:8282/api/models | jq '.models[]'
+curl -s 'http://localhost:8282/api/models?provider=gemini' | jq '.models[]'
 ```
 
 ---

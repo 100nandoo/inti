@@ -1,6 +1,6 @@
 # Inti
 
-Text-to-speech powered by Google Gemini, with an OCR and summarization workspace, a browser extension, and scriptable CLI/server workflows in a single Go binary.
+Text-to-speech powered by Gemini and `kokoro heart`, with an OCR and summarization workspace, a browser extension, and scriptable CLI/server workflows in a single Go binary.
 
 ## Table of Contents
 
@@ -30,6 +30,7 @@ Text-to-speech powered by Google Gemini, with an OCR and summarization workspace
 - **Web UI** — dark-first text workspace with an explicit light/dark Visual Theme, organized into Import/OCR, Text Workspace, Text to Speech, and Activity panels
 - **Image OCR** — drag-and-drop or browse to upload images (multi-file supported); extracted text lands in an editable OCR output and can be sent into the workspace or TTS flow
 - **Summarizer** — summarize text with Gemini, Groq (free tier), or OpenRouter (free models); results rendered as Markdown with copy, speak, and split-button download actions for `.txt` or `.md`; provider and API keys configurable in the Settings page without restarting the server
+- **Speech providers** — generate speech with Gemini or `kokoro heart`, while keeping Inti's exported/downloaded speech contract normalized to Opus
 - **Browser extension** — summarize article pages directly in Chrome desktop, Firefox desktop, and Firefox Android via the bundled `extension/` app
 - **Synthesis metadata** — activity feed shows word count, duration, voice, model, and summarizer model used
 - **API key authentication** — protect the server with a main key and issue per-user API keys via the built-in `/api-keys.html` management page
@@ -50,7 +51,8 @@ Text-to-speech powered by Google Gemini, with an OCR and summarization workspace
 
 ```sh
 cp .env.example .env
-# Edit .env — GEMINI_API_KEY is required for TTS.
+# Edit .env — GEMINI_API_KEY is required for Gemini TTS.
+# Set SPEECH_PROVIDER=kokoro-heart to use kokoro heart instead.
 # GROQ_API_KEY or OPENROUTER_API_KEY is enough for summarization-only use.
 ```
 
@@ -91,7 +93,7 @@ The web UI is split into four panels:
 
 - **Import / OCR** — stage one or more images, extract text, and edit the OCR output.
 - **Text Workspace** — paste or import OCR text, choose a summarizer provider/model, and generate a Markdown summary.
-- **Text to Speech** — choose a TTS model, voice, and voice filter, then generate speech with optional auto-play or download.
+- **Text to Speech** — choose a speech provider, provider-specific voice and model options, then generate speech with optional auto-play or download.
 - **Activity** — review recent OCR, summarization, synthesis, and download events.
 
 To use OCR, drop or browse images in **Import / OCR**. The extracted text appears in **OCR Output**, is copied into **Text Workspace**, and is also available in **Text to Speech** for direct synthesis.
@@ -120,6 +122,7 @@ The browser extension uses your Inti summarization API to summarize the current 
 # Synthesize text
 ./inti speak "Hello, world!"
 ./inti speak --voice Puck --export hello.opus "Hello, world!"
+./inti speak --provider kokoro-heart --voice cheery --export hello.opus "Hello, world!"
 
 # Summarize text
 ./inti summarize "Long article text..."
@@ -138,7 +141,7 @@ See [docs/cli.md](docs/cli.md) for the full flag reference.
 ## API
 
 ```
-POST /api/speak              { "text": "...", "voice": "Kore", "model": "..." }
+POST /api/speak              { "text": "...", "provider"?: "gemini" | "kokoro-heart", "voice": "...", "model"?: "..." }
                              → { "opus": "<base64 Ogg Opus>" }
 
 POST /api/ocr                multipart/form-data  files=<image(s)>
@@ -150,8 +153,8 @@ POST /api/summarize          { "text": "...", "instruction"?, "provider"?, "apiK
 GET  /api/summarizer-config  → { "provider": "...", "model": "..." }
 GET  /api/theme-config       → { "theme": "light" | "dark", ... }
 POST /api/theme-config       { "theme": "light" | "dark", ... }
-GET  /api/voices             → { "voices": [...], "default": "Kore" }
-GET  /api/models             → { "models": [...], "default": "..." }
+GET  /api/voices             → { "provider": "...", "voices": [...], "default": "..." }
+GET  /api/models             → { "provider": "...", "models": [...], "default": "..." }
 
 GET    /api/admin/keys       → { "keys": [...] }
 POST   /api/admin/keys       { "name": "..." } → { "key": {...}, "raw": "inti_..." }
@@ -164,15 +167,19 @@ See [docs/api.md](docs/api.md) for the full reference with curl examples.
 
 ## Models
 
+Gemini speech models:
+
 | Model                          | Notes            |
 | ------------------------------ | ---------------- |
 | `gemini-2.5-flash-preview-tts` | Fast             |
 | `gemini-2.5-pro-preview-tts`   | Higher quality   |
 | `gemini-3.1-flash-tts-preview` | Latest preview   |
 
+`kokoro heart` does not expose model selection in Inti.
+
 ## Voices
 
-30 voices available, filterable by gender in the web UI:
+Gemini voices:
 
 | Voice                | Style         | Voice         | Style       |
 | -------------------- | ------------- | ------------- | ----------- |
@@ -192,14 +199,22 @@ See [docs/api.md](docs/api.md) for the full reference with curl examples.
 | Vindemiatrix         | Gentle        | Sadachbia     | Lively      |
 | Sadaltager           | Knowledgeable | Sulafat       | Warm        |
 
+`kokoro heart` currently exposes:
+
+| Voice | Notes |
+|-------|-------|
+| `cheery` | Provider-specific upstream voice |
+
 ## Configuration
 
 | Variable              | Default                        | Description                                                    |
 | --------------------- | ------------------------------ | -------------------------------------------------------------- |
 | `GEMINI_API_KEY`      | —                              | Required for TTS and Gemini summarization                      |
+| `SPEECH_PROVIDER`     | `gemini`                       | Active speech provider: `gemini` or `kokoro-heart`             |
+| `KOKORO_HEART_URL`    | upstream default               | Override the `kokoro heart` speech endpoint URL                |
 | `INTI_MAIN_KEY`       | —                              | Main key for API authentication (recommended for public deployment). `INTI_MASTER_KEY` is still accepted as a fallback |
-| `DEFAULT_VOICE`       | `Kore`                         | Default voice name                                             |
-| `DEFAULT_MODEL`       | `gemini-3.1-flash-tts-preview` | Default TTS model                                              |
+| `DEFAULT_VOICE`       | provider-specific              | Default voice name for the selected speech provider            |
+| `DEFAULT_MODEL`       | `gemini-3.1-flash-tts-preview` | Default speech model; used by Gemini only                      |
 | `PORT`                | `8282`                         | Web server port                                                |
 | `HOST`                | `127.0.0.1`                    | Web server bind address                                        |
 | `INTI_CONFIG_DIR`     | OS default                     | Override config/key storage directory                          |
@@ -210,6 +225,12 @@ See [docs/api.md](docs/api.md) for the full reference with curl examples.
 | `OPENROUTER_MODEL`    | `openrouter/free`              | OpenRouter model/router to use; `openrouter/free` tracks currently available free models |
 
 `SUMMARIZER_PROVIDER` is auto-detected if not set: uses `gemini` if `GEMINI_API_KEY` is present, then `groq` if `GROQ_API_KEY` is present, then `openrouter` if `OPENROUTER_API_KEY` is present.
+
+`kokoro heart` is an experimental speech provider backed by a public upstream service. Inti documents and supports it intentionally, but accepts that the upstream may break or change without notice.
+
+## Credits
+
+`kokoro heart` support relies on [KoboldCpp](https://github.com/LostRuins/koboldcpp) and [Kokoro](https://github.com/hexgrad/kokoro). Credit to the KoboldCpp and Kokoro authors.
 
 See [docs/config.md](docs/config.md) for the full reference including config file locations per OS.
 
