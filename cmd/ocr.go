@@ -5,7 +5,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/100nandoo/inti/internal/audio"
 	"github.com/100nandoo/inti/internal/config"
 	"github.com/100nandoo/inti/internal/textprocessing"
 	"github.com/spf13/cobra"
@@ -60,57 +59,22 @@ var ocrCmd = &cobra.Command{
 			return nil
 		}
 
+		provider, _ := cmd.Flags().GetString("provider")
 		voice, _ := cmd.Flags().GetString("voice")
-		if voice == "" {
-			voice = cfg.DefaultVoice
-		}
-		if !config.IsValidVoice(voice) {
-			return fmt.Errorf("invalid voice %q, valid voices: %v", voice, config.ValidVoices())
-		}
-
 		model, _ := cmd.Flags().GetString("model")
-		if model == "" {
-			model = cfg.DefaultModel
-		}
-		if !config.IsValidModel(model) {
-			return fmt.Errorf("invalid model %q, valid models: %v", model, config.ValidModels())
-		}
-
-		fmt.Printf("synthesizing with voice %s (model: %s)...\n", voice, model)
-		result, err := processor.SynthesizeSpeech(cmd.Context(), textprocessing.SpeechRequest{
-			Text:   text,
-			Voice:  voice,
-			Model:  model,
-			APIKey: cfg.GeminiAPIKey,
+		return runSpeechSynthesis(cmd, processor, textprocessing.SpeechRequest{
+			Text:     text,
+			Provider: provider,
+			Voice:    voice,
+			Model:    model,
+			APIKey:   cfg.GeminiAPIKey,
 		})
-		if err != nil {
-			if textprocessing.IsRateLimited(err) {
-				return fmt.Errorf("rate limited — wait a moment and try again")
-			}
-			return err
-		}
-
-		exportPath, _ := cmd.Flags().GetString("export")
-		if exportPath != "" {
-			if err := os.WriteFile(exportPath, result.Opus, 0o644); err != nil {
-				return fmt.Errorf("write opus: %w", err)
-			}
-			fmt.Printf("saved to %s\n", exportPath)
-		}
-
-		if exportPath == "" || mustBool(cmd.Flags().GetBool("play")) {
-			fmt.Println("playing...")
-			if err := audio.PlayOpus(result.Opus); err != nil {
-				return fmt.Errorf("play audio: %w", err)
-			}
-		}
-
-		return nil
 	},
 }
 
 func init() {
 	ocrCmd.Flags().Bool("speak", false, "synthesize extracted text with TTS")
+	ocrCmd.Flags().String("provider", "", fmt.Sprintf("speech provider (%v)", config.ValidSpeechProviders()))
 	ocrCmd.Flags().String("voice", "", "voice name (default from config)")
 	ocrCmd.Flags().String("model", "", fmt.Sprintf("TTS model (default: %s)", config.DefaultModelName))
 	ocrCmd.Flags().String("export", "", "save audio to this .opus file path")

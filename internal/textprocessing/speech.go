@@ -36,6 +36,21 @@ type SpeechResult struct {
 	Model    string
 }
 
+func (p *Processor) PrepareSpeechRequest(req SpeechRequest) (SpeechRequest, error) {
+	resolved, err := p.resolveSpeechRequest(req)
+	if err != nil {
+		return SpeechRequest{}, err
+	}
+
+	return SpeechRequest{
+		Provider: resolved.provider,
+		Text:     resolved.text,
+		Voice:    resolved.voice,
+		Model:    resolved.model,
+		APIKey:   resolved.apiKey,
+	}, nil
+}
+
 func (p *Processor) SynthesizeSpeech(ctx context.Context, req SpeechRequest) (SpeechResult, error) {
 	resolved, err := p.resolveSpeechRequest(req)
 	if err != nil {
