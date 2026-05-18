@@ -9,9 +9,8 @@ import {
   genderFilter,
   modelSelect,
   playAudioBtn,
-  providerSelect,
+  speechProviderSelect,
   speechInputPreview,
-  sumModelSelect,
   voiceSelect,
 } from './dom.js';
 import { addFeed, setPlaying, setStatus, updateFeedItem } from './feed.js';
@@ -36,15 +35,17 @@ import {
 function syncTTSControls() {
   const { processing } = getWorkspace();
   const viewModel = buildSpeechPanelViewModel(getWorkspace());
+  const provider = speechProviderSelect.value || 'gemini';
+  const providerHasModelSelection = provider !== 'kokoro-heart';
+  const providerHasGenderFilter = provider === 'gemini';
 
   speechInputPreview.innerHTML = viewModel.speechPreviewHtml;
   speechInputPreview.dataset.previewTextLength = viewModel.speechPreviewLength;
 
-  modelSelect.disabled = viewModel.controlsDisabled;
-  genderFilter.disabled = viewModel.controlsDisabled;
+  modelSelect.disabled = viewModel.controlsDisabled || !providerHasModelSelection;
+  genderFilter.disabled = viewModel.controlsDisabled || !providerHasGenderFilter;
   voiceSelect.disabled = viewModel.controlsDisabled;
-  providerSelect.disabled = viewModel.controlsDisabled;
-  sumModelSelect.disabled = viewModel.controlsDisabled;
+  speechProviderSelect.disabled = viewModel.controlsDisabled;
   generateWorkingAudioBtn.disabled = processing || !viewModel.hasWorkingText;
   generateResultAudioBtn.disabled = processing || !viewModel.hasResult;
   actionSpeak.disabled = viewModel.controlsDisabled;
@@ -59,6 +60,7 @@ function syncTTSControls() {
 }
 
 export async function synthesizeText(text, { sourceLabel = 'Working Text' } = {}) {
+  const provider = speechProviderSelect.value;
   const voice = voiceSelect.value;
   const model = modelSelect.value;
 
@@ -67,11 +69,13 @@ export async function synthesizeText(text, { sourceLabel = 'Working Text' } = {}
 
   const startTime = performance.now();
   const wordCount = text.trim().split(/\s+/).length;
-  const feedItem = addFeed('info', `"${truncate(text, 60)}"`, `${model} · ${voice} · synthesizing…`);
+  const configLabel = [provider, model, voice].filter(Boolean).join(' · ');
+  const feedItem = addFeed('info', `"${truncate(text, 60)}"`, `${configLabel} · synthesizing…`);
 
   try {
     const { blob, bytes: opusBytes } = await requestSpeechSynthesis({
       apiURL: window.apiURL,
+      provider,
       text,
       voice,
       model,
@@ -84,7 +88,7 @@ export async function synthesizeText(text, { sourceLabel = 'Working Text' } = {}
       feedItem,
       'ok',
       `"${truncate(text, 60)}"`,
-      `${wordCount} words · ${duration}s · ${model} · ${voice} · ${(opusBytes.length / 1024).toFixed(1)} KB`,
+      `${wordCount} words · ${duration}s · ${configLabel} · ${(opusBytes.length / 1024).toFixed(1)} KB`,
     );
 
     if (actionSpeak.checked) {

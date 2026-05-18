@@ -59,7 +59,7 @@ type themeConfigResponse struct {
 	SummaryPromotionBehavior string `json:"summaryPromotionBehavior"`
 }
 
-func handleSpeak(cfg *config.Config, processor *textprocessing.Processor) http.HandlerFunc {
+func handleSpeak(cfg *config.Config, speechSettings *settings.SpeechSettings, processor *textprocessing.Processor) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			writeJSON(w, http.StatusMethodNotAllowed, errResponse{"method not allowed"})
@@ -77,7 +77,15 @@ func handleSpeak(cfg *config.Config, processor *textprocessing.Processor) http.H
 			return
 		}
 
+		storedProvider, storedVoice, storedModel := "", "", ""
+		if speechSettings != nil {
+			storedProvider, storedVoice, storedModel = speechSettings.Get()
+		}
+
 		provider := req.Provider
+		if provider == "" {
+			provider = storedProvider
+		}
 		if provider == "" {
 			provider = cfg.SpeechProvider
 		}
@@ -91,7 +99,9 @@ func handleSpeak(cfg *config.Config, processor *textprocessing.Processor) http.H
 
 		voice := req.Voice
 		if voice == "" {
-			if cfg.DefaultVoice != "" && config.IsValidVoiceForProvider(provider, cfg.DefaultVoice) {
+			if storedVoice != "" && config.IsValidVoiceForProvider(provider, storedVoice) {
+				voice = storedVoice
+			} else if cfg.DefaultVoice != "" && config.IsValidVoiceForProvider(provider, cfg.DefaultVoice) {
 				voice = cfg.DefaultVoice
 			} else {
 				voice = config.DefaultVoiceForProvider(provider)
@@ -104,7 +114,9 @@ func handleSpeak(cfg *config.Config, processor *textprocessing.Processor) http.H
 
 		model := req.Model
 		if model == "" && provider == config.SpeechProviderGemini {
-			if cfg.DefaultModel != "" && config.IsValidModelForProvider(provider, cfg.DefaultModel) {
+			if storedModel != "" && config.IsValidModelForProvider(provider, storedModel) {
+				model = storedModel
+			} else if cfg.DefaultModel != "" && config.IsValidModelForProvider(provider, cfg.DefaultModel) {
 				model = cfg.DefaultModel
 			} else {
 				model = config.DefaultModelForProvider(provider)

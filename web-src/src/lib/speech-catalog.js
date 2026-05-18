@@ -1,4 +1,4 @@
-export const VOICES = [
+export const GEMINI_VOICES = [
   { name: 'Zephyr', gender: 'Female', characteristic: 'Bright' },
   { name: 'Puck', gender: 'Male', characteristic: 'Upbeat' },
   { name: 'Charon', gender: 'Male', characteristic: 'Informative' },
@@ -31,16 +31,33 @@ export const VOICES = [
   { name: 'Sulafat', gender: 'Female', characteristic: 'Warm' },
 ];
 
-export const DEFAULT_VOICE = 'Kore';
+export const KOKORO_HEART_VOICES = [
+  { name: 'cheery', gender: 'All', characteristic: 'Upstream' },
+];
 
-export function getVoiceOptions(filterValue = 'All') {
-  return filterValue === 'All'
-    ? VOICES
-    : VOICES.filter((voice) => voice.gender === filterValue);
+export const DEFAULT_SPEECH_PROVIDER = 'gemini';
+export const DEFAULT_GEMINI_VOICE = 'Kore';
+export const DEFAULT_KOKORO_HEART_VOICE = 'cheery';
+
+export function getVoiceOptions(provider = DEFAULT_SPEECH_PROVIDER, filterValue = 'All') {
+  const voices = provider === 'kokoro-heart' ? KOKORO_HEART_VOICES : GEMINI_VOICES;
+  if (provider !== 'gemini' || filterValue === 'All') {
+    return voices;
+  }
+  return voices.filter((voice) => voice.gender === filterValue);
 }
 
-export async function fetchSpeechModels(apiURL, fetchImpl = fetch) {
-  const response = await fetchImpl(apiURL('/api/models'));
+export async function fetchSpeechVoices(apiURL, provider, fetchImpl = fetch) {
+  const response = await fetchImpl(apiURL(`/api/voices?provider=${encodeURIComponent(provider)}`));
+  if (!response.ok) {
+    throw new Error(response.statusText || 'Could not load speech voices');
+  }
+
+  return response.json();
+}
+
+export async function fetchSpeechModels(apiURL, provider, fetchImpl = fetch) {
+  const response = await fetchImpl(apiURL(`/api/models?provider=${encodeURIComponent(provider)}`));
   if (!response.ok) {
     throw new Error(response.statusText || 'Could not load speech models');
   }

@@ -10,6 +10,7 @@ import {
 test('requestSpeechSynthesis returns an audio blob from the speak API payload', async () => {
   const result = await requestSpeechSynthesis({
     apiURL: (path: string) => path,
+    provider: 'gemini',
     text: 'Alpha beta',
     voice: 'Kore',
     model: 'flash',
@@ -17,6 +18,7 @@ test('requestSpeechSynthesis returns an audio blob from the speak API payload', 
       assert.equal(String(url), '/api/speak');
       assert.deepEqual(JSON.parse(options.body as string), {
         text: 'Alpha beta',
+        provider: 'gemini',
         voice: 'Kore',
         model: 'flash',
       });
@@ -34,6 +36,7 @@ test('requestSpeechSynthesis rejects malformed speak API payloads', async () => 
   await assert.rejects(
     requestSpeechSynthesis({
       apiURL: (path: string) => path,
+      provider: 'gemini',
       text: 'Alpha beta',
       voice: 'Kore',
       model: 'flash',

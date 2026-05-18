@@ -66,6 +66,7 @@ export function countWords(text) {
  */
 export async function requestSpeechSynthesis({
   apiURL,
+  provider,
   text,
   voice,
   model,
@@ -74,7 +75,7 @@ export async function requestSpeechSynthesis({
   const response = await fetchImpl(apiURL('/api/speak'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text, voice, model }),
+    body: JSON.stringify({ text, provider, voice, model }),
   });
 
   if (!response.ok) {

@@ -67,6 +67,18 @@ export interface SummarizerConfigInput {
   groqLimits?: GroqRateLimits | null;
 }
 
+export interface SpeechConfig {
+  provider: string;
+  voice: string;
+  model: string;
+}
+
+export interface SpeechConfigInput {
+  provider?: string;
+  voice?: string;
+  model?: string;
+}
+
 export interface WorkspaceState {
   processing: boolean;
   lastAudioBlob: Blob | null;
@@ -79,8 +91,12 @@ export interface WorkspaceState {
   latestTextResult: TextResult;
   appearanceConfig: AppearanceConfig;
   summarizerConfig: SummarizerConfig;
+  speechConfig: SpeechConfig;
   selectedSummarizerProvider: string;
   selectedSummarizerModel: string;
+  selectedSpeechProvider: string;
+  selectedSpeechVoice: string;
+  selectedSpeechModel: string;
 }
 
 export interface AllowedImageFilesResult {
@@ -122,6 +138,7 @@ export interface SummaryFlowResult {
 
 export interface SpeechRequestInput {
   apiURL: (path: string) => string;
+  provider: string;
   text: string;
   voice: string;
   model: string;

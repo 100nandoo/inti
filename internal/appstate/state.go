@@ -15,6 +15,7 @@ import (
 
 type FileConfig struct {
 	Summarizer SummarizerSection `toml:"summarizer"`
+	Speech     SpeechSection     `toml:"speech"`
 	Appearance AppearanceSection `toml:"appearance"`
 	APIKeys    []StoredKey       `toml:"api_keys"`
 	Telegram   TelegramSection   `toml:"telegram"`
@@ -35,6 +36,12 @@ type AppearanceSection struct {
 	SummaryDownloadFormat    string `toml:"summary_download_format"`
 	OCRPromotionBehavior     string `toml:"ocr_promotion_behavior"`
 	SummaryPromotionBehavior string `toml:"summary_promotion_behavior"`
+}
+
+type SpeechSection struct {
+	Provider string `toml:"provider"`
+	Voice    string `toml:"voice"`
+	Model    string `toml:"model"`
 }
 
 type TelegramSection struct {
@@ -74,6 +81,7 @@ type TelegramSession struct {
 
 type RuntimeState struct {
 	ActiveSummarizer *ActiveSummarizerConfig
+	ActiveSpeech     *ActiveSpeechConfig
 	APIKeys          *APIKeyStore
 	TelegramSessions *TelegramSessionStore
 }
@@ -84,6 +92,13 @@ type ActiveSummarizerConfig struct {
 	Model      string
 	Keys       map[string]string
 	GroqLimits *StoredRateLimits
+}
+
+type ActiveSpeechConfig struct {
+	mu       sync.RWMutex
+	Provider string
+	Voice    string
+	Model    string
 }
 
 type APIKeyStore struct {
@@ -101,6 +116,7 @@ var fileMu sync.Mutex
 func LoadRuntimeState(cfg *config.Config) *RuntimeState {
 	return &RuntimeState{
 		ActiveSummarizer: LoadActiveSummarizerConfig(cfg),
+		ActiveSpeech:     LoadActiveSpeechConfig(cfg),
 		APIKeys:          LoadAPIKeyStore(),
 		TelegramSessions: LoadTelegramSessionStore(),
 	}
@@ -229,6 +245,64 @@ func SaveActiveSummarizerConfig(provider, model string, keys map[string]string, 
 		GroqAPIKey:       keys["groq"],
 		OpenRouterAPIKey: keys["openrouter"],
 		GroqLimits:       groqLimits,
+	}
+	return writeConfigUnlocked(vc)
+}
+
+func LoadActiveSpeechConfig(cfg *config.Config) *ActiveSpeechConfig {
+	asc := &ActiveSpeechConfig{
+		Provider: cfg.SpeechProvider,
+		Voice:    cfg.DefaultVoice,
+		Model:    cfg.DefaultModel,
+	}
+	fileMu.Lock()
+	vc := readConfigUnlocked()
+	fileMu.Unlock()
+	if config.IsValidSpeechProvider(vc.Speech.Provider) {
+		asc.Provider = vc.Speech.Provider
+	}
+	if vc.Speech.Voice != "" && config.IsValidVoiceForProvider(asc.Provider, vc.Speech.Voice) {
+		asc.Voice = vc.Speech.Voice
+	}
+	if vc.Speech.Model != "" || asc.Provider == config.SpeechProviderKokoroHeart {
+		if config.IsValidModelForProvider(asc.Provider, vc.Speech.Model) {
+			asc.Model = vc.Speech.Model
+		}
+	}
+	if asc.Voice == "" {
+		asc.Voice = config.DefaultVoiceForProvider(asc.Provider)
+	}
+	if asc.Provider == config.SpeechProviderGemini && asc.Model == "" {
+		asc.Model = config.DefaultModelForProvider(asc.Provider)
+	}
+	if asc.Provider == config.SpeechProviderKokoroHeart {
+		asc.Model = ""
+	}
+	return asc
+}
+
+func (a *ActiveSpeechConfig) Get() (provider, voice, model string) {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	return a.Provider, a.Voice, a.Model
+}
+
+func (a *ActiveSpeechConfig) Set(provider, voice, model string) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.Provider = provider
+	a.Voice = voice
+	a.Model = model
+}
+
+func SaveActiveSpeechConfig(provider, voice, model string) error {
+	fileMu.Lock()
+	defer fileMu.Unlock()
+	vc := readConfigUnlocked()
+	vc.Speech = SpeechSection{
+		Provider: provider,
+		Voice:    voice,
+		Model:    model,
 	}
 	return writeConfigUnlocked(vc)
 }

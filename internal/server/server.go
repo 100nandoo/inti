@@ -18,7 +18,8 @@ func New(cfg *config.Config, webFS embed.FS, state *settings.Runtime) (*http.Ser
 	processor := textprocessing.New(cfg)
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/api/speak", handleSpeak(cfg, processor))
+	mux.HandleFunc("/api/speak", handleSpeak(cfg, state.Speech, processor))
+	mux.HandleFunc("/api/speech-config", handleSpeechConfig(state.Speech, cfg))
 	mux.HandleFunc("/api/voices", handleVoices(cfg))
 	mux.HandleFunc("/api/models", handleModels(cfg))
 	mux.HandleFunc("/health", handleHealth())

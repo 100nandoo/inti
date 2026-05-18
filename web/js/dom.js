@@ -39,6 +39,7 @@ export const resultSpeakBtn = document.getElementById('result-speak-btn');
 
 export const speechInputPreview = document.getElementById('speech-input-preview');
 export const speechInputCount = document.getElementById('speech-input-count');
+export const speechProviderSelect = document.getElementById('speech-provider-select');
 export const modelSelect = document.getElementById('model-select');
 export const genderFilter = document.getElementById('gender-filter');
 export const voiceSelect = document.getElementById('voice-select');

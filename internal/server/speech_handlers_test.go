@@ -7,7 +7,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/100nandoo/inti/internal/appstate"
 	"github.com/100nandoo/inti/internal/config"
+	"github.com/100nandoo/inti/internal/settings"
 	"github.com/100nandoo/inti/internal/textprocessing"
 )
 
@@ -75,7 +77,11 @@ func TestHandleSpeakRejectsInvalidProviderSpecificModel(t *testing.T) {
 		SpeechProvider: config.SpeechProviderGemini,
 		DefaultVoice:   config.DefaultGeminiVoice,
 		DefaultModel:   config.DefaultModelName,
-	}, textprocessing.New(&config.Config{}))(rec, req)
+	}, settings.NewSpeechSettings(&appstate.ActiveSpeechConfig{
+		Provider: config.SpeechProviderGemini,
+		Voice:    config.DefaultGeminiVoice,
+		Model:    config.DefaultModelName,
+	}), textprocessing.New(&config.Config{}))(rec, req)
 
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d, want 400", rec.Code)
@@ -91,7 +97,11 @@ func TestHandleSpeakReturnsUnavailableForGeminiWithoutKey(t *testing.T) {
 		DefaultVoice:   config.DefaultGeminiVoice,
 		DefaultModel:   config.DefaultModelName,
 	}
-	handleSpeak(cfg, textprocessing.New(cfg))(rec, req)
+	handleSpeak(cfg, settings.NewSpeechSettings(&appstate.ActiveSpeechConfig{
+		Provider: config.SpeechProviderGemini,
+		Voice:    config.DefaultGeminiVoice,
+		Model:    config.DefaultModelName,
+	}), textprocessing.New(cfg))(rec, req)
 
 	if rec.Code != http.StatusServiceUnavailable {
 		t.Fatalf("status = %d, want 503", rec.Code)

@@ -73,6 +73,26 @@ func TestActiveSummarizerConfigPersists(t *testing.T) {
 	}
 }
 
+func TestActiveSpeechConfigPersists(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("INTI_CONFIG_DIR", dir)
+
+	cfg := &config.Config{
+		SpeechProvider: config.SpeechProviderGemini,
+		DefaultVoice:   config.DefaultGeminiVoice,
+		DefaultModel:   config.DefaultModelName,
+	}
+	if err := SaveActiveSpeechConfig(config.SpeechProviderKokoroHeart, config.DefaultKokoroHeartVoice, ""); err != nil {
+		t.Fatalf("SaveActiveSpeechConfig() error = %v", err)
+	}
+
+	state := LoadActiveSpeechConfig(cfg)
+	provider, voice, model := state.Get()
+	if provider != config.SpeechProviderKokoroHeart || voice != config.DefaultKokoroHeartVoice || model != "" {
+		t.Fatalf("Get() = %q/%q/%q", provider, voice, model)
+	}
+}
+
 func TestTelegramSessionStorePersistenceAndAuthorization(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("INTI_CONFIG_DIR", dir)

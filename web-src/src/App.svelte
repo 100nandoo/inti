@@ -30,7 +30,7 @@
   };
 
   type VoicesModule = {
-    initVoices: () => void;
+    initVoices: () => Promise<void>;
   };
 
   const appShell = renderAppShell();
@@ -56,7 +56,7 @@
 
     initFeed();
     initProviders();
-    initVoices();
+    await initVoices();
     initOCR();
     initSummarizer({ synthesizeText });
     initTTS();

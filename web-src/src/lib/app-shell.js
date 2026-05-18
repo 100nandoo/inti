@@ -171,6 +171,12 @@ export function renderSpeechPanel() {
 
       <div class="controls inti-control-band">
         <div class="select-wrap inti-select-wrap">
+          <select class="select select-bordered" id="speech-provider-select" title="Select speech provider">
+            <option value="gemini">Gemini</option>
+            <option value="kokoro-heart">kokoro heart</option>
+          </select>
+        </div>
+        <div class="select-wrap inti-select-wrap">
           <select class="select select-bordered" id="model-select" title="Select TTS model"></select>
         </div>
         <div class="select-wrap inti-select-wrap">

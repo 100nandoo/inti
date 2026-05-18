@@ -6,10 +6,14 @@ import { initSummarizer } from './js/summarizer.js';
 import { initTTS, synthesizeText } from './js/tts.js';
 import { initVoices } from './js/voices.js';
 
-initFeed();
-initProviders();
-initVoices();
-initOCR();
-initSummarizer({ synthesizeText });
-initTTS();
-updateTextMetrics();
+async function bootstrap() {
+  initFeed();
+  initProviders();
+  await initVoices();
+  initOCR();
+  initSummarizer({ synthesizeText });
+  initTTS();
+  updateTextMetrics();
+}
+
+bootstrap();

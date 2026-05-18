@@ -4,6 +4,7 @@ import { get, writable } from 'svelte/store';
  * @typedef {import('./workspace-contracts').AppearanceConfigInput} AppearanceConfigInput
  * @typedef {import('./workspace-contracts').GroqRateLimits} GroqRateLimits
  * @typedef {import('./workspace-contracts').PromotionBehavior} PromotionBehavior
+ * @typedef {import('./workspace-contracts').SpeechConfigInput} SpeechConfigInput
  * @typedef {import('./workspace-contracts').SummarizerConfigInput} SummarizerConfigInput
  * @typedef {import('./workspace-contracts').TextResult} TextResult
  * @typedef {import('./workspace-contracts').TextResultKind} TextResultKind
@@ -45,8 +46,16 @@ function createInitialState() {
       keys: { gemini: '', groq: '', openrouter: '' },
       groqLimits: null,
     },
+    speechConfig: {
+      provider: 'gemini',
+      voice: 'Kore',
+      model: 'gemini-3.1-flash-tts-preview',
+    },
     selectedSummarizerProvider: '',
     selectedSummarizerModel: '',
+    selectedSpeechProvider: 'gemini',
+    selectedSpeechVoice: 'Kore',
+    selectedSpeechModel: 'gemini-3.1-flash-tts-preview',
   };
 }
 
@@ -223,6 +232,25 @@ export function applySummarizerConfig(data) {
   }));
 }
 
+/** @param {SpeechConfigInput} data */
+export function applySpeechConfig(data) {
+  const provider = data.provider || 'gemini';
+  const voice = data.voice || (provider === 'kokoro-heart' ? 'cheery' : 'Kore');
+  const model = provider === 'kokoro-heart' ? '' : (data.model || 'gemini-3.1-flash-tts-preview');
+
+  updateWorkspace((state) => ({
+    ...state,
+    speechConfig: {
+      provider,
+      voice,
+      model,
+    },
+    selectedSpeechProvider: provider,
+    selectedSpeechVoice: voice,
+    selectedSpeechModel: model,
+  }));
+}
+
 /** @param {GroqRateLimits | null} rateLimits */
 export function setGroqRateLimits(rateLimits) {
   updateWorkspace((state) => ({
@@ -246,6 +274,15 @@ export function setSelectedSummarizerSelection(provider, model) {
   }));
 }
 
+export function setSelectedSpeechSelection(provider, voice, model) {
+  updateWorkspace((state) => ({
+    ...state,
+    selectedSpeechProvider: provider || 'gemini',
+    selectedSpeechVoice: voice || (provider === 'kokoro-heart' ? 'cheery' : 'Kore'),
+    selectedSpeechModel: provider === 'kokoro-heart' ? '' : (model || ''),
+  }));
+}
+
 /** @returns {string} */
 export function getSelectedSummarizerProvider() {
   return getWorkspaceSnapshot().selectedSummarizerProvider;
@@ -255,4 +292,17 @@ export function getSelectedSummarizerProvider() {
 export function getSelectedSummarizerModel() {
   const state = getWorkspaceSnapshot();
   return state.selectedSummarizerProvider === 'openrouter' ? '' : state.selectedSummarizerModel;
+}
+
+export function getSelectedSpeechProvider() {
+  return getWorkspaceSnapshot().selectedSpeechProvider;
+}
+
+export function getSelectedSpeechVoice() {
+  return getWorkspaceSnapshot().selectedSpeechVoice;
+}
+
+export function getSelectedSpeechModel() {
+  const state = getWorkspaceSnapshot();
+  return state.selectedSpeechProvider === 'kokoro-heart' ? '' : state.selectedSpeechModel;
 }

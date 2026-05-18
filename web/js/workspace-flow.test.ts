@@ -14,6 +14,7 @@ type WorkspaceModule = typeof import('./workspace.js');
 type OCRModule = typeof import('./ocr.js');
 type SummarizerModule = typeof import('./summarizer.js');
 type TTSModule = typeof import('./tts.js');
+type VoicesModule = typeof import('./voices.js');
 
 type WorkspaceElements = {
   workingText: HTMLTextAreaElement;
@@ -38,6 +39,7 @@ let workspace: WorkspaceModule;
 let ocr: OCRModule;
 let summarizer: SummarizerModule;
 let tts: TTSModule;
+let voices: VoicesModule;
 let elements: WorkspaceElements;
 let fetchCalls: FetchCall[];
 let dom: ReturnType<typeof installDomWithHTML> | null = null;
@@ -84,6 +86,46 @@ function resetFetchMock() {
       });
     }
 
+    if (urlText === '/api/speech-config') {
+      return Response.json({
+        provider: 'gemini',
+        voice: 'Kore',
+        model: 'gemini-2.5-flash-preview-tts',
+      });
+    }
+
+    if (urlText === '/api/voices?provider=gemini') {
+      return Response.json({
+        provider: 'gemini',
+        voices: ['Kore', 'Puck'],
+        default: 'Kore',
+      });
+    }
+
+    if (urlText === '/api/voices?provider=kokoro-heart') {
+      return Response.json({
+        provider: 'kokoro-heart',
+        voices: ['cheery'],
+        default: 'cheery',
+      });
+    }
+
+    if (urlText === '/api/models?provider=gemini') {
+      return Response.json({
+        provider: 'gemini',
+        models: ['gemini-2.5-flash-preview-tts'],
+        default: 'gemini-2.5-flash-preview-tts',
+      });
+    }
+
+    if (urlText === '/api/models?provider=kokoro-heart') {
+      return Response.json({
+        provider: 'kokoro-heart',
+        models: [],
+        default: '',
+      });
+    }
+
     if (urlText === '/api/ocr') {
       return Response.json({
         text: 'Scanned text from OCR',
@@ -105,6 +147,12 @@ function resetWorkspaceState() {
     ocrPromotionBehavior: 'append',
     summaryPromotionBehavior: 'append',
   });
+  workspace.applySpeechConfig({
+    provider: 'gemini',
+    voice: 'Kore',
+    model: 'gemini-2.5-flash-preview-tts',
+  });
+  workspace.setSelectedSpeechSelection('gemini', 'Kore', 'gemini-2.5-flash-preview-tts');
   requiredElement<HTMLElement>('feed').innerHTML =
     '<p class="feed-empty" id="feed-empty">No activity yet.</p>';
   requiredElement<HTMLElement>('status-text').textContent = '';
@@ -142,18 +190,11 @@ before(async () => {
   ocr = await import('./ocr.js');
   summarizer = await import('./summarizer.js');
   tts = await import('./tts.js');
-
-  const modelSelect = requiredElement<HTMLSelectElement>('model-select');
-  modelSelect.innerHTML =
-    '<option value="gemini-2.5-flash-preview-tts">gemini-2.5-flash-preview-tts</option>';
-  modelSelect.value = 'gemini-2.5-flash-preview-tts';
-
-  const voiceSelect = requiredElement<HTMLSelectElement>('voice-select');
-  voiceSelect.innerHTML = '<option value="Kore">Kore</option>';
-  voiceSelect.value = 'Kore';
+  voices = await import('./voices.js');
 
   ocr.initOCR();
   summarizer.initSummarizer({ synthesizeText: tts.synthesizeText });
+  await voices.initVoices();
   tts.initTTS();
 });
 
@@ -161,9 +202,10 @@ after(() => {
   teardownPage(dom);
 });
 
-beforeEach(() => {
+beforeEach(async () => {
   resetFetchMock();
   resetWorkspaceState();
+  await voices.initVoices();
 });
 
 test('summary and OCR promotions honor their configured default behaviors', async () => {
@@ -224,8 +266,13 @@ test('speech generation works from working text and latest text result', async (
   elements.generateWorkingAudioBtn.click();
   await flushAsyncWork();
 
-  assert.equal(fetchCalls[0]?.url, '/api/speak');
-  assert.equal((fetchCalls[0]?.body as { text?: string } | undefined)?.text, 'Alpha beta');
+  let speakCalls = fetchCalls.filter((call) => call.url === '/api/speak');
+  assert.deepEqual(speakCalls[0]?.body, {
+    text: 'Alpha beta',
+    provider: 'gemini',
+    voice: 'Kore',
+    model: 'gemini-2.5-flash-preview-tts',
+  });
   assert.equal(workspace.getWorkspace().lastAudioSourceLabel, 'Working Text');
   assert.equal(workspace.getWorkspace().lastAudioSourceText, 'Alpha beta');
 
@@ -240,10 +287,75 @@ test('speech generation works from working text and latest text result', async (
   elements.generateResultAudioBtn.click();
   await flushAsyncWork();
 
-  assert.equal(fetchCalls[1]?.url, '/api/speak');
-  assert.equal((fetchCalls[1]?.body as { text?: string } | undefined)?.text, 'Listen to this');
+  speakCalls = fetchCalls.filter((call) => call.url === '/api/speak');
+  assert.deepEqual(speakCalls[1]?.body, {
+    text: 'Listen to this',
+    provider: 'gemini',
+    voice: 'Kore',
+    model: 'gemini-2.5-flash-preview-tts',
+  });
   assert.equal(workspace.getWorkspace().lastAudioSourceLabel, 'Summary Result');
   assert.equal(workspace.getWorkspace().lastAudioSourceText, 'Listen to this');
+});
+
+test('speech provider selection restores kokoro controls and omits model selection', async () => {
+  globalThis.fetch = async (url, options = {}) => {
+    const urlText = typeof url === 'string' ? url : url.toString();
+    const formDataBody = options.body instanceof window.FormData ? options.body : null;
+    fetchCalls.push({
+      url: urlText,
+      options,
+      body: formDataBody
+        ? { files: formDataBody.getAll('files').map((file) => (file as File).name) }
+        : (options.body ? JSON.parse(options.body as string) : null),
+    });
+
+    if (urlText === '/api/speech-config') {
+      return Response.json({
+        provider: 'kokoro-heart',
+        voice: 'cheery',
+        model: '',
+      });
+    }
+    if (urlText === '/api/voices?provider=kokoro-heart') {
+      return Response.json({ provider: 'kokoro-heart', voices: ['cheery'], default: 'cheery' });
+    }
+    if (urlText === '/api/models?provider=kokoro-heart') {
+      return Response.json({ provider: 'kokoro-heart', models: [], default: '' });
+    }
+    if (urlText === '/api/speak') {
+      return Response.json({ opus: Buffer.from('opus-audio').toString('base64') });
+    }
+    if (urlText === '/api/summarize') {
+      return Response.json({
+        provider: 'mock',
+        model: 'mock-model',
+        summary: '# Summary\n\nCondensed result',
+      });
+    }
+    if (urlText === '/api/ocr') {
+      return Response.json({ text: 'Scanned text from OCR' });
+    }
+    throw new Error(`Unexpected fetch to ${urlText}`);
+  };
+
+  await voices.initVoices();
+  await flushAsyncWork();
+
+  assert.equal(requiredElement<HTMLSelectElement>('speech-provider-select').value, 'kokoro-heart');
+  assert.equal(requiredElement<HTMLSelectElement>('voice-select').value, 'cheery');
+  assert.equal(requiredElement<HTMLSelectElement>('model-select').disabled, true);
+
+  typeWorkingText('Kokoro text');
+  elements.generateWorkingAudioBtn.click();
+  await flushAsyncWork();
+
+  assert.deepEqual(fetchCalls.at(-1)?.body, {
+    text: 'Kokoro text',
+    provider: 'kokoro-heart',
+    voice: 'cheery',
+    model: '',
+  });
 });
 
 test('latest audio result persists after later working text edits', async () => {
