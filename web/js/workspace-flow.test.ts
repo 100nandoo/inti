@@ -83,6 +83,9 @@ function resetFetchMock() {
     if (urlText === '/api/speak') {
       return Response.json({
         opus: Buffer.from('opus-audio').toString('base64'),
+        provider: 'gemini',
+        voice: 'Kore',
+        model: 'gemini-2.5-flash-preview-tts',
       });
     }
 
@@ -275,6 +278,10 @@ test('speech generation works from working text and latest text result', async (
   });
   assert.equal(workspace.getWorkspace().lastAudioSourceLabel, 'Working Text');
   assert.equal(workspace.getWorkspace().lastAudioSourceText, 'Alpha beta');
+  assert.equal(workspace.getWorkspace().lastAudioProvider, 'gemini');
+  assert.equal(workspace.getWorkspace().lastAudioVoice, 'Kore');
+  assert.equal(workspace.getWorkspace().lastAudioModel, 'gemini-2.5-flash-preview-tts');
+  assert.match(requiredElement<HTMLElement>('audio-result-meta').textContent ?? '', /gemini · gemini-2\.5-flash-preview-tts · Kore/);
 
   workspace.setLatestTextResult({
     kind: 'summary',
@@ -296,6 +303,9 @@ test('speech generation works from working text and latest text result', async (
   });
   assert.equal(workspace.getWorkspace().lastAudioSourceLabel, 'Summary Result');
   assert.equal(workspace.getWorkspace().lastAudioSourceText, 'Listen to this');
+  assert.match(elements.audioResultCard.textContent ?? '', /Summary Result/);
+  assert.match(elements.audioResultCard.textContent ?? '', /gemini/);
+  assert.match(elements.audioResultCard.textContent ?? '', /Listen to this/);
 });
 
 test('speech provider selection restores kokoro controls and omits model selection', async () => {
@@ -324,7 +334,12 @@ test('speech provider selection restores kokoro controls and omits model selecti
       return Response.json({ provider: 'kokoro-heart', models: [], default: '' });
     }
     if (urlText === '/api/speak') {
-      return Response.json({ opus: Buffer.from('opus-audio').toString('base64') });
+      return Response.json({
+        opus: Buffer.from('opus-audio').toString('base64'),
+        provider: 'kokoro-heart',
+        voice: 'cheery',
+        model: '',
+      });
     }
     if (urlText === '/api/summarize') {
       return Response.json({
@@ -356,6 +371,8 @@ test('speech provider selection restores kokoro controls and omits model selecti
     voice: 'cheery',
     model: '',
   });
+  assert.equal(workspace.getWorkspace().lastAudioProvider, 'kokoro-heart');
+  assert.match(requiredElement<HTMLElement>('audio-result-meta').textContent ?? '', /kokoro heart · cheery · experimental upstream/);
 });
 
 test('latest audio result persists after later working text edits', async () => {
@@ -374,5 +391,6 @@ test('latest audio result persists after later working text edits', async () => 
 
   assert.ok(workspace.getWorkspace().lastAudioBlob);
   assert.equal(workspace.getWorkspace().lastAudioSourceText, 'Stable audio snapshot');
+  assert.equal(workspace.getWorkspace().lastAudioProvider, 'gemini');
   assert.match(elements.audioResultCard.textContent ?? '', /Stable audio snapshot/);
 });

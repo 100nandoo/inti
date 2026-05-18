@@ -84,6 +84,9 @@ export interface WorkspaceState {
   lastAudioBlob: Blob | null;
   lastAudioSourceText: string;
   lastAudioSourceLabel: string;
+  lastAudioProvider: string;
+  lastAudioVoice: string;
+  lastAudioModel: string;
   stagedFiles: File[];
   dragSrcIndex: number | null;
   isPointerOverOcrCard: boolean;
@@ -147,11 +150,17 @@ export interface SpeechRequestInput {
 
 export interface SpeechResponsePayload {
   opus?: string;
+  provider?: string;
+  voice?: string;
+  model?: string;
 }
 
 export interface SpeechSynthesisResult {
   blob: Blob;
   bytes: Uint8Array<ArrayBuffer>;
+  provider: string;
+  voice: string;
+  model: string;
 }
 
 export interface SpeechPanelWorkspace {
@@ -161,6 +170,9 @@ export interface SpeechPanelWorkspace {
   lastAudioBlob: Blob | null;
   lastAudioSourceLabel: string;
   lastAudioSourceText: string;
+  lastAudioProvider: string;
+  lastAudioVoice: string;
+  lastAudioModel: string;
 }
 
 export interface SpeechPanelViewModel {

@@ -42,11 +42,15 @@ Synthesize text to Ogg Opus audio. Speech is provider-aware, but Inti normalizes
 
 ```json
 {
-  "opus": "<base64-encoded Ogg Opus>"
+  "opus": "<base64-encoded Ogg Opus>",
+  "provider": "gemini",
+  "voice": "Kore",
+  "model": "gemini-2.5-flash-preview-tts"
 }
 ```
 
 Decode the `opus` field from base64 to get the raw Ogg Opus bytes (24 kHz · PCM-16 · mono).
+The provider, voice, and model fields report the resolved synthesis metadata for the generated **Audio Result**. `kokoro-heart` returns an empty `model`.
 
 `kokoro-heart` may use an upstream WAV-based endpoint internally, but Inti still returns Opus from `/api/speak`.
 

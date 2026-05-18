@@ -21,14 +21,39 @@ function decodeOpusBytes(payload) {
   return Uint8Array.from(atob(payload.opus), (char) => char.charCodeAt(0));
 }
 
+function formatSpeechProvider(provider) {
+  return provider === 'kokoro-heart' ? 'kokoro heart' : (provider || 'speech');
+}
+
+function buildAudioProviderDetails(provider, voice, model) {
+  const details = [formatSpeechProvider(provider)];
+  if (model) details.push(model);
+  if (voice) details.push(voice);
+  if (!model && provider === 'kokoro-heart') {
+    details.push('experimental upstream');
+  }
+  return details.join(' · ');
+}
+
 /** @param {SpeechPanelWorkspace} workspace
  * @returns {SpeechPanelViewModel}
  */
 export function buildSpeechPanelViewModel(workspace) {
-  const { processing, workingText, latestTextResult, lastAudioBlob, lastAudioSourceLabel, lastAudioSourceText } = workspace;
+  const {
+    processing,
+    workingText,
+    latestTextResult,
+    lastAudioBlob,
+    lastAudioSourceLabel,
+    lastAudioSourceText,
+    lastAudioProvider,
+    lastAudioVoice,
+    lastAudioModel,
+  } = workspace;
   const hasWorkingText = workingText.trim().length > 0;
   const hasResult = latestTextResult.plainText.trim().length > 0;
   const hasAudio = Boolean(lastAudioBlob);
+  const providerDetails = buildAudioProviderDetails(lastAudioProvider, lastAudioVoice, lastAudioModel);
 
   return {
     hasWorkingText,
@@ -40,10 +65,10 @@ export function buildSpeechPanelViewModel(workspace) {
     speechPreviewLength: String(workingText.length),
     controlsDisabled: processing,
     audioMeta: hasAudio
-      ? `${lastAudioSourceLabel || 'Audio result'} · ${countWords(lastAudioSourceText)} words · ${(lastAudioBlob.size / 1024).toFixed(1)} KB`
+      ? `${lastAudioSourceLabel || 'Audio result'} · ${providerDetails} · ${countWords(lastAudioSourceText)} words · ${(lastAudioBlob.size / 1024).toFixed(1)} KB`
       : 'No audio yet',
     audioCardHtml: hasAudio
-      ? `<p>${escHtml(lastAudioSourceLabel || 'Generated from working text')}</p><p>${escHtml(truncate(lastAudioSourceText, 180))}</p>`
+      ? `<p>${escHtml(lastAudioSourceLabel || 'Generated from working text')}</p><p>${escHtml(providerDetails)}</p><p>${escHtml(truncate(lastAudioSourceText, 180))}</p>`
       : '<p>Generate speech from the current working text or the latest text result to keep an audio snapshot here.</p>',
   };
 }
@@ -86,9 +111,13 @@ export async function requestSpeechSynthesis({
   /** @type {SpeechResponsePayload} */
   const payload = await response.json();
   const opusBytes = decodeOpusBytes(payload);
+  const resolvedProvider = payload.provider || provider;
   return {
     blob: new Blob([opusBytes], { type: 'audio/opus' }),
     bytes: opusBytes,
+    provider: resolvedProvider,
+    voice: payload.voice || voice,
+    model: payload.model || (resolvedProvider === 'kokoro-heart' ? '' : model),
   };
 }
 

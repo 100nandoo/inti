@@ -24,12 +24,18 @@ test('requestSpeechSynthesis returns an audio blob from the speak API payload', 
       });
       return Response.json({
         opus: Buffer.from('opus-audio').toString('base64'),
+        provider: 'gemini',
+        voice: 'Kore',
+        model: 'flash',
       });
     },
   });
 
   assert.equal(result.blob.type, 'audio/opus');
   assert.equal(result.bytes.length > 0, true);
+  assert.equal(result.provider, 'gemini');
+  assert.equal(result.voice, 'Kore');
+  assert.equal(result.model, 'flash');
 });
 
 test('requestSpeechSynthesis rejects malformed speak API payloads', async () => {
@@ -61,10 +67,16 @@ test('buildSpeechPanelViewModel preserves latest audio snapshot metadata after l
     lastAudioBlob: blob,
     lastAudioSourceLabel: 'Summary Result',
     lastAudioSourceText: 'Stable audio snapshot',
+    lastAudioProvider: 'kokoro-heart',
+    lastAudioVoice: 'cheery',
+    lastAudioModel: '',
   });
 
   assert.equal(viewModel.hasAudio, true);
   assert.match(viewModel.audioMeta, /Summary Result/);
+  assert.match(viewModel.audioMeta, /kokoro heart/);
+  assert.match(viewModel.audioMeta, /experimental upstream/);
   assert.match(viewModel.audioCardHtml, /Stable audio snapshot/);
+  assert.match(viewModel.audioCardHtml, /cheery/);
   assert.equal(countWords('Stable audio snapshot'), 3);
 });

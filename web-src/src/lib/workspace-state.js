@@ -30,6 +30,9 @@ function createInitialState() {
     lastAudioBlob: null,
     lastAudioSourceText: '',
     lastAudioSourceLabel: '',
+    lastAudioProvider: '',
+    lastAudioVoice: '',
+    lastAudioModel: '',
     stagedFiles: [],
     dragSrcIndex: null,
     isPointerOverOcrCard: false,
@@ -99,13 +102,17 @@ export function setProcessing(value) {
  * @param {Blob | null} blob
  * @param {string} sourceText
  * @param {string} sourceLabel
+ * @param {{ provider?: string, voice?: string, model?: string }} [details]
  */
-export function setLastAudioResult(blob, sourceText, sourceLabel) {
+export function setLastAudioResult(blob, sourceText, sourceLabel, details = {}) {
   updateWorkspace((state) => ({
     ...state,
     lastAudioBlob: blob,
     lastAudioSourceText: sourceText || '',
     lastAudioSourceLabel: sourceLabel || '',
+    lastAudioProvider: details.provider || '',
+    lastAudioVoice: details.voice || '',
+    lastAudioModel: details.model || '',
   }));
 }
 
@@ -115,6 +122,9 @@ export function clearLastAudioBlob() {
     lastAudioBlob: null,
     lastAudioSourceText: '',
     lastAudioSourceLabel: '',
+    lastAudioProvider: '',
+    lastAudioVoice: '',
+    lastAudioModel: '',
   }));
 }
 
