@@ -4,16 +4,22 @@
 
 Simplify the web workspace so it feels like a small, focused tool instead of a dense multi-panel dashboard.
 
-## What This Chat Is Driving Toward
+## Decision Summary
 
-The target interaction model is:
+- Keep a single workspace page. Do not add a separate intro or landing page.
+- Keep `Input`, `Run`, and `Output` as UI grouping labels only, not as replacements for the existing domain language.
+- Keep one visible input surface at a time, but preserve hidden state when switching modes.
+- Keep the current activity area unchanged for now.
 
-1. A separate intro or landing page.
-2. A much simpler workspace page.
-3. The workspace centered around three main areas:
-   - `Input`
-   - `Run`
-   - `Output`
+## Workspace Shape
+
+The target interaction model is a simpler workspace centered around three visible areas:
+
+- `Input`
+- `Run`
+- `Output`
+
+These are layout labels. The product language remains **Working Text**, **Transform Result**, **Result Surface**, and **Audio Result**.
 
 ## Input Direction
 
@@ -26,13 +32,17 @@ Only the active input mode should be visible at a time.
 
 If `OCR` is selected:
 
-- show OCR import/staging UI
+- show OCR import and staging UI
 - hide the working text editor
+- preserve any existing working text
 
 If `Working Text` is selected:
 
 - show the text editor
-- hide the OCR import/staging UI
+- hide OCR import and staging UI
+- preserve any staged OCR files
+
+Mode switches are visibility changes, not destructive resets.
 
 ## Run Direction
 
@@ -48,14 +58,17 @@ Behavior:
 
 - If input mode is `OCR`, the run area should only expose `OCR`.
 - If input mode is `Working Text`, the run area should hide `OCR` and expose only `Summary` and `Voice`.
-- When switching to `Working Text`, the run area should auto-select `Summary`.
+- When switching from `OCR` to `Working Text`, the run area should auto-select `Summary`.
+- After the user is already in `Working Text`, switching between `Summary` and `Voice` should preserve the last selected run mode.
 
-Layout preferences called out in this chat:
+Layout preferences:
 
 - In summary mode, `provider` and `model` should be on one row.
 - `clear` and `summarize` should be on another row.
-- In voice mode, the source should come from input directly.
-- The visible voice action UI should not show a separate “speech source preview”.
+- `clear` means clear **Working Text** only.
+- In voice mode, the source should come from **Working Text** directly.
+- The visible voice action UI should not show a separate speech source preview.
+- The visible voice action UI should not offer a separate "generate from latest result" path.
 
 ## Output Direction
 
@@ -68,11 +81,13 @@ Behavior:
   - OCR/text result
   - summary result
   - generated voice result
+- The default precedence rule is "last completed result wins", unless the current input mode restricts what kind of output is relevant.
 
 When input mode is `OCR`:
 
-- OCR output is relevant
+- OCR/text output is the relevant visible output
 - summary/voice indicators should not be shown as visible tabs
+- existing audio snapshots may still exist internally, but OCR mode should not foreground them
 
 When input mode is `Working Text`:
 
@@ -82,19 +97,12 @@ Promotion behavior:
 
 - Remove visible `Append` and `Replace` buttons.
 - Keep a single primary action to move the latest text result into working text.
+- That action means replace **Working Text** with the latest **Transform Result**.
 - When that primary promotion action is used, auto-switch input to `Working Text`.
 
 ## Activity Direction
 
-Activity should be minimized in the workspace for now.
-
-Short-term:
-
-- keep only a minimal activity strip
-
-Longer-term:
-
-- move activity to its own separate page
+Keep the current activity area unchanged for now.
 
 ## Design Intent
 
