@@ -93,23 +93,53 @@ export function renderWorkingTextPanel() {
         <textarea id="working-text" rows="9" placeholder="Paste or build text here. OCR and summarization operate on this text by default."></textarea>
       </div>
 
-      <div id="workspace-actions" class="workspace-actions inti-control-band">
-        <button id="clear-workspace-btn" class="btn-secondary btn btn-ghost border border-base-300" title="Clear working text">
-          <span class="icon icon-x" aria-hidden="true"></span>
-          Clear
-        </button>
-        <div class="select-wrap provider-wrap inti-select-wrap">
-          <select class="select select-bordered" id="provider-select" title="Summarizer provider">
-            <option value="">Server default</option>
-          </select>
+      <div id="working-text-run-panel" class="inti-control-band working-text-run-panel">
+        <div class="run-mode-toggle" role="tablist" aria-label="Working Text run mode">
+          <button
+            id="run-mode-summary-btn"
+            class="run-mode-btn"
+            type="button"
+            role="tab"
+            aria-selected="true"
+            aria-controls="summary-run-panel"
+          >
+            Summary
+          </button>
+          <button
+            id="run-mode-voice-btn"
+            class="run-mode-btn"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            aria-controls="summary-run-panel"
+          >
+            Voice
+          </button>
         </div>
-        <div class="select-wrap provider-wrap inti-select-wrap" id="sum-model-wrap" hidden>
-          <select class="select select-bordered" id="sum-model-select" title="Summarizer model"></select>
+
+        <div id="summary-run-panel" class="run-mode-panel">
+          <div class="run-config-row">
+            <div class="select-wrap provider-wrap inti-select-wrap">
+              <select class="select select-bordered" id="provider-select" title="Summarizer provider">
+                <option value="">Server default</option>
+              </select>
+            </div>
+            <div class="select-wrap provider-wrap inti-select-wrap" id="sum-model-wrap" hidden>
+              <select class="select select-bordered" id="sum-model-select" title="Summarizer model"></select>
+            </div>
+          </div>
+
+          <div class="run-action-row">
+            <button id="clear-workspace-btn" class="btn-secondary btn btn-ghost border border-base-300" title="Clear working text">
+              <span class="icon icon-x" aria-hidden="true"></span>
+              Clear
+            </button>
+            <button id="summarize-btn" class="btn-primary btn btn-primary" title="Summarize source text">
+              <span class="icon icon-bolt" aria-hidden="true"></span>
+              <span>Summarize</span>
+            </button>
+          </div>
         </div>
-        <button id="summarize-btn" class="btn-primary btn btn-primary" title="Summarize source text">
-          <span class="icon icon-bolt" aria-hidden="true"></span>
-          <span>Summarize</span>
-        </button>
       </div>
     </section>
   `;

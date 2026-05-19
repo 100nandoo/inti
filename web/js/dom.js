@@ -19,6 +19,10 @@ export const runOcrBtn = document.getElementById('run-ocr-btn');
 export const workingText = document.getElementById('working-text');
 export const workingTextCount = document.getElementById('working-text-count');
 export const clearWorkspaceBtn = document.getElementById('clear-workspace-btn');
+export const workingTextRunPanel = document.getElementById('working-text-run-panel');
+export const runModeSummaryBtn = document.getElementById('run-mode-summary-btn');
+export const runModeVoiceBtn = document.getElementById('run-mode-voice-btn');
+export const summaryRunPanel = document.getElementById('summary-run-panel');
 
 export const providerSelect = document.getElementById('provider-select');
 export const sumModelWrap = document.getElementById('sum-model-wrap');

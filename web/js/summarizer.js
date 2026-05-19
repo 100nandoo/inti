@@ -9,11 +9,15 @@ import {
   resultPromoteDefaultBtn,
   resultPromoteDefaultLabel,
   resultSpeakBtn,
+  runModeSummaryBtn,
+  runModeVoiceBtn,
+  summaryRunPanel,
   summarizeBtn,
   textResultContent,
   textResultKindChip,
   textResultTitle,
   workingText,
+  workingTextRunPanel,
 } from './dom.js';
 import { addFeed, setStatus, updateFeedItem } from './feed.js';
 import { updateTextMetrics } from './metrics.js';
@@ -28,6 +32,7 @@ import {
   setGroqRateLimits,
   setLatestTextResult,
   setProcessing,
+  setWorkingTextRunMode,
   setWorkingText,
   subscribeWorkspace,
 } from './workspace.js';
@@ -44,8 +49,16 @@ let summaryDownloadFormat = 'md';
 const VALID_SUMMARY_DOWNLOAD_FORMATS = new Set(['txt', 'md']);
 
 function syncWorkspaceControls() {
-  const { processing, workingText: currentWorkingText, latestTextResult } = getWorkspace();
+  const {
+    inputMode,
+    processing,
+    workingText: currentWorkingText,
+    workingTextRunMode,
+    latestTextResult,
+  } = getWorkspace();
   const hasWorkingText = currentWorkingText.trim().length > 0;
+  const isWorkingTextMode = inputMode === 'working-text';
+  const isSummaryMode = isWorkingTextMode && workingTextRunMode === 'summary';
   const viewModel = buildResultSurfaceViewModel(
     getWorkspace(),
     'replace',
@@ -56,8 +69,14 @@ function syncWorkspaceControls() {
   }
 
   workingText.disabled = processing;
-  clearWorkspaceBtn.disabled = processing || !hasWorkingText;
-  summarizeBtn.disabled = processing || !hasWorkingText;
+  workingTextRunPanel.hidden = !isWorkingTextMode;
+  summaryRunPanel.hidden = !isSummaryMode;
+  clearWorkspaceBtn.disabled = processing || !hasWorkingText || !isSummaryMode;
+  summarizeBtn.disabled = processing || !hasWorkingText || !isSummaryMode;
+  runModeSummaryBtn.setAttribute('aria-selected', String(isSummaryMode));
+  runModeVoiceBtn.setAttribute('aria-selected', String(isWorkingTextMode && workingTextRunMode === 'voice'));
+  runModeSummaryBtn.classList.toggle('is-active', isSummaryMode);
+  runModeVoiceBtn.classList.toggle('is-active', isWorkingTextMode && workingTextRunMode === 'voice');
 
   textResultContent.innerHTML = viewModel.contentHtml;
   textResultKindChip.textContent = viewModel.kindChip;
@@ -164,8 +183,17 @@ export function initSummarizer({ synthesizeText }) {
     setWorkingText(workingText.value);
   });
 
+  runModeSummaryBtn?.addEventListener('click', () => {
+    setWorkingTextRunMode('summary');
+  });
+
+  runModeVoiceBtn?.addEventListener('click', () => {
+    setWorkingTextRunMode('voice');
+  });
+
   summarizeBtn.addEventListener('click', async () => {
-    const { processing, workingText: currentWorkingText } = getWorkspace();
+    const { processing, inputMode, workingTextRunMode, workingText: currentWorkingText } = getWorkspace();
+    if (inputMode !== 'working-text' || workingTextRunMode !== 'summary') return;
     const text = currentWorkingText.trim();
     if (!text || processing) return;
     await summarizeText(text);

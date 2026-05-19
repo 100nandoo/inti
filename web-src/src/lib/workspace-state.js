@@ -10,6 +10,7 @@ import { get, writable } from 'svelte/store';
  * @typedef {import('./workspace-contracts').TextResult} TextResult
  * @typedef {import('./workspace-contracts').TextResultKind} TextResultKind
  * @typedef {import('./workspace-contracts').TextResultUpdate} TextResultUpdate
+ * @typedef {import('./workspace-contracts').WorkingTextRunMode} WorkingTextRunMode
  * @typedef {import('./workspace-contracts').WorkspaceState} WorkspaceState
  */
 
@@ -38,6 +39,7 @@ function createInitialState() {
     dragSrcIndex: null,
     isPointerOverOcrCard: false,
     inputMode: 'working-text',
+    workingTextRunMode: 'summary',
     workingText: '',
     latestTextResult: createEmptyTextResult(),
     appearanceConfig: {
@@ -69,6 +71,13 @@ function createInitialState() {
  */
 function normalizeInputMode(value) {
   return value === 'ocr' ? 'ocr' : 'working-text';
+}
+
+/** @param {string} value
+ * @returns {WorkingTextRunMode}
+ */
+function normalizeWorkingTextRunMode(value) {
+  return value === 'voice' ? 'voice' : 'summary';
 }
 
 /** @param {string} value */
@@ -154,7 +163,24 @@ export function setPointerOverOcrCard(value) {
 
 /** @param {InputMode} mode */
 export function setInputMode(mode) {
-  updateWorkspace((state) => ({ ...state, inputMode: normalizeInputMode(mode) }));
+  updateWorkspace((state) => {
+    const nextInputMode = normalizeInputMode(mode);
+    return {
+      ...state,
+      inputMode: nextInputMode,
+      workingTextRunMode: state.inputMode === 'ocr' && nextInputMode === 'working-text'
+        ? 'summary'
+        : state.workingTextRunMode,
+    };
+  });
+}
+
+/** @param {WorkingTextRunMode} mode */
+export function setWorkingTextRunMode(mode) {
+  updateWorkspace((state) => ({
+    ...state,
+    workingTextRunMode: normalizeWorkingTextRunMode(mode),
+  }));
 }
 
 /** @param {string} text */

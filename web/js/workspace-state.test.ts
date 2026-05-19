@@ -13,6 +13,7 @@ import {
   setInputMode,
   setLastAudioResult,
   setLatestTextResult,
+  setWorkingTextRunMode,
   setWorkingText,
 } from '../../web-src/src/lib/workspace-state.js';
 
@@ -20,6 +21,7 @@ function resetWorkspaceState() {
   setWorkingText('');
   clearLatestTextResult();
   clearLastAudioBlob();
+  setWorkingTextRunMode('summary');
   applyAppearanceConfig({
     summaryDownloadFormat: 'md',
     ocrPromotionBehavior: 'append',
@@ -52,6 +54,16 @@ test('input mode changes preserve staged OCR files and working text', () => {
   setInputMode('working-text');
   assert.equal(getWorkspaceSnapshot().inputMode, 'working-text');
   assert.equal(getWorkspaceSnapshot().workingText, 'Working draft');
+});
+
+test('re-entering working text mode from OCR resets the run mode to summary', () => {
+  setWorkingTextRunMode('voice');
+  assert.equal(getWorkspaceSnapshot().workingTextRunMode, 'voice');
+
+  setInputMode('ocr');
+  setInputMode('working-text');
+
+  assert.equal(getWorkspaceSnapshot().workingTextRunMode, 'summary');
 });
 
 test('promoting the latest text result preserves append and replace semantics', () => {
