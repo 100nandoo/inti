@@ -17,16 +17,16 @@ The latest text output produced by OCR or summarization, kept separate from **Wo
 _Avoid_: temporary copy, output box, second editor
 
 **Result Surface**:
-The part of the **Text Workspace** that presents the latest **Transform Result** and the available **Promotion Rule** actions.
+The part of the **Text Workspace** that presents the latest **Transform Result** and the action that replaces **Working Text** with it.
 _Avoid_: output panel, result box
 
 **Audio Result**:
 Generated speech for a specific text snapshot that can be played or downloaded independently of later text edits.
 _Avoid_: TTS state, player buffer
 
-**Promotion Rule**:
-The user-controlled decision to replace or append **Working Text** from a **Transform Result**, with default behavior configured in settings.
-_Avoid_: implicit sync, auto-copy
+**Promotion**:
+The explicit action that replaces **Working Text** with the latest **Transform Result**.
+_Avoid_: append rule, implicit sync, auto-copy
 
 **Text Processing**:
 The core capability that turns images into extracted text and text into summaries or speech.
@@ -52,9 +52,8 @@ _Avoid_: TTS backend switch, voice routing, provider hack
 
 - The **Text Workspace** owns exactly one **Working Text**
 - **Text Processing** can produce a **Transform Result** from imported images or **Working Text**
-- The **Result Surface** presents the latest **Transform Result** and lets the user apply a **Promotion Rule**
-- A **Transform Result** does not change **Working Text** until a **Promotion Rule** is applied
-- **Runtime Settings** stores the default **Promotion Rule** for OCR imports and summary promotions
+- The **Result Surface** presents the latest **Transform Result** and lets the user trigger **Promotion**
+- A **Transform Result** does not change **Working Text** until **Promotion** is triggered
 - **Runtime Settings** may store one explicit **Visual Theme** for the web interface
 - The default **Visual Theme** is `dark`; `light` is the only other valid persisted mode
 - An **Audio Result** belongs to the text snapshot used to generate it and may remain available after **Working Text** changes
@@ -63,10 +62,11 @@ _Avoid_: TTS backend switch, voice routing, provider hack
 ## Example dialogue
 
 > **Dev:** "If OCR finishes while the workspace already has notes, should we overwrite them?"
-> **Domain expert:** "No. OCR creates a **Transform Result** first. The user then applies the configured **Promotion Rule** to replace or append the **Working Text**."
+> **Domain expert:** "No. OCR creates a **Transform Result** first. The user can then trigger **Promotion** to replace the **Working Text**."
 
 ## Flagged ambiguities
 
 - "source text", "OCR output", and "text to speak" were being used as separate editable concepts in the UI. Resolved: the web frontend has one **Working Text**
 - The numbered four-panel frontend implied a fixed process. Resolved: the product is a **Text Workspace** with optional transforms
 - "theme" was overloaded between implementation details and the user-facing appearance choice. Resolved: use **Visual Theme** for the persisted product setting
+- "append" and "replace" were both treated as valid ways to move a **Transform Result** into **Working Text**. Resolved: promotion is replace-only
