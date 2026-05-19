@@ -3,6 +3,7 @@ import { get, writable } from 'svelte/store';
 /**
  * @typedef {import('./workspace-contracts').AppearanceConfigInput} AppearanceConfigInput
  * @typedef {import('./workspace-contracts').GroqRateLimits} GroqRateLimits
+ * @typedef {import('./workspace-contracts').InputMode} InputMode
  * @typedef {import('./workspace-contracts').PromotionBehavior} PromotionBehavior
  * @typedef {import('./workspace-contracts').SpeechConfigInput} SpeechConfigInput
  * @typedef {import('./workspace-contracts').SummarizerConfigInput} SummarizerConfigInput
@@ -36,6 +37,7 @@ function createInitialState() {
     stagedFiles: [],
     dragSrcIndex: null,
     isPointerOverOcrCard: false,
+    inputMode: 'working-text',
     workingText: '',
     latestTextResult: createEmptyTextResult(),
     appearanceConfig: {
@@ -60,6 +62,13 @@ function createInitialState() {
     selectedSpeechVoice: 'Kore',
     selectedSpeechModel: 'gemini-3.1-flash-tts-preview',
   };
+}
+
+/** @param {string} value
+ * @returns {InputMode}
+ */
+function normalizeInputMode(value) {
+  return value === 'ocr' ? 'ocr' : 'working-text';
 }
 
 /** @param {string} value */
@@ -141,6 +150,11 @@ export function setDragSourceIndex(index) {
 /** @param {boolean} value */
 export function setPointerOverOcrCard(value) {
   updateWorkspace((state) => ({ ...state, isPointerOverOcrCard: value }));
+}
+
+/** @param {InputMode} mode */
+export function setInputMode(mode) {
+  updateWorkspace((state) => ({ ...state, inputMode: normalizeInputMode(mode) }));
 }
 
 /** @param {string} text */

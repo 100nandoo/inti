@@ -1,5 +1,5 @@
 const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/feed.js","assets/dom.js","assets/metrics.js","assets/ocr.js","assets/workspace.js","assets/legacy.js","assets/providers.js","assets/summarizer.js","assets/download.js","assets/tts.js","assets/voices.js"])))=>i.map(i=>d[i]);
-import{t as w,a as y,b as g,g as h,r as k,c as _,N as x,d as S,o as E,i as P,e as A,f as T,h as L,p as R,j as C,m as I}from"./legacy.js";function z(d,u,o=!1,c=!1,s=!1,b=!1){var n=d,e="";if(o)var l=d;w(()=>{var t=y;if(e!==(e=u()??"")){if(o){t.nodes=null,l.innerHTML=e,e!==""&&g(h(l),l.lastChild);return}if(t.nodes!==null&&(k(t.nodes.start,t.nodes.end),t.nodes=null),e!==""){var r=c?x:s?S:void 0,i=_(c?"svg":s?"math":"template",r);i.innerHTML=e;var a=c||s?i:i.content;if(g(h(a),a.lastChild),c||s)for(;h(a);)n.before(h(a));else n.before(a)}}})}const O="modulepreload",D=function(d){return"/"+d},f={},p=function(u,o,c){let s=Promise.resolve();if(o&&o.length>0){let n=function(t){return Promise.all(t.map(r=>Promise.resolve(r).then(i=>({status:"fulfilled",value:i}),i=>({status:"rejected",reason:i}))))};document.getElementsByTagName("link");const e=document.querySelector("meta[property=csp-nonce]"),l=(e==null?void 0:e.nonce)||(e==null?void 0:e.getAttribute("nonce"));s=n(o.map(t=>{if(t=D(t),t in f)return;f[t]=!0;const r=t.endsWith(".css"),i=r?'[rel="stylesheet"]':"";if(document.querySelector(`link[href="${t}"]${i}`))return;const a=document.createElement("link");if(a.rel=r?"stylesheet":O,r||(a.as="script"),a.crossOrigin="",a.href=t,l&&a.setAttribute("nonce",l),document.head.appendChild(a),r)return new Promise((m,v)=>{a.addEventListener("load",m),a.addEventListener("error",()=>v(new Error(`Unable to preload CSS for ${t}`)))})}))}function b(n){const e=new Event("vite:preloadError",{cancelable:!0});if(e.payload=n,window.dispatchEvent(e),!e.defaultPrevented)throw n}return s.then(n=>{for(const e of n||[])e.status==="rejected"&&b(e.reason);return u().catch(b)})};function M(){return`
+import{t as w,a as y,b as g,g as m,r as k,c as x,N as _,d as S,o as E,i as P,e as T,f as A,h as R,p as C,j as I,m as L}from"./legacy.js";function z(d,u,r=!1,c=!1,s=!1,b=!1){var i=d,e="";if(r)var l=d;w(()=>{var t=y;if(e!==(e=u()??"")){if(r){t.nodes=null,l.innerHTML=e,e!==""&&g(m(l),l.lastChild);return}if(t.nodes!==null&&(k(t.nodes.start,t.nodes.end),t.nodes=null),e!==""){var o=c?_:s?S:void 0,n=x(c?"svg":s?"math":"template",o);n.innerHTML=e;var a=c||s?n:n.content;if(g(m(a),a.lastChild),c||s)for(;m(a);)i.before(m(a));else i.before(a)}}})}const O="modulepreload",D=function(d){return"/"+d},f={},p=function(u,r,c){let s=Promise.resolve();if(r&&r.length>0){let i=function(t){return Promise.all(t.map(o=>Promise.resolve(o).then(n=>({status:"fulfilled",value:n}),n=>({status:"rejected",reason:n}))))};document.getElementsByTagName("link");const e=document.querySelector("meta[property=csp-nonce]"),l=(e==null?void 0:e.nonce)||(e==null?void 0:e.getAttribute("nonce"));s=i(r.map(t=>{if(t=D(t),t in f)return;f[t]=!0;const o=t.endsWith(".css"),n=o?'[rel="stylesheet"]':"";if(document.querySelector(`link[href="${t}"]${n}`))return;const a=document.createElement("link");if(a.rel=o?"stylesheet":O,o||(a.as="script"),a.crossOrigin="",a.href=t,l&&a.setAttribute("nonce",l),document.head.appendChild(a),o)return new Promise((v,h)=>{a.addEventListener("load",v),a.addEventListener("error",()=>h(new Error(`Unable to preload CSS for ${t}`)))})}))}function b(i){const e=new Event("vite:preloadError",{cancelable:!0});if(e.payload=i,window.dispatchEvent(e),!e.defaultPrevented)throw i}return s.then(i=>{for(const e of i||[])e.status==="rejected"&&b(e.reason);return u().catch(b)})};function W(){return`
     <header class="header navbar inti-shell-header">
       <div class="logo">
         <div class="logo-icon" aria-hidden="true">
@@ -24,41 +24,66 @@ import{t as w,a as y,b as g,g as h,r as k,c as _,N as x,d as S,o as E,i as P,e a
         </button>
       </div>
     </header>
-  `}function V(){return`
+  `}function M(){return`
     <section class="panel panel-workspace inti-workspace-card card bg-base-100/90 shadow-2xl shadow-base-content/10" id="ocr-card">
       <div class="section-heading inti-panel-heading">
         <span class="ornament inti-panel-ornament" aria-hidden="true"></span>
         <h2>Text Workspace</h2>
         <span class="source-chip badge badge-warning badge-outline">One working text</span>
       </div>
-      <div class="drop-zone inti-surface" id="drop-zone" role="button" tabindex="0" aria-label="Import images for OCR">
-        <span class="icon icon-upload-cloud drop-zone-icon" aria-hidden="true"></span>
-        <p>Import images for OCR<br />or click to <label for="file-input" class="file-label">browse</label></p>
-        <span class="drop-hint" id="drop-hint">PNG, JPG, JPEG, WEBP, TIFF up to 25MB</span>
-        <input type="file" id="file-input" accept=".png,.jpg,.jpeg,.webp,.tif,.tiff,image/png,image/jpeg,image/webp,image/tiff" multiple hidden />
+      <div class="input-mode-toggle inti-input-mode-toggle" role="tablist" aria-label="Input mode">
+        <button
+          id="input-mode-ocr-btn"
+          class="input-mode-btn"
+          type="button"
+          role="tab"
+          aria-selected="false"
+          aria-controls="ocr-input-panel"
+        >
+          OCR
+        </button>
+        <button
+          id="input-mode-working-text-btn"
+          class="input-mode-btn"
+          type="button"
+          role="tab"
+          aria-selected="true"
+          aria-controls="working-text-panel"
+        >
+          Working Text
+        </button>
       </div>
 
-      <div id="file-staging" class="inti-surface" hidden>
-        <div class="field-head">
-          <span>Staged files</span>
-          <span id="staged-count">0 files</span>
+      <div id="ocr-input-panel" class="input-mode-panel">
+        <div class="drop-zone inti-surface" id="drop-zone" role="button" tabindex="0" aria-label="Import images for OCR">
+          <span class="icon icon-upload-cloud drop-zone-icon" aria-hidden="true"></span>
+          <p>Import images for OCR<br />or click to <label for="file-input" class="file-label">browse</label></p>
+          <span class="drop-hint" id="drop-hint">PNG, JPG, JPEG, WEBP, TIFF up to 25MB</span>
+          <input type="file" id="file-input" accept=".png,.jpg,.jpeg,.webp,.tif,.tiff,image/png,image/jpeg,image/webp,image/tiff" multiple hidden />
         </div>
-        <ul id="file-list"></ul>
-        <div class="staging-actions inti-action-row">
-          <button id="clear-files-btn" class="btn-secondary btn btn-ghost border border-base-300 icon-only" title="Clear staged files">
-            <span class="icon icon-trash" aria-hidden="true"></span>
-          </button>
-          <button id="run-ocr-btn" class="btn-primary btn btn-primary">
-            <span aria-hidden="true">--</span>
-            Extract Text
-            <span class="icon icon-bolt" aria-hidden="true"></span>
-          </button>
+
+        <div id="file-staging" class="inti-surface" hidden>
+          <div class="field-head">
+            <span>Staged files</span>
+            <span id="staged-count">0 files</span>
+          </div>
+          <ul id="file-list"></ul>
+          <div class="staging-actions inti-action-row">
+            <button id="clear-files-btn" class="btn-secondary btn btn-ghost border border-base-300 icon-only" title="Clear staged files">
+              <span class="icon icon-trash" aria-hidden="true"></span>
+            </button>
+            <button id="run-ocr-btn" class="btn-primary btn btn-primary">
+              <span aria-hidden="true">--</span>
+              Extract Text
+              <span class="icon icon-bolt" aria-hidden="true"></span>
+            </button>
+          </div>
         </div>
       </div>
 
-      <div class="field-block inti-surface ocr-output-block">
+      <div id="working-text-panel" class="field-block inti-surface ocr-output-block input-mode-panel">
         <div class="field-head">
-          <span>Working text</span>
+          <span>Working Text</span>
           <span id="working-text-count">0 characters</span>
         </div>
         <textarea id="working-text" rows="9" placeholder="Paste or build text here. OCR and summarization operate on this text by default."></textarea>
@@ -83,7 +108,7 @@ import{t as w,a as y,b as g,g as h,r as k,c as _,N as x,d as S,o as E,i as P,e a
         </button>
       </div>
     </section>
-  `}function W(){return`
+  `}function V(){return`
     <section class="panel panel-result inti-workspace-card card bg-base-100/90 shadow-2xl shadow-base-content/10">
       <div class="section-heading inti-panel-heading">
         <span class="ornament inti-panel-ornament" aria-hidden="true"></span>
@@ -100,15 +125,7 @@ import{t as w,a as y,b as g,g as h,r as k,c as _,N as x,d as S,o as E,i as P,e a
         <div class="summary-actions result-actions inti-action-row">
           <button id="result-promote-default-btn" class="btn-primary btn btn-primary">
             <span class="icon icon-arrow-up" aria-hidden="true"></span>
-            <span id="result-promote-default-label">Append to Working Text</span>
-          </button>
-          <button id="result-append-btn" class="btn-secondary btn btn-ghost border border-base-300">
-            <span class="icon icon-arrow-up" aria-hidden="true"></span>
-            <span>Append</span>
-          </button>
-          <button id="result-replace-btn" class="btn-secondary btn btn-ghost border border-base-300">
-            <span class="icon icon-brackets-horizontal" aria-hidden="true"></span>
-            <span>Replace</span>
+            <span id="result-promote-default-label">Replace Working Text</span>
           </button>
           <button id="result-copy-btn" class="btn-secondary btn btn-ghost border border-base-300">
             <span class="icon icon-copy" aria-hidden="true"></span>
@@ -241,13 +258,13 @@ import{t as w,a as y,b as g,g as h,r as k,c as _,N as x,d as S,o as E,i as P,e a
     </div>
   `}function F(){return`
     <div class="app inti-shell">
-      ${M()}
+      ${W()}
       <main class="main-grid inti-shell-main">
+        ${M()}
         ${V()}
-        ${W()}
         ${$()}
         ${G()}
       </main>
     </div>
     ${j()}
-  `}function N(d,u){C(u,!1);const o=F();async function c(){const[{initFeed:n},{updateTextMetrics:e},{initOCR:l},{initProviders:t},{initSummarizer:r},{initTTS:i,synthesizeText:a},{initVoices:m}]=await Promise.all([p(()=>import("./feed.js").then(v=>v.c),__vite__mapDeps([0,1])),p(()=>import("./metrics.js"),__vite__mapDeps([2,1])),p(()=>import("./ocr.js"),__vite__mapDeps([3,1,0,4,5])),p(()=>import("./providers.js"),__vite__mapDeps([6,1,0,4,5])),p(()=>import("./summarizer.js"),__vite__mapDeps([7,1,0,2,4,5,8])),p(()=>import("./tts.js"),__vite__mapDeps([9,1,0,2,4,5,8])),p(()=>import("./voices.js"),__vite__mapDeps([10,1,0,4,5]))]);n(),t(),await m(),l(),r({synthesizeText:a}),i(),e()}E(()=>{if(!window.__intiLegacyWorkspaceInitialized)return window.__intiLegacyWorkspaceInitialized=!0,c()}),P();var s=A(),b=T(s);z(b,()=>o),L(d,s),R()}I(N,{target:document.getElementById("app")});
+  `}function N(d,u){I(u,!1);const r=F();async function c(){const[{initFeed:i},{updateTextMetrics:e},{initOCR:l},{initProviders:t},{initSummarizer:o},{initTTS:n,synthesizeText:a},{initVoices:v}]=await Promise.all([p(()=>import("./feed.js").then(h=>h.c),__vite__mapDeps([0,1])),p(()=>import("./metrics.js"),__vite__mapDeps([2,1])),p(()=>import("./ocr.js"),__vite__mapDeps([3,1,0,4,5])),p(()=>import("./providers.js"),__vite__mapDeps([6,1,0,4,5])),p(()=>import("./summarizer.js"),__vite__mapDeps([7,1,0,2,4,5,8])),p(()=>import("./tts.js"),__vite__mapDeps([9,1,0,2,4,5,8])),p(()=>import("./voices.js"),__vite__mapDeps([10,1,0,4,5]))]);i(),t(),await v(),l(),o({synthesizeText:a}),n(),e()}E(()=>{if(!window.__intiLegacyWorkspaceInitialized)return window.__intiLegacyWorkspaceInitialized=!0,c()}),P();var s=T(),b=A(s);z(b,()=>r),R(d,s),C()}L(N,{target:document.getElementById("app")});

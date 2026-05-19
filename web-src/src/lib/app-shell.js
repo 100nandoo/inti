@@ -35,34 +35,59 @@ export function renderWorkingTextPanel() {
         <h2>Text Workspace</h2>
         <span class="source-chip badge badge-warning badge-outline">One working text</span>
       </div>
-      <div class="drop-zone inti-surface" id="drop-zone" role="button" tabindex="0" aria-label="Import images for OCR">
-        <span class="icon icon-upload-cloud drop-zone-icon" aria-hidden="true"></span>
-        <p>Import images for OCR<br />or click to <label for="file-input" class="file-label">browse</label></p>
-        <span class="drop-hint" id="drop-hint">PNG, JPG, JPEG, WEBP, TIFF up to 25MB</span>
-        <input type="file" id="file-input" accept=".png,.jpg,.jpeg,.webp,.tif,.tiff,image/png,image/jpeg,image/webp,image/tiff" multiple hidden />
+      <div class="input-mode-toggle inti-input-mode-toggle" role="tablist" aria-label="Input mode">
+        <button
+          id="input-mode-ocr-btn"
+          class="input-mode-btn"
+          type="button"
+          role="tab"
+          aria-selected="false"
+          aria-controls="ocr-input-panel"
+        >
+          OCR
+        </button>
+        <button
+          id="input-mode-working-text-btn"
+          class="input-mode-btn"
+          type="button"
+          role="tab"
+          aria-selected="true"
+          aria-controls="working-text-panel"
+        >
+          Working Text
+        </button>
       </div>
 
-      <div id="file-staging" class="inti-surface" hidden>
-        <div class="field-head">
-          <span>Staged files</span>
-          <span id="staged-count">0 files</span>
+      <div id="ocr-input-panel" class="input-mode-panel">
+        <div class="drop-zone inti-surface" id="drop-zone" role="button" tabindex="0" aria-label="Import images for OCR">
+          <span class="icon icon-upload-cloud drop-zone-icon" aria-hidden="true"></span>
+          <p>Import images for OCR<br />or click to <label for="file-input" class="file-label">browse</label></p>
+          <span class="drop-hint" id="drop-hint">PNG, JPG, JPEG, WEBP, TIFF up to 25MB</span>
+          <input type="file" id="file-input" accept=".png,.jpg,.jpeg,.webp,.tif,.tiff,image/png,image/jpeg,image/webp,image/tiff" multiple hidden />
         </div>
-        <ul id="file-list"></ul>
-        <div class="staging-actions inti-action-row">
-          <button id="clear-files-btn" class="btn-secondary btn btn-ghost border border-base-300 icon-only" title="Clear staged files">
-            <span class="icon icon-trash" aria-hidden="true"></span>
-          </button>
-          <button id="run-ocr-btn" class="btn-primary btn btn-primary">
-            <span aria-hidden="true">--</span>
-            Extract Text
-            <span class="icon icon-bolt" aria-hidden="true"></span>
-          </button>
+
+        <div id="file-staging" class="inti-surface" hidden>
+          <div class="field-head">
+            <span>Staged files</span>
+            <span id="staged-count">0 files</span>
+          </div>
+          <ul id="file-list"></ul>
+          <div class="staging-actions inti-action-row">
+            <button id="clear-files-btn" class="btn-secondary btn btn-ghost border border-base-300 icon-only" title="Clear staged files">
+              <span class="icon icon-trash" aria-hidden="true"></span>
+            </button>
+            <button id="run-ocr-btn" class="btn-primary btn btn-primary">
+              <span aria-hidden="true">--</span>
+              Extract Text
+              <span class="icon icon-bolt" aria-hidden="true"></span>
+            </button>
+          </div>
         </div>
       </div>
 
-      <div class="field-block inti-surface ocr-output-block">
+      <div id="working-text-panel" class="field-block inti-surface ocr-output-block input-mode-panel">
         <div class="field-head">
-          <span>Working text</span>
+          <span>Working Text</span>
           <span id="working-text-count">0 characters</span>
         </div>
         <textarea id="working-text" rows="9" placeholder="Paste or build text here. OCR and summarization operate on this text by default."></textarea>
@@ -108,15 +133,7 @@ export function renderResultSurface() {
         <div class="summary-actions result-actions inti-action-row">
           <button id="result-promote-default-btn" class="btn-primary btn btn-primary">
             <span class="icon icon-arrow-up" aria-hidden="true"></span>
-            <span id="result-promote-default-label">Append to Working Text</span>
-          </button>
-          <button id="result-append-btn" class="btn-secondary btn btn-ghost border border-base-300">
-            <span class="icon icon-arrow-up" aria-hidden="true"></span>
-            <span>Append</span>
-          </button>
-          <button id="result-replace-btn" class="btn-secondary btn btn-ghost border border-base-300">
-            <span class="icon icon-brackets-horizontal" aria-hidden="true"></span>
-            <span>Replace</span>
+            <span id="result-promote-default-label">Replace Working Text</span>
           </button>
           <button id="result-copy-btn" class="btn-secondary btn btn-ghost border border-base-300">
             <span class="icon icon-copy" aria-hidden="true"></span>

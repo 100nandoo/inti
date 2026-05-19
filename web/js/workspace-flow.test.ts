@@ -17,6 +17,10 @@ type TTSModule = typeof import('./tts.js');
 type VoicesModule = typeof import('./voices.js');
 
 type WorkspaceElements = {
+  inputModeOcrBtn: HTMLButtonElement;
+  inputModeWorkingTextBtn: HTMLButtonElement;
+  ocrInputPanel: HTMLElement;
+  workingTextPanel: HTMLElement;
   workingText: HTMLTextAreaElement;
   summarizeBtn: HTMLButtonElement;
   runOcrBtn: HTMLButtonElement;
@@ -46,6 +50,10 @@ let dom: ReturnType<typeof installDomWithHTML> | null = null;
 
 function cacheElements() {
   elements = {
+    inputModeOcrBtn: requiredElement<HTMLButtonElement>('input-mode-ocr-btn'),
+    inputModeWorkingTextBtn: requiredElement<HTMLButtonElement>('input-mode-working-text-btn'),
+    ocrInputPanel: requiredElement<HTMLElement>('ocr-input-panel'),
+    workingTextPanel: requiredElement<HTMLElement>('working-text-panel'),
     workingText: requiredElement<HTMLTextAreaElement>('working-text'),
     summarizeBtn: requiredElement<HTMLButtonElement>('summarize-btn'),
     runOcrBtn: requiredElement<HTMLButtonElement>('run-ocr-btn'),
@@ -141,6 +149,7 @@ function resetFetchMock() {
 
 function resetWorkspaceState() {
   workspace.setProcessing(false);
+  workspace.setInputMode('working-text');
   workspace.clearWorkingText();
   workspace.clearLatestTextResult();
   workspace.clearLastAudioBlob();
@@ -227,6 +236,7 @@ test('summary and OCR promotions honor their configured default behaviors', asyn
 
   elements.resultPromoteDefaultBtn.click();
   assert.equal(workspace.getWorkspace().workingText, '# Summary\n\nCondensed result');
+  assert.equal(workspace.getWorkspace().inputMode, 'working-text');
 
   workspace.applyAppearanceConfig({
     summaryDownloadFormat: 'md',
@@ -242,9 +252,9 @@ test('summary and OCR promotions honor their configured default behaviors', asyn
     plainText: 'Scanned text',
   });
 
-  assert.equal(elements.resultPromoteDefaultLabel.textContent, 'Append to Working Text');
+  assert.equal(elements.resultPromoteDefaultLabel.textContent, 'Replace Working Text');
   elements.resultPromoteDefaultBtn.click();
-  assert.equal(workspace.getWorkspace().workingText, 'Workspace text\n\nScanned text');
+  assert.equal(workspace.getWorkspace().workingText, 'Scanned text');
 });
 
 test('ocr results publish to the shared result surface without mutating working text', async () => {
@@ -257,10 +267,50 @@ test('ocr results publish to the shared result surface without mutating working 
   assert.equal(elements.workingText.value, '');
   assert.equal(elements.textResultTitle.textContent, 'OCR Result');
   assert.match(elements.textResultContent.textContent ?? '', /Scanned text from OCR/);
-  assert.equal(elements.resultPromoteDefaultLabel.textContent, 'Append to Working Text');
+  assert.equal(elements.resultPromoteDefaultLabel.textContent, 'Replace Working Text');
 
   elements.resultPromoteDefaultBtn.click();
   assert.equal(workspace.getWorkspace().workingText, 'Scanned text from OCR');
+});
+
+test('input mode toggle hides the inactive surface without clearing its state', async () => {
+  const file = new File(['image-data'], 'scan.png', { type: 'image/png' });
+  workspace.setStagedFiles([file]);
+  typeWorkingText('Keep this draft');
+  await flushAsyncWork();
+
+  assert.equal(elements.ocrInputPanel.hidden, true);
+  assert.equal(elements.workingTextPanel.hidden, false);
+
+  elements.inputModeOcrBtn.click();
+  await flushAsyncWork();
+
+  assert.equal(workspace.getWorkspace().inputMode, 'ocr');
+  assert.equal(elements.ocrInputPanel.hidden, false);
+  assert.equal(elements.workingTextPanel.hidden, true);
+  assert.equal(workspace.getWorkspace().workingText, 'Keep this draft');
+  assert.equal(workspace.getWorkspace().stagedFiles[0]?.name, 'scan.png');
+
+  elements.inputModeWorkingTextBtn.click();
+  await flushAsyncWork();
+
+  assert.equal(workspace.getWorkspace().inputMode, 'working-text');
+  assert.equal(elements.ocrInputPanel.hidden, true);
+  assert.equal(elements.workingTextPanel.hidden, false);
+  assert.equal(elements.workingText.value, 'Keep this draft');
+  assert.equal(workspace.getWorkspace().stagedFiles[0]?.name, 'scan.png');
+});
+
+test('promoting an OCR result switches the workspace into working text mode', async () => {
+  workspace.setInputMode('ocr');
+  workspace.setLatestTextResult(createOCRTextResult('Scanned text from OCR'));
+  await flushAsyncWork();
+
+  elements.resultPromoteDefaultBtn.click();
+
+  assert.equal(workspace.getWorkspace().inputMode, 'working-text');
+  assert.equal(workspace.getWorkspace().workingText, 'Scanned text from OCR');
+  assert.equal(elements.workingTextPanel.hidden, false);
 });
 
 test('speech generation works from working text and latest text result', async () => {

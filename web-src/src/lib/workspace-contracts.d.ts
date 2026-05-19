@@ -1,6 +1,7 @@
 export type TextResultKind = 'summary' | 'ocr' | '';
 export type TextResultFormat = 'plain' | 'markdown';
 export type PromotionBehavior = 'append' | 'replace';
+export type InputMode = 'ocr' | 'working-text';
 export type SummaryDownloadFormat = 'md' | 'txt';
 export type AllowedImageMimeType = 'image/png' | 'image/jpeg' | 'image/webp' | 'image/tiff';
 
@@ -90,6 +91,7 @@ export interface WorkspaceState {
   stagedFiles: File[];
   dragSrcIndex: number | null;
   isPointerOverOcrCard: boolean;
+  inputMode: InputMode;
   workingText: string;
   latestTextResult: TextResult;
   appearanceConfig: AppearanceConfig;

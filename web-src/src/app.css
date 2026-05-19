@@ -89,6 +89,48 @@ body {
   opacity: 0.9;
 }
 
+.inti-input-mode-toggle {
+  display: inline-flex;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+  padding: 0.3rem;
+  border: 1px solid color-mix(in srgb, var(--paper-3) 70%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--paper) 45%, transparent);
+}
+
+.input-mode-btn {
+  min-width: 8rem;
+  padding: 0.55rem 0.95rem;
+  color: var(--ink-soft);
+  font: inherit;
+  font-weight: 700;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+  transition: background-color 0.16s ease, color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.input-mode-btn:hover {
+  color: var(--ink);
+}
+
+.input-mode-btn.is-active {
+  color: var(--btn-primary-fg);
+  background: linear-gradient(180deg, var(--btn-primary-bg-top), var(--btn-primary-bg-bottom));
+  box-shadow: 0 10px 22px color-mix(in srgb, var(--workspace-accent) 20%, transparent);
+}
+
+.input-mode-btn:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--workspace-accent) 46%, transparent);
+  outline-offset: 2px;
+}
+
+.input-mode-panel + .input-mode-panel {
+  margin-top: 0;
+}
+
 .panel-result {
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--workspace-accent-soft) 80%, transparent), transparent 10rem),

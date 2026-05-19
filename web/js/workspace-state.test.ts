@@ -10,6 +10,7 @@ import {
   getWorkspaceSnapshot,
   promoteLatestTextResult,
   replaceWorkingText,
+  setInputMode,
   setLastAudioResult,
   setLatestTextResult,
   setWorkingText,
@@ -40,6 +41,17 @@ test('promotion defaults stay scoped to summary and OCR result kinds', () => {
   assert.equal(getDefaultPromotionBehavior('summary'), 'replace');
   assert.equal(getDefaultPromotionBehavior('ocr'), 'append');
   assert.equal(getDefaultPromotionBehavior('unknown' as Parameters<typeof getDefaultPromotionBehavior>[0]), 'append');
+});
+
+test('input mode changes preserve staged OCR files and working text', () => {
+  setWorkingText('Working draft');
+  setInputMode('ocr');
+  assert.equal(getWorkspaceSnapshot().inputMode, 'ocr');
+  assert.equal(getWorkspaceSnapshot().workingText, 'Working draft');
+
+  setInputMode('working-text');
+  assert.equal(getWorkspaceSnapshot().inputMode, 'working-text');
+  assert.equal(getWorkspaceSnapshot().workingText, 'Working draft');
 });
 
 test('promoting the latest text result preserves append and replace semantics', () => {

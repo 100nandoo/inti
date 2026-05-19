@@ -1,6 +1,5 @@
 import {
   clearWorkspaceBtn,
-  resultAppendBtn,
   resultCopyBtn,
   resultCopyLabel,
   resultDownloadBtn,
@@ -9,7 +8,6 @@ import {
   resultDownloadToggle,
   resultPromoteDefaultBtn,
   resultPromoteDefaultLabel,
-  resultReplaceBtn,
   resultSpeakBtn,
   summarizeBtn,
   textResultContent,
@@ -22,11 +20,11 @@ import { updateTextMetrics } from './metrics.js';
 import {
   applyAppearanceConfig,
   clearLatestTextResult,
-  getDefaultPromotionBehavior,
   getSelectedSummarizerModel,
   getSelectedSummarizerProvider,
   getWorkspace,
   promoteLatestTextResult,
+  setInputMode,
   setGroqRateLimits,
   setLatestTextResult,
   setProcessing,
@@ -50,7 +48,7 @@ function syncWorkspaceControls() {
   const hasWorkingText = currentWorkingText.trim().length > 0;
   const viewModel = buildResultSurfaceViewModel(
     getWorkspace(),
-    getDefaultPromotionBehavior(latestTextResult.kind),
+    'replace',
   );
 
   if (workingText.value !== currentWorkingText) {
@@ -67,8 +65,6 @@ function syncWorkspaceControls() {
   resultPromoteDefaultLabel.textContent = viewModel.defaultPromotionLabel;
 
   resultPromoteDefaultBtn.disabled = processing || !viewModel.hasResult;
-  resultAppendBtn.disabled = processing || !viewModel.hasResult;
-  resultReplaceBtn.disabled = processing || !viewModel.hasResult;
   resultCopyBtn.disabled = processing || !viewModel.hasResult;
   resultDownloadBtn.disabled = processing || !viewModel.hasResult;
   resultDownloadToggle.disabled = processing || !viewModel.hasResult;
@@ -105,10 +101,9 @@ function toggleResultDownloadMenu() {
   closeResultDownloadMenu();
 }
 
-function announcePromotion(mode) {
+function announcePromotion() {
   const kind = getWorkspace().latestTextResult.kind || 'result';
-  const action = mode === 'replace' ? 'replaced' : 'appended to';
-  setStatus(`${kind === 'summary' ? 'Summary' : 'OCR result'} ${action} working text.`, 'success');
+  setStatus(`${kind === 'summary' ? 'Summary' : 'OCR result'} replaced working text.`, 'success');
 }
 
 export async function summarizeText(text) {
@@ -177,16 +172,9 @@ export function initSummarizer({ synthesizeText }) {
   });
 
   resultPromoteDefaultBtn.addEventListener('click', () => {
-    const behavior = getDefaultPromotionBehavior(getWorkspace().latestTextResult.kind);
-    if (promoteLatestTextResult(behavior)) announcePromotion(behavior);
-  });
-
-  resultAppendBtn.addEventListener('click', () => {
-    if (promoteLatestTextResult('append')) announcePromotion('append');
-  });
-
-  resultReplaceBtn.addEventListener('click', () => {
-    if (promoteLatestTextResult('replace')) announcePromotion('replace');
+    if (!promoteLatestTextResult('replace')) return;
+    setInputMode('working-text');
+    announcePromotion();
   });
 
   resultCopyBtn.addEventListener('click', async () => {

@@ -8,14 +8,19 @@ import {
   imgModalBack,
   imgModalClose,
   imgModalImg,
+  inputModeOcrBtn,
+  inputModeWorkingTextBtn,
   ocrCard,
+  ocrInputPanel,
   runOcrBtn,
   stagedCount,
+  workingTextPanel,
 } from './dom.js';
 import { formatFileSize } from './bytes.js';
 import { addFeed, setStatus, updateFeedItem } from './feed.js';
 import {
   getWorkspace,
+  setInputMode,
   setDragSourceIndex,
   setLatestTextResult,
   setPointerOverOcrCard,
@@ -57,6 +62,10 @@ function onModalKeydown(event) {
 function shouldHandleGlobalPaste() {
   const activeElement = document.activeElement;
   if (activeElement && activeElement.closest('input, textarea, select, [contenteditable="true"]')) {
+    return false;
+  }
+
+  if (getWorkspace().inputMode !== 'ocr') {
     return false;
   }
 
@@ -152,9 +161,22 @@ function renderFileList() {
 }
 
 function syncOCRControls() {
-  const { processing, stagedFiles } = getWorkspace();
-  runOcrBtn.disabled = processing || stagedFiles.length === 0;
-  clearFilesBtn.disabled = processing || stagedFiles.length === 0;
+  const { inputMode, processing, stagedFiles } = getWorkspace();
+  const isOcrMode = inputMode === 'ocr';
+  runOcrBtn.disabled = !isOcrMode || processing || stagedFiles.length === 0;
+  clearFilesBtn.disabled = !isOcrMode || processing || stagedFiles.length === 0;
+}
+
+function syncInputModeControls() {
+  const { inputMode } = getWorkspace();
+  const isOcrMode = inputMode === 'ocr';
+
+  ocrInputPanel.hidden = !isOcrMode;
+  workingTextPanel.hidden = isOcrMode;
+  inputModeOcrBtn.setAttribute('aria-selected', String(isOcrMode));
+  inputModeWorkingTextBtn.setAttribute('aria-selected', String(!isOcrMode));
+  inputModeOcrBtn.classList.toggle('is-active', isOcrMode);
+  inputModeWorkingTextBtn.classList.toggle('is-active', !isOcrMode);
 }
 
 export async function uploadImagesForOCR(files) {
@@ -192,21 +214,39 @@ export async function uploadImagesForOCR(files) {
 
 export function initOCR() {
   renderFileList();
+  syncInputModeControls();
   syncOCRControls();
 
   let previousStagedFiles = getWorkspace().stagedFiles;
   let previousProcessing = getWorkspace().processing;
+  let previousInputMode = getWorkspace().inputMode;
 
   subscribeWorkspace((state) => {
+    if (state.inputMode !== previousInputMode) {
+      syncInputModeControls();
+    }
     if (state.stagedFiles !== previousStagedFiles) {
       renderFileList();
     }
-    if (state.processing !== previousProcessing || state.stagedFiles !== previousStagedFiles) {
+    if (
+      state.processing !== previousProcessing
+      || state.stagedFiles !== previousStagedFiles
+      || state.inputMode !== previousInputMode
+    ) {
       syncOCRControls();
     }
 
     previousStagedFiles = state.stagedFiles;
     previousProcessing = state.processing;
+    previousInputMode = state.inputMode;
+  });
+
+  inputModeOcrBtn?.addEventListener('click', () => {
+    setInputMode('ocr');
+  });
+
+  inputModeWorkingTextBtn?.addEventListener('click', () => {
+    setInputMode('working-text');
   });
 
   dropZone.addEventListener('click', (event) => {

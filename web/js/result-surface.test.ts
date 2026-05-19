@@ -37,13 +37,13 @@ test('buildResultSurfaceViewModel exposes result presentation, speakable text, a
         plainText: 'Line one\nLine two',
       },
     },
-    'append',
+    'replace',
   );
 
   assert.equal(ocrView.kindChip, 'OCR result');
   assert.equal(ocrView.title, 'Transform result');
   assert.match(ocrView.contentHtml, /<br>/);
-  assert.equal(ocrView.defaultPromotionLabel, 'Append to Working Text');
+  assert.equal(ocrView.defaultPromotionLabel, 'Replace Working Text');
 });
 
 test('copyLatestResultText reflects clipboard availability and write failures', async () => {
