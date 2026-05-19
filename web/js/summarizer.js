@@ -8,7 +8,6 @@ import {
   resultDownloadToggle,
   resultPromoteDefaultBtn,
   resultPromoteDefaultLabel,
-  resultSpeakBtn,
   summarizeBtn,
   textResultContent,
   textResultKindChip,
@@ -39,7 +38,6 @@ import {
 } from '../../web-src/src/lib/result-surface.js';
 import { executeSummaryRequest } from '../../web-src/src/lib/summary-flow.js';
 
-let synthesizeFromResult = async () => {};
 let summaryDownloadFormat = 'md';
 const VALID_SUMMARY_DOWNLOAD_FORMATS = new Set(['txt', 'md']);
 
@@ -68,7 +66,6 @@ function syncWorkspaceControls() {
   resultCopyBtn.disabled = processing || !viewModel.hasResult;
   resultDownloadBtn.disabled = processing || !viewModel.hasResult;
   resultDownloadToggle.disabled = processing || !viewModel.hasResult;
-  resultSpeakBtn.disabled = processing || !viewModel.hasSpeakableText;
 
   if (resultDownloadBtn.disabled) {
     closeResultDownloadMenu();
@@ -142,8 +139,7 @@ export async function summarizeText(text) {
   }
 }
 
-export function initSummarizer({ synthesizeText }) {
-  synthesizeFromResult = synthesizeText;
+export function initSummarizer() {
   applySummaryDownloadFormat(window.IntiTheme?.summaryDownloadFormat);
   applyAppearanceConfig(window.IntiTheme || {});
 
@@ -214,13 +210,6 @@ export function initSummarizer({ synthesizeText }) {
       closeResultDownloadMenu();
       resultDownloadToggle.focus();
     }
-  });
-
-  resultSpeakBtn.addEventListener('click', async () => {
-    const { processing, latestTextResult } = getWorkspace();
-    const text = latestTextResult.plainText.trim();
-    if (!text || processing) return;
-    await synthesizeFromResult(text, { sourceLabel: latestTextResult.title || 'Latest Text Result' });
   });
 
   document.addEventListener('click', (event) => {

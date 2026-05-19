@@ -1,5 +1,5 @@
 const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/feed.js","assets/dom.js","assets/metrics.js","assets/ocr.js","assets/workspace.js","assets/legacy.js","assets/providers.js","assets/summarizer.js","assets/download.js","assets/tts.js","assets/voices.js"])))=>i.map(i=>d[i]);
-import{t as w,a as y,b as g,g as m,r as k,c as x,N as _,d as S,o as E,i as P,e as T,f as A,h as R,p as C,j as I,m as L}from"./legacy.js";function z(d,u,r=!1,c=!1,s=!1,b=!1){var i=d,e="";if(r)var l=d;w(()=>{var t=y;if(e!==(e=u()??"")){if(r){t.nodes=null,l.innerHTML=e,e!==""&&g(m(l),l.lastChild);return}if(t.nodes!==null&&(k(t.nodes.start,t.nodes.end),t.nodes=null),e!==""){var o=c?_:s?S:void 0,n=x(c?"svg":s?"math":"template",o);n.innerHTML=e;var a=c||s?n:n.content;if(g(m(a),a.lastChild),c||s)for(;m(a);)i.before(m(a));else i.before(a)}}})}const O="modulepreload",D=function(d){return"/"+d},f={},p=function(u,r,c){let s=Promise.resolve();if(r&&r.length>0){let i=function(t){return Promise.all(t.map(o=>Promise.resolve(o).then(n=>({status:"fulfilled",value:n}),n=>({status:"rejected",reason:n}))))};document.getElementsByTagName("link");const e=document.querySelector("meta[property=csp-nonce]"),l=(e==null?void 0:e.nonce)||(e==null?void 0:e.getAttribute("nonce"));s=i(r.map(t=>{if(t=D(t),t in f)return;f[t]=!0;const o=t.endsWith(".css"),n=o?'[rel="stylesheet"]':"";if(document.querySelector(`link[href="${t}"]${n}`))return;const a=document.createElement("link");if(a.rel=o?"stylesheet":O,o||(a.as="script"),a.crossOrigin="",a.href=t,l&&a.setAttribute("nonce",l),document.head.appendChild(a),o)return new Promise((v,h)=>{a.addEventListener("load",v),a.addEventListener("error",()=>h(new Error(`Unable to preload CSS for ${t}`)))})}))}function b(i){const e=new Event("vite:preloadError",{cancelable:!0});if(e.payload=i,window.dispatchEvent(e),!e.defaultPrevented)throw i}return s.then(i=>{for(const e of i||[])e.status==="rejected"&&b(e.reason);return u().catch(b)})};function W(){return`
+import{t as w,a as y,b as g,g as m,r as k,c as x,N as _,d as E,o as P,i as S,e as T,f as A,h as C,p as I,j as L,m as R}from"./legacy.js";function z(d,u,r=!1,c=!1,s=!1,b=!1){var a=d,e="";if(r)var l=d;w(()=>{var t=y;if(e!==(e=u()??"")){if(r){t.nodes=null,l.innerHTML=e,e!==""&&g(m(l),l.lastChild);return}if(t.nodes!==null&&(k(t.nodes.start,t.nodes.end),t.nodes=null),e!==""){var o=c?_:s?E:void 0,n=x(c?"svg":s?"math":"template",o);n.innerHTML=e;var i=c||s?n:n.content;if(g(m(i),i.lastChild),c||s)for(;m(i);)a.before(m(i));else a.before(i)}}})}const O="modulepreload",D=function(d){return"/"+d},f={},p=function(u,r,c){let s=Promise.resolve();if(r&&r.length>0){let a=function(t){return Promise.all(t.map(o=>Promise.resolve(o).then(n=>({status:"fulfilled",value:n}),n=>({status:"rejected",reason:n}))))};document.getElementsByTagName("link");const e=document.querySelector("meta[property=csp-nonce]"),l=(e==null?void 0:e.nonce)||(e==null?void 0:e.getAttribute("nonce"));s=a(r.map(t=>{if(t=D(t),t in f)return;f[t]=!0;const o=t.endsWith(".css"),n=o?'[rel="stylesheet"]':"";if(document.querySelector(`link[href="${t}"]${n}`))return;const i=document.createElement("link");if(i.rel=o?"stylesheet":O,o||(i.as="script"),i.crossOrigin="",i.href=t,l&&i.setAttribute("nonce",l),document.head.appendChild(i),o)return new Promise((v,h)=>{i.addEventListener("load",v),i.addEventListener("error",()=>h(new Error(`Unable to preload CSS for ${t}`)))})}))}function b(a){const e=new Event("vite:preloadError",{cancelable:!0});if(e.payload=a,window.dispatchEvent(e),!e.defaultPrevented)throw a}return s.then(a=>{for(const e of a||[])e.status==="rejected"&&b(e.reason);return u().catch(b)})};function W(){return`
     <header class="header navbar inti-shell-header">
       <div class="logo">
         <div class="logo-icon" aria-hidden="true">
@@ -151,10 +151,6 @@ import{t as w,a as y,b as g,g as m,r as k,c as x,N as _,d as S,o as E,i as P,e a
               <button type="button" class="split-menu-item" data-format="md" role="menuitem">Download .md</button>
             </div>
           </div>
-          <button id="result-speak-btn" class="btn-secondary btn btn-ghost border border-base-300">
-            <span class="icon icon-speaker-waves" aria-hidden="true"></span>
-            Generate Speech from Result
-          </button>
         </div>
       </div>
     </section>
@@ -168,7 +164,7 @@ import{t as w,a as y,b as g,g as m,r as k,c as x,N as _,d as S,o as E,i as P,e a
 
       <div class="field-block inti-surface">
         <div class="field-head">
-          <span>Speech input</span>
+          <span>Working Text</span>
           <span id="speech-input-count">0 characters</span>
         </div>
         <div id="speech-input-preview" class="summary-markdown speech-preview"></div>
@@ -203,11 +199,6 @@ import{t as w,a as y,b as g,g as m,r as k,c as x,N as _,d as S,o as E,i as P,e a
           <span class="icon icon-speaker" aria-hidden="true"></span>
           Generate from Working Text
         </button>
-        <button id="generate-result-audio-btn" class="btn-secondary btn btn-ghost border border-base-300">
-          <span class="icon icon-speaker-waves" aria-hidden="true"></span>
-          Generate from Result
-        </button>
-
         <div class="playing-bar" id="playing-bar">
           <div class="bar"></div>
           <div class="bar"></div>
@@ -237,7 +228,7 @@ import{t as w,a as y,b as g,g as m,r as k,c as x,N as _,d as S,o as E,i as P,e a
         </div>
       </div>
     </section>
-  `}function G(){return`
+  `}function j(){return`
     <section class="panel panel-activity inti-workspace-card card bg-base-100/90 shadow-2xl shadow-base-content/10">
       <div class="section-heading inti-panel-heading">
         <span class="ornament inti-panel-ornament" aria-hidden="true"></span>
@@ -248,7 +239,7 @@ import{t as w,a as y,b as g,g as m,r as k,c as x,N as _,d as S,o as E,i as P,e a
       </div>
       <button class="btn-secondary btn btn-ghost border border-base-300 view-all-btn" type="button">View all</button>
     </section>
-  `}function j(){return`
+  `}function F(){return`
     <div id="img-preview-modal" hidden>
       <div id="img-preview-backdrop"></div>
       <div id="img-preview-box">
@@ -256,15 +247,15 @@ import{t as w,a as y,b as g,g as m,r as k,c as x,N as _,d as S,o as E,i as P,e a
         <button id="img-preview-close" title="Close">×</button>
       </div>
     </div>
-  `}function F(){return`
+  `}function G(){return`
     <div class="app inti-shell">
       ${W()}
       <main class="main-grid inti-shell-main">
         ${M()}
         ${V()}
         ${$()}
-        ${G()}
+        ${j()}
       </main>
     </div>
-    ${j()}
-  `}function N(d,u){I(u,!1);const r=F();async function c(){const[{initFeed:i},{updateTextMetrics:e},{initOCR:l},{initProviders:t},{initSummarizer:o},{initTTS:n,synthesizeText:a},{initVoices:v}]=await Promise.all([p(()=>import("./feed.js").then(h=>h.c),__vite__mapDeps([0,1])),p(()=>import("./metrics.js"),__vite__mapDeps([2,1])),p(()=>import("./ocr.js"),__vite__mapDeps([3,1,0,4,5])),p(()=>import("./providers.js"),__vite__mapDeps([6,1,0,4,5])),p(()=>import("./summarizer.js"),__vite__mapDeps([7,1,0,2,4,5,8])),p(()=>import("./tts.js"),__vite__mapDeps([9,1,0,2,4,5,8])),p(()=>import("./voices.js"),__vite__mapDeps([10,1,0,4,5]))]);i(),t(),await v(),l(),o({synthesizeText:a}),n(),e()}E(()=>{if(!window.__intiLegacyWorkspaceInitialized)return window.__intiLegacyWorkspaceInitialized=!0,c()}),P();var s=T(),b=A(s);z(b,()=>r),R(d,s),C()}L(N,{target:document.getElementById("app")});
+    ${F()}
+  `}function N(d,u){L(u,!1);const r=G();async function c(){const[{initFeed:a},{updateTextMetrics:e},{initOCR:l},{initProviders:t},{initSummarizer:o},{initTTS:n,synthesizeText:i},{initVoices:v}]=await Promise.all([p(()=>import("./feed.js").then(h=>h.c),__vite__mapDeps([0,1])),p(()=>import("./metrics.js"),__vite__mapDeps([2,1])),p(()=>import("./ocr.js"),__vite__mapDeps([3,1,0,4,5])),p(()=>import("./providers.js"),__vite__mapDeps([6,1,0,4,5])),p(()=>import("./summarizer.js"),__vite__mapDeps([7,1,0,2,4,5,8])),p(()=>import("./tts.js"),__vite__mapDeps([9,1,0,2,4,5,8])),p(()=>import("./voices.js"),__vite__mapDeps([10,1,0,4,5]))]);a(),t(),await v(),l(),o({synthesizeText:i}),n(),e()}P(()=>{if(!window.__intiLegacyWorkspaceInitialized)return window.__intiLegacyWorkspaceInitialized=!0,c()}),S();var s=T(),b=A(s);z(b,()=>r),C(d,s),I()}R(N,{target:document.getElementById("app")});

@@ -25,10 +25,10 @@ type WorkspaceElements = {
   summarizeBtn: HTMLButtonElement;
   runOcrBtn: HTMLButtonElement;
   generateWorkingAudioBtn: HTMLButtonElement;
-  generateResultAudioBtn: HTMLButtonElement;
   resultPromoteDefaultBtn: HTMLButtonElement;
   resultPromoteDefaultLabel: HTMLElement;
   audioResultCard: HTMLElement;
+  speechInputPreview: HTMLElement;
   textResultTitle: HTMLElement;
   textResultContent: HTMLElement;
 };
@@ -58,10 +58,10 @@ function cacheElements() {
     summarizeBtn: requiredElement<HTMLButtonElement>('summarize-btn'),
     runOcrBtn: requiredElement<HTMLButtonElement>('run-ocr-btn'),
     generateWorkingAudioBtn: requiredElement<HTMLButtonElement>('generate-working-audio-btn'),
-    generateResultAudioBtn: requiredElement<HTMLButtonElement>('generate-result-audio-btn'),
     resultPromoteDefaultBtn: requiredElement<HTMLButtonElement>('result-promote-default-btn'),
     resultPromoteDefaultLabel: requiredElement<HTMLElement>('result-promote-default-label'),
     audioResultCard: requiredElement<HTMLElement>('audio-result-card'),
+    speechInputPreview: requiredElement<HTMLElement>('speech-input-preview'),
     textResultTitle: requiredElement<HTMLElement>('text-result-title'),
     textResultContent: requiredElement<HTMLElement>('text-result-content'),
   };
@@ -205,7 +205,7 @@ before(async () => {
   voices = await import('./voices.js');
 
   ocr.initOCR();
-  summarizer.initSummarizer({ synthesizeText: tts.synthesizeText });
+  summarizer.initSummarizer();
   await voices.initVoices();
   tts.initTTS();
 });
@@ -313,7 +313,7 @@ test('promoting an OCR result switches the workspace into working text mode', as
   assert.equal(elements.workingTextPanel.hidden, false);
 });
 
-test('speech generation works from working text and latest text result', async () => {
+test('speech generation only synthesizes from working text', async () => {
   typeWorkingText('Alpha beta');
 
   elements.generateWorkingAudioBtn.click();
@@ -332,30 +332,7 @@ test('speech generation works from working text and latest text result', async (
   assert.equal(workspace.getWorkspace().lastAudioVoice, 'Kore');
   assert.equal(workspace.getWorkspace().lastAudioModel, 'gemini-2.5-flash-preview-tts');
   assert.match(requiredElement<HTMLElement>('audio-result-meta').textContent ?? '', /gemini · gemini-2\.5-flash-preview-tts · Kore/);
-
-  workspace.setLatestTextResult({
-    kind: 'summary',
-    title: 'Summary Result',
-    format: 'markdown',
-    rawText: '# Result\n\nListen to this',
-    plainText: 'Listen to this',
-  });
-
-  elements.generateResultAudioBtn.click();
-  await flushAsyncWork();
-
-  speakCalls = fetchCalls.filter((call) => call.url === '/api/speak');
-  assert.deepEqual(speakCalls[1]?.body, {
-    text: 'Listen to this',
-    provider: 'gemini',
-    voice: 'Kore',
-    model: 'gemini-2.5-flash-preview-tts',
-  });
-  assert.equal(workspace.getWorkspace().lastAudioSourceLabel, 'Summary Result');
-  assert.equal(workspace.getWorkspace().lastAudioSourceText, 'Listen to this');
-  assert.match(elements.audioResultCard.textContent ?? '', /Summary Result/);
-  assert.match(elements.audioResultCard.textContent ?? '', /gemini/);
-  assert.match(elements.audioResultCard.textContent ?? '', /Listen to this/);
+  assert.match(elements.speechInputPreview.textContent ?? '', /Alpha beta/);
 });
 
 test('speech provider selection restores kokoro controls and omits model selection', async () => {
@@ -426,21 +403,17 @@ test('speech provider selection restores kokoro controls and omits model selecti
 });
 
 test('latest audio result persists after later working text edits', async () => {
-  workspace.setLatestTextResult({
-    kind: 'summary',
-    title: 'Summary Result',
-    format: 'markdown',
-    rawText: '# Result\n\nStable audio snapshot',
-    plainText: 'Stable audio snapshot',
-  });
+  typeWorkingText('Stable audio snapshot');
 
-  elements.generateResultAudioBtn.click();
+  elements.generateWorkingAudioBtn.click();
   await flushAsyncWork();
 
   typeWorkingText('Edited after audio generation');
 
   assert.ok(workspace.getWorkspace().lastAudioBlob);
   assert.equal(workspace.getWorkspace().lastAudioSourceText, 'Stable audio snapshot');
+  assert.equal(workspace.getWorkspace().lastAudioSourceLabel, 'Working Text');
   assert.equal(workspace.getWorkspace().lastAudioProvider, 'gemini');
   assert.match(elements.audioResultCard.textContent ?? '', /Stable audio snapshot/);
+  assert.match(elements.speechInputPreview.textContent ?? '', /Edited after audio generation/);
 });

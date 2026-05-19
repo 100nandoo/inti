@@ -159,10 +159,6 @@ export function renderResultSurface() {
               <button type="button" class="split-menu-item" data-format="md" role="menuitem">Download .md</button>
             </div>
           </div>
-          <button id="result-speak-btn" class="btn-secondary btn btn-ghost border border-base-300">
-            <span class="icon icon-speaker-waves" aria-hidden="true"></span>
-            Generate Speech from Result
-          </button>
         </div>
       </div>
     </section>
@@ -180,7 +176,7 @@ export function renderSpeechPanel() {
 
       <div class="field-block inti-surface">
         <div class="field-head">
-          <span>Speech input</span>
+          <span>Working Text</span>
           <span id="speech-input-count">0 characters</span>
         </div>
         <div id="speech-input-preview" class="summary-markdown speech-preview"></div>
@@ -215,11 +211,6 @@ export function renderSpeechPanel() {
           <span class="icon icon-speaker" aria-hidden="true"></span>
           Generate from Working Text
         </button>
-        <button id="generate-result-audio-btn" class="btn-secondary btn btn-ghost border border-base-300">
-          <span class="icon icon-speaker-waves" aria-hidden="true"></span>
-          Generate from Result
-        </button>
-
         <div class="playing-bar" id="playing-bar">
           <div class="bar"></div>
           <div class="bar"></div>
