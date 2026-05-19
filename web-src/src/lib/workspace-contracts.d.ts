@@ -1,6 +1,8 @@
 export type TextResultKind = 'summary' | 'ocr' | '';
 export type TextResultFormat = 'plain' | 'markdown';
 export type PromotionBehavior = 'append' | 'replace';
+export type InputMode = 'ocr' | 'working-text';
+export type WorkingTextRunMode = 'summary' | 'voice';
 export type SummaryDownloadFormat = 'md' | 'txt';
 export type AllowedImageMimeType = 'image/png' | 'image/jpeg' | 'image/webp' | 'image/tiff';
 
@@ -90,6 +92,8 @@ export interface WorkspaceState {
   stagedFiles: File[];
   dragSrcIndex: number | null;
   isPointerOverOcrCard: boolean;
+  inputMode: InputMode;
+  workingTextRunMode: WorkingTextRunMode;
   workingText: string;
   latestTextResult: TextResult;
   appearanceConfig: AppearanceConfig;
@@ -177,7 +181,6 @@ export interface SpeechPanelWorkspace {
 
 export interface SpeechPanelViewModel {
   hasWorkingText: boolean;
-  hasResult: boolean;
   hasAudio: boolean;
   speechPreviewHtml: string;
   speechPreviewLength: string;

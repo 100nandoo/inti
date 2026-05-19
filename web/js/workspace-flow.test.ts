@@ -17,14 +17,22 @@ type TTSModule = typeof import('./tts.js');
 type VoicesModule = typeof import('./voices.js');
 
 type WorkspaceElements = {
+  inputModeOcrBtn: HTMLButtonElement;
+  inputModeWorkingTextBtn: HTMLButtonElement;
+  ocrInputPanel: HTMLElement;
+  workingTextPanel: HTMLElement;
+  workingTextRunPanel: HTMLElement;
+  runModeSummaryBtn: HTMLButtonElement;
+  runModeVoiceBtn: HTMLButtonElement;
+  summaryRunPanel: HTMLElement;
   workingText: HTMLTextAreaElement;
   summarizeBtn: HTMLButtonElement;
   runOcrBtn: HTMLButtonElement;
   generateWorkingAudioBtn: HTMLButtonElement;
-  generateResultAudioBtn: HTMLButtonElement;
   resultPromoteDefaultBtn: HTMLButtonElement;
   resultPromoteDefaultLabel: HTMLElement;
   audioResultCard: HTMLElement;
+  speechInputPreview: HTMLElement;
   textResultTitle: HTMLElement;
   textResultContent: HTMLElement;
 };
@@ -46,14 +54,22 @@ let dom: ReturnType<typeof installDomWithHTML> | null = null;
 
 function cacheElements() {
   elements = {
+    inputModeOcrBtn: requiredElement<HTMLButtonElement>('input-mode-ocr-btn'),
+    inputModeWorkingTextBtn: requiredElement<HTMLButtonElement>('input-mode-working-text-btn'),
+    ocrInputPanel: requiredElement<HTMLElement>('ocr-input-panel'),
+    workingTextPanel: requiredElement<HTMLElement>('working-text-panel'),
+    workingTextRunPanel: requiredElement<HTMLElement>('working-text-run-panel'),
+    runModeSummaryBtn: requiredElement<HTMLButtonElement>('run-mode-summary-btn'),
+    runModeVoiceBtn: requiredElement<HTMLButtonElement>('run-mode-voice-btn'),
+    summaryRunPanel: requiredElement<HTMLElement>('summary-run-panel'),
     workingText: requiredElement<HTMLTextAreaElement>('working-text'),
     summarizeBtn: requiredElement<HTMLButtonElement>('summarize-btn'),
     runOcrBtn: requiredElement<HTMLButtonElement>('run-ocr-btn'),
     generateWorkingAudioBtn: requiredElement<HTMLButtonElement>('generate-working-audio-btn'),
-    generateResultAudioBtn: requiredElement<HTMLButtonElement>('generate-result-audio-btn'),
     resultPromoteDefaultBtn: requiredElement<HTMLButtonElement>('result-promote-default-btn'),
     resultPromoteDefaultLabel: requiredElement<HTMLElement>('result-promote-default-label'),
     audioResultCard: requiredElement<HTMLElement>('audio-result-card'),
+    speechInputPreview: requiredElement<HTMLElement>('speech-input-preview'),
     textResultTitle: requiredElement<HTMLElement>('text-result-title'),
     textResultContent: requiredElement<HTMLElement>('text-result-content'),
   };
@@ -141,6 +157,8 @@ function resetFetchMock() {
 
 function resetWorkspaceState() {
   workspace.setProcessing(false);
+  workspace.setInputMode('working-text');
+  workspace.setWorkingTextRunMode('summary');
   workspace.clearWorkingText();
   workspace.clearLatestTextResult();
   workspace.clearLastAudioBlob();
@@ -196,7 +214,7 @@ before(async () => {
   voices = await import('./voices.js');
 
   ocr.initOCR();
-  summarizer.initSummarizer({ synthesizeText: tts.synthesizeText });
+  summarizer.initSummarizer();
   await voices.initVoices();
   tts.initTTS();
 });
@@ -224,9 +242,12 @@ test('summary and OCR promotions honor their configured default behaviors', asyn
 
   assert.equal(workspace.getWorkspace().latestTextResult.kind, 'summary');
   assert.equal(elements.resultPromoteDefaultLabel.textContent, 'Replace Working Text');
+  assert.equal(elements.workingTextRunPanel.hidden, false);
+  assert.equal(elements.summaryRunPanel.hidden, false);
 
   elements.resultPromoteDefaultBtn.click();
   assert.equal(workspace.getWorkspace().workingText, '# Summary\n\nCondensed result');
+  assert.equal(workspace.getWorkspace().inputMode, 'working-text');
 
   workspace.applyAppearanceConfig({
     summaryDownloadFormat: 'md',
@@ -242,9 +263,9 @@ test('summary and OCR promotions honor their configured default behaviors', asyn
     plainText: 'Scanned text',
   });
 
-  assert.equal(elements.resultPromoteDefaultLabel.textContent, 'Append to Working Text');
+  assert.equal(elements.resultPromoteDefaultLabel.textContent, 'Replace Working Text');
   elements.resultPromoteDefaultBtn.click();
-  assert.equal(workspace.getWorkspace().workingText, 'Workspace text\n\nScanned text');
+  assert.equal(workspace.getWorkspace().workingText, 'Scanned text');
 });
 
 test('ocr results publish to the shared result surface without mutating working text', async () => {
@@ -257,13 +278,80 @@ test('ocr results publish to the shared result surface without mutating working 
   assert.equal(elements.workingText.value, '');
   assert.equal(elements.textResultTitle.textContent, 'OCR Result');
   assert.match(elements.textResultContent.textContent ?? '', /Scanned text from OCR/);
-  assert.equal(elements.resultPromoteDefaultLabel.textContent, 'Append to Working Text');
+  assert.equal(elements.resultPromoteDefaultLabel.textContent, 'Replace Working Text');
 
   elements.resultPromoteDefaultBtn.click();
   assert.equal(workspace.getWorkspace().workingText, 'Scanned text from OCR');
 });
 
-test('speech generation works from working text and latest text result', async () => {
+test('input mode toggle hides the inactive surface without clearing its state', async () => {
+  const file = new File(['image-data'], 'scan.png', { type: 'image/png' });
+  workspace.setStagedFiles([file]);
+  typeWorkingText('Keep this draft');
+  await flushAsyncWork();
+
+  assert.equal(elements.ocrInputPanel.hidden, true);
+  assert.equal(elements.workingTextPanel.hidden, false);
+  assert.equal(elements.workingTextRunPanel.hidden, false);
+
+  elements.inputModeOcrBtn.click();
+  await flushAsyncWork();
+
+  assert.equal(workspace.getWorkspace().inputMode, 'ocr');
+  assert.equal(elements.ocrInputPanel.hidden, false);
+  assert.equal(elements.workingTextPanel.hidden, true);
+  assert.equal(elements.workingTextRunPanel.hidden, true);
+  assert.equal(workspace.getWorkspace().workingText, 'Keep this draft');
+  assert.equal(workspace.getWorkspace().stagedFiles[0]?.name, 'scan.png');
+
+  elements.inputModeWorkingTextBtn.click();
+  await flushAsyncWork();
+
+  assert.equal(workspace.getWorkspace().inputMode, 'working-text');
+  assert.equal(elements.ocrInputPanel.hidden, true);
+  assert.equal(elements.workingTextPanel.hidden, false);
+  assert.equal(elements.summaryRunPanel.hidden, false);
+  assert.equal(elements.workingText.value, 'Keep this draft');
+  assert.equal(workspace.getWorkspace().stagedFiles[0]?.name, 'scan.png');
+});
+
+test('working text run mode defaults to summary after OCR and preserves explicit voice selection', async () => {
+  elements.runModeVoiceBtn.click();
+  await flushAsyncWork();
+
+  assert.equal(workspace.getWorkspace().workingTextRunMode, 'voice');
+  assert.equal(elements.summaryRunPanel.hidden, true);
+
+  elements.runModeSummaryBtn.click();
+  await flushAsyncWork();
+
+  assert.equal(workspace.getWorkspace().workingTextRunMode, 'summary');
+  assert.equal(elements.summaryRunPanel.hidden, false);
+
+  elements.inputModeOcrBtn.click();
+  await flushAsyncWork();
+  assert.equal(elements.workingTextRunPanel.hidden, true);
+
+  elements.inputModeWorkingTextBtn.click();
+  await flushAsyncWork();
+
+  assert.equal(workspace.getWorkspace().workingTextRunMode, 'summary');
+  assert.equal(elements.summaryRunPanel.hidden, false);
+});
+
+test('promoting an OCR result switches the workspace into working text mode', async () => {
+  workspace.setInputMode('ocr');
+  workspace.setLatestTextResult(createOCRTextResult('Scanned text from OCR'));
+  await flushAsyncWork();
+
+  elements.resultPromoteDefaultBtn.click();
+
+  assert.equal(workspace.getWorkspace().inputMode, 'working-text');
+  assert.equal(workspace.getWorkspace().workingText, 'Scanned text from OCR');
+  assert.equal(elements.workingTextPanel.hidden, false);
+});
+
+test('speech generation only synthesizes from working text', async () => {
   typeWorkingText('Alpha beta');
 
   elements.generateWorkingAudioBtn.click();
@@ -282,30 +370,7 @@ test('speech generation works from working text and latest text result', async (
   assert.equal(workspace.getWorkspace().lastAudioVoice, 'Kore');
   assert.equal(workspace.getWorkspace().lastAudioModel, 'gemini-2.5-flash-preview-tts');
   assert.match(requiredElement<HTMLElement>('audio-result-meta').textContent ?? '', /gemini · gemini-2\.5-flash-preview-tts · Kore/);
-
-  workspace.setLatestTextResult({
-    kind: 'summary',
-    title: 'Summary Result',
-    format: 'markdown',
-    rawText: '# Result\n\nListen to this',
-    plainText: 'Listen to this',
-  });
-
-  elements.generateResultAudioBtn.click();
-  await flushAsyncWork();
-
-  speakCalls = fetchCalls.filter((call) => call.url === '/api/speak');
-  assert.deepEqual(speakCalls[1]?.body, {
-    text: 'Listen to this',
-    provider: 'gemini',
-    voice: 'Kore',
-    model: 'gemini-2.5-flash-preview-tts',
-  });
-  assert.equal(workspace.getWorkspace().lastAudioSourceLabel, 'Summary Result');
-  assert.equal(workspace.getWorkspace().lastAudioSourceText, 'Listen to this');
-  assert.match(elements.audioResultCard.textContent ?? '', /Summary Result/);
-  assert.match(elements.audioResultCard.textContent ?? '', /gemini/);
-  assert.match(elements.audioResultCard.textContent ?? '', /Listen to this/);
+  assert.match(elements.speechInputPreview.textContent ?? '', /Alpha beta/);
 });
 
 test('speech provider selection restores kokoro controls and omits model selection', async () => {
@@ -376,21 +441,17 @@ test('speech provider selection restores kokoro controls and omits model selecti
 });
 
 test('latest audio result persists after later working text edits', async () => {
-  workspace.setLatestTextResult({
-    kind: 'summary',
-    title: 'Summary Result',
-    format: 'markdown',
-    rawText: '# Result\n\nStable audio snapshot',
-    plainText: 'Stable audio snapshot',
-  });
+  typeWorkingText('Stable audio snapshot');
 
-  elements.generateResultAudioBtn.click();
+  elements.generateWorkingAudioBtn.click();
   await flushAsyncWork();
 
   typeWorkingText('Edited after audio generation');
 
   assert.ok(workspace.getWorkspace().lastAudioBlob);
   assert.equal(workspace.getWorkspace().lastAudioSourceText, 'Stable audio snapshot');
+  assert.equal(workspace.getWorkspace().lastAudioSourceLabel, 'Working Text');
   assert.equal(workspace.getWorkspace().lastAudioProvider, 'gemini');
   assert.match(elements.audioResultCard.textContent ?? '', /Stable audio snapshot/);
+  assert.match(elements.speechInputPreview.textContent ?? '', /Edited after audio generation/);
 });

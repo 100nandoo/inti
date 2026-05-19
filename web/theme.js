@@ -53,8 +53,8 @@
         body: JSON.stringify({
           theme,
           summaryDownloadFormat: window.IntiTheme.summaryDownloadFormat || 'md',
-          ocrPromotionBehavior: window.IntiTheme.ocrPromotionBehavior || 'append',
-          summaryPromotionBehavior: window.IntiTheme.summaryPromotionBehavior || 'append',
+          ocrPromotionBehavior: 'replace',
+          summaryPromotionBehavior: 'replace',
         }),
       });
       if (!res.ok) return false;
@@ -64,8 +64,8 @@
         detail: {
           theme,
           summaryDownloadFormat: window.IntiTheme.summaryDownloadFormat || '',
-          ocrPromotionBehavior: window.IntiTheme.ocrPromotionBehavior || 'append',
-          summaryPromotionBehavior: window.IntiTheme.summaryPromotionBehavior || 'append',
+          ocrPromotionBehavior: 'replace',
+          summaryPromotionBehavior: 'replace',
         },
       }));
       return true;
@@ -125,8 +125,8 @@
       persistTheme(serverTheme);
       window.IntiTheme.serverTheme = serverTheme;
       window.IntiTheme.summaryDownloadFormat = config.summaryDownloadFormat || '';
-      window.IntiTheme.ocrPromotionBehavior = config.ocrPromotionBehavior || 'append';
-      window.IntiTheme.summaryPromotionBehavior = config.summaryPromotionBehavior || 'append';
+      window.IntiTheme.ocrPromotionBehavior = 'replace';
+      window.IntiTheme.summaryPromotionBehavior = 'replace';
       document.dispatchEvent(new CustomEvent('inti:theme-config', {
         detail: {
           theme: window.IntiTheme.serverTheme,
@@ -148,8 +148,8 @@
     active: getActiveTheme,
     serverTheme: '',
     summaryDownloadFormat: '',
-    ocrPromotionBehavior: 'append',
-    summaryPromotionBehavior: 'append',
+    ocrPromotionBehavior: 'replace',
+    summaryPromotionBehavior: 'replace',
   };
 
   if (document.readyState === 'loading') {

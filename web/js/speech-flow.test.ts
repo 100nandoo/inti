@@ -76,6 +76,7 @@ test('buildSpeechPanelViewModel preserves latest audio snapshot metadata after l
   assert.match(viewModel.audioMeta, /Summary Result/);
   assert.match(viewModel.audioMeta, /kokoro heart/);
   assert.match(viewModel.audioMeta, /experimental upstream/);
+  assert.match(viewModel.speechPreviewHtml, /Edited after audio generation/);
   assert.match(viewModel.audioCardHtml, /Stable audio snapshot/);
   assert.match(viewModel.audioCardHtml, /cheery/);
   assert.equal(countWords('Stable audio snapshot'), 3);

@@ -22,7 +22,6 @@
   } from '../lib/settings-contracts';
   import type {
     GroqRateLimits,
-    PromotionBehavior,
     SummaryDownloadFormat,
     SummarizerKeys,
   } from '../lib/workspace-contracts';
@@ -52,11 +51,6 @@
     { value: 'md', label: 'Markdown (.md)' },
   ];
 
-  const promotionOptions: SettingsOption<PromotionBehavior>[] = [
-    { value: 'append', label: 'Append to working text' },
-    { value: 'replace', label: 'Replace working text' },
-  ];
-
   const protectedPage = createProtectedPage({
     navItems: [
       {
@@ -81,8 +75,6 @@
   let modelOptions: SummarizerModelOption[] = [];
   let theme: ThemeChoice = 'dark';
   let summaryDownloadFormat: SummaryDownloadFormat = 'md';
-  let ocrPromotionBehavior: PromotionBehavior = 'append';
-  let summaryPromotionBehavior: PromotionBehavior = 'append';
   let keyGemini = '';
   let keyGroq = '';
   let keyOpenRouter = '';
@@ -119,10 +111,6 @@
     return value === 'txt' ? 'txt' : 'md';
   }
 
-  function normalizePromotionBehavior(value?: string): PromotionBehavior {
-    return value === 'replace' ? 'replace' : 'append';
-  }
-
   function setStatus(message: string, isError = false): void {
     status = { message, isError };
     if (!message) return;
@@ -146,8 +134,6 @@
   function applyAppearanceConfig(config: AppearanceSettingsInput): void {
     theme = normalizeThemeChoice(config.theme);
     summaryDownloadFormat = normalizeSummaryDownloadFormat(config.summaryDownloadFormat);
-    ocrPromotionBehavior = normalizePromotionBehavior(config.ocrPromotionBehavior);
-    summaryPromotionBehavior = normalizePromotionBehavior(config.summaryPromotionBehavior);
   }
 
   async function refreshModelOptions(selectedProvider: SummarizerProvider, selectedModel = ''): Promise<void> {
@@ -179,8 +165,8 @@
     return {
       theme,
       summaryDownloadFormat,
-      ocrPromotionBehavior,
-      summaryPromotionBehavior,
+      ocrPromotionBehavior: 'replace',
+      summaryPromotionBehavior: 'replace',
     };
   }
 
@@ -374,24 +360,6 @@
             {/each}
           </select>
           <p class="inti-field-help">Sets the default format used by the Summary download action on the main page.</p>
-        </fieldset>
-        <fieldset class="inti-field">
-          <legend class="inti-field-legend">OCR promotion default</legend>
-          <select class="select select-bordered w-full" id="ocr-promotion-behavior-select" bind:value={ocrPromotionBehavior} title="Default OCR promotion behavior">
-            {#each promotionOptions as option}
-              <option value={option.value}>{option.label}</option>
-            {/each}
-          </select>
-          <p class="inti-field-help">Controls the default action when promoting OCR output into the main workspace.</p>
-        </fieldset>
-        <fieldset class="inti-field">
-          <legend class="inti-field-legend">Summary promotion default</legend>
-          <select class="select select-bordered w-full" id="summary-promotion-behavior-select" bind:value={summaryPromotionBehavior} title="Default summary promotion behavior">
-            {#each promotionOptions as option}
-              <option value={option.value}>{option.label}</option>
-            {/each}
-          </select>
-          <p class="inti-field-help">Controls the default action when promoting a summary result into the main workspace.</p>
         </fieldset>
       </div>
     </div>

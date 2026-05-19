@@ -1,6 +1,5 @@
 import {
   clearWorkspaceBtn,
-  resultAppendBtn,
   resultCopyBtn,
   resultCopyLabel,
   resultDownloadBtn,
@@ -9,27 +8,30 @@ import {
   resultDownloadToggle,
   resultPromoteDefaultBtn,
   resultPromoteDefaultLabel,
-  resultReplaceBtn,
-  resultSpeakBtn,
+  runModeSummaryBtn,
+  runModeVoiceBtn,
+  summaryRunPanel,
   summarizeBtn,
   textResultContent,
   textResultKindChip,
   textResultTitle,
   workingText,
+  workingTextRunPanel,
 } from './dom.js';
 import { addFeed, setStatus, updateFeedItem } from './feed.js';
 import { updateTextMetrics } from './metrics.js';
 import {
   applyAppearanceConfig,
   clearLatestTextResult,
-  getDefaultPromotionBehavior,
   getSelectedSummarizerModel,
   getSelectedSummarizerProvider,
   getWorkspace,
   promoteLatestTextResult,
+  setInputMode,
   setGroqRateLimits,
   setLatestTextResult,
   setProcessing,
+  setWorkingTextRunMode,
   setWorkingText,
   subscribeWorkspace,
 } from './workspace.js';
@@ -41,16 +43,23 @@ import {
 } from '../../web-src/src/lib/result-surface.js';
 import { executeSummaryRequest } from '../../web-src/src/lib/summary-flow.js';
 
-let synthesizeFromResult = async () => {};
 let summaryDownloadFormat = 'md';
 const VALID_SUMMARY_DOWNLOAD_FORMATS = new Set(['txt', 'md']);
 
 function syncWorkspaceControls() {
-  const { processing, workingText: currentWorkingText, latestTextResult } = getWorkspace();
+  const {
+    inputMode,
+    processing,
+    workingText: currentWorkingText,
+    workingTextRunMode,
+    latestTextResult,
+  } = getWorkspace();
   const hasWorkingText = currentWorkingText.trim().length > 0;
+  const isWorkingTextMode = inputMode === 'working-text';
+  const isSummaryMode = isWorkingTextMode && workingTextRunMode === 'summary';
   const viewModel = buildResultSurfaceViewModel(
     getWorkspace(),
-    getDefaultPromotionBehavior(latestTextResult.kind),
+    'replace',
   );
 
   if (workingText.value !== currentWorkingText) {
@@ -58,8 +67,14 @@ function syncWorkspaceControls() {
   }
 
   workingText.disabled = processing;
-  clearWorkspaceBtn.disabled = processing || !hasWorkingText;
-  summarizeBtn.disabled = processing || !hasWorkingText;
+  workingTextRunPanel.hidden = !isWorkingTextMode;
+  summaryRunPanel.hidden = !isSummaryMode;
+  clearWorkspaceBtn.disabled = processing || !hasWorkingText || !isSummaryMode;
+  summarizeBtn.disabled = processing || !hasWorkingText || !isSummaryMode;
+  runModeSummaryBtn.setAttribute('aria-selected', String(isSummaryMode));
+  runModeVoiceBtn.setAttribute('aria-selected', String(isWorkingTextMode && workingTextRunMode === 'voice'));
+  runModeSummaryBtn.classList.toggle('is-active', isSummaryMode);
+  runModeVoiceBtn.classList.toggle('is-active', isWorkingTextMode && workingTextRunMode === 'voice');
 
   textResultContent.innerHTML = viewModel.contentHtml;
   textResultKindChip.textContent = viewModel.kindChip;
@@ -67,12 +82,9 @@ function syncWorkspaceControls() {
   resultPromoteDefaultLabel.textContent = viewModel.defaultPromotionLabel;
 
   resultPromoteDefaultBtn.disabled = processing || !viewModel.hasResult;
-  resultAppendBtn.disabled = processing || !viewModel.hasResult;
-  resultReplaceBtn.disabled = processing || !viewModel.hasResult;
   resultCopyBtn.disabled = processing || !viewModel.hasResult;
   resultDownloadBtn.disabled = processing || !viewModel.hasResult;
   resultDownloadToggle.disabled = processing || !viewModel.hasResult;
-  resultSpeakBtn.disabled = processing || !viewModel.hasSpeakableText;
 
   if (resultDownloadBtn.disabled) {
     closeResultDownloadMenu();
@@ -105,10 +117,9 @@ function toggleResultDownloadMenu() {
   closeResultDownloadMenu();
 }
 
-function announcePromotion(mode) {
+function announcePromotion() {
   const kind = getWorkspace().latestTextResult.kind || 'result';
-  const action = mode === 'replace' ? 'replaced' : 'appended to';
-  setStatus(`${kind === 'summary' ? 'Summary' : 'OCR result'} ${action} working text.`, 'success');
+  setStatus(`${kind === 'summary' ? 'Summary' : 'OCR result'} replaced working text.`, 'success');
 }
 
 export async function summarizeText(text) {
@@ -147,8 +158,7 @@ export async function summarizeText(text) {
   }
 }
 
-export function initSummarizer({ synthesizeText }) {
-  synthesizeFromResult = synthesizeText;
+export function initSummarizer() {
   applySummaryDownloadFormat(window.IntiTheme?.summaryDownloadFormat);
   applyAppearanceConfig(window.IntiTheme || {});
 
@@ -169,24 +179,26 @@ export function initSummarizer({ synthesizeText }) {
     setWorkingText(workingText.value);
   });
 
+  runModeSummaryBtn?.addEventListener('click', () => {
+    setWorkingTextRunMode('summary');
+  });
+
+  runModeVoiceBtn?.addEventListener('click', () => {
+    setWorkingTextRunMode('voice');
+  });
+
   summarizeBtn.addEventListener('click', async () => {
-    const { processing, workingText: currentWorkingText } = getWorkspace();
+    const { processing, inputMode, workingTextRunMode, workingText: currentWorkingText } = getWorkspace();
+    if (inputMode !== 'working-text' || workingTextRunMode !== 'summary') return;
     const text = currentWorkingText.trim();
     if (!text || processing) return;
     await summarizeText(text);
   });
 
   resultPromoteDefaultBtn.addEventListener('click', () => {
-    const behavior = getDefaultPromotionBehavior(getWorkspace().latestTextResult.kind);
-    if (promoteLatestTextResult(behavior)) announcePromotion(behavior);
-  });
-
-  resultAppendBtn.addEventListener('click', () => {
-    if (promoteLatestTextResult('append')) announcePromotion('append');
-  });
-
-  resultReplaceBtn.addEventListener('click', () => {
-    if (promoteLatestTextResult('replace')) announcePromotion('replace');
+    if (!promoteLatestTextResult('replace')) return;
+    setInputMode('working-text');
+    announcePromotion();
   });
 
   resultCopyBtn.addEventListener('click', async () => {
@@ -226,13 +238,6 @@ export function initSummarizer({ synthesizeText }) {
       closeResultDownloadMenu();
       resultDownloadToggle.focus();
     }
-  });
-
-  resultSpeakBtn.addEventListener('click', async () => {
-    const { processing, latestTextResult } = getWorkspace();
-    const text = latestTextResult.plainText.trim();
-    if (!text || processing) return;
-    await synthesizeFromResult(text, { sourceLabel: latestTextResult.title || 'Latest Text Result' });
   });
 
   document.addEventListener('click', (event) => {

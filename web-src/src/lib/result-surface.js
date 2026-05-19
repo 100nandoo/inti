@@ -32,9 +32,9 @@ function getSpeakableResultText(latestTextResult) {
  * @returns {string}
  */
 function getDefaultPromotionLabel(defaultPromotionBehavior) {
-  return defaultPromotionBehavior === 'replace'
-    ? 'Replace Working Text'
-    : 'Append to Working Text';
+  return defaultPromotionBehavior === 'append'
+    ? 'Append to Working Text'
+    : 'Replace Working Text';
 }
 
 /**

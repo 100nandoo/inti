@@ -3,12 +3,14 @@ import { get, writable } from 'svelte/store';
 /**
  * @typedef {import('./workspace-contracts').AppearanceConfigInput} AppearanceConfigInput
  * @typedef {import('./workspace-contracts').GroqRateLimits} GroqRateLimits
+ * @typedef {import('./workspace-contracts').InputMode} InputMode
  * @typedef {import('./workspace-contracts').PromotionBehavior} PromotionBehavior
  * @typedef {import('./workspace-contracts').SpeechConfigInput} SpeechConfigInput
  * @typedef {import('./workspace-contracts').SummarizerConfigInput} SummarizerConfigInput
  * @typedef {import('./workspace-contracts').TextResult} TextResult
  * @typedef {import('./workspace-contracts').TextResultKind} TextResultKind
  * @typedef {import('./workspace-contracts').TextResultUpdate} TextResultUpdate
+ * @typedef {import('./workspace-contracts').WorkingTextRunMode} WorkingTextRunMode
  * @typedef {import('./workspace-contracts').WorkspaceState} WorkspaceState
  */
 
@@ -36,12 +38,14 @@ function createInitialState() {
     stagedFiles: [],
     dragSrcIndex: null,
     isPointerOverOcrCard: false,
+    inputMode: 'working-text',
+    workingTextRunMode: 'summary',
     workingText: '',
     latestTextResult: createEmptyTextResult(),
     appearanceConfig: {
       summaryDownloadFormat: 'md',
-      ocrPromotionBehavior: 'append',
-      summaryPromotionBehavior: 'append',
+      ocrPromotionBehavior: 'replace',
+      summaryPromotionBehavior: 'replace',
     },
     summarizerConfig: {
       provider: '',
@@ -60,6 +64,20 @@ function createInitialState() {
     selectedSpeechVoice: 'Kore',
     selectedSpeechModel: 'gemini-3.1-flash-tts-preview',
   };
+}
+
+/** @param {string} value
+ * @returns {InputMode}
+ */
+function normalizeInputMode(value) {
+  return value === 'ocr' ? 'ocr' : 'working-text';
+}
+
+/** @param {string} value
+ * @returns {WorkingTextRunMode}
+ */
+function normalizeWorkingTextRunMode(value) {
+  return value === 'voice' ? 'voice' : 'summary';
 }
 
 /** @param {string} value */
@@ -143,6 +161,28 @@ export function setPointerOverOcrCard(value) {
   updateWorkspace((state) => ({ ...state, isPointerOverOcrCard: value }));
 }
 
+/** @param {InputMode} mode */
+export function setInputMode(mode) {
+  updateWorkspace((state) => {
+    const nextInputMode = normalizeInputMode(mode);
+    return {
+      ...state,
+      inputMode: nextInputMode,
+      workingTextRunMode: state.inputMode === 'ocr' && nextInputMode === 'working-text'
+        ? 'summary'
+        : state.workingTextRunMode,
+    };
+  });
+}
+
+/** @param {WorkingTextRunMode} mode */
+export function setWorkingTextRunMode(mode) {
+  updateWorkspace((state) => ({
+    ...state,
+    workingTextRunMode: normalizeWorkingTextRunMode(mode),
+  }));
+}
+
 /** @param {string} text */
 export function setWorkingText(text) {
   updateWorkspace((state) => ({ ...state, workingText: text }));
@@ -192,12 +232,9 @@ export function promoteLatestTextResult(mode) {
   const rawText = state.latestTextResult.rawText || '';
   if (!rawText.trim()) return false;
 
-  if (mode === 'replace') {
-    replaceWorkingText(rawText);
-    return true;
-  }
-
-  appendToWorkingText(rawText);
+  void mode;
+  // Promotion is replace-only even if stale runtime settings still reference append.
+  replaceWorkingText(rawText);
   return true;
 }
 
@@ -207,8 +244,8 @@ export function applyAppearanceConfig(data) {
     ...state,
     appearanceConfig: {
       summaryDownloadFormat: data.summaryDownloadFormat === 'txt' ? 'txt' : 'md',
-      ocrPromotionBehavior: normalizePromotionBehavior(data.ocrPromotionBehavior),
-      summaryPromotionBehavior: normalizePromotionBehavior(data.summaryPromotionBehavior),
+      ocrPromotionBehavior: 'replace',
+      summaryPromotionBehavior: 'replace',
     },
   }));
 }
@@ -217,10 +254,8 @@ export function applyAppearanceConfig(data) {
  * @returns {PromotionBehavior}
  */
 export function getDefaultPromotionBehavior(kind) {
-  const state = getWorkspaceSnapshot();
-  if (kind === 'summary') return state.appearanceConfig.summaryPromotionBehavior;
-  if (kind === 'ocr') return state.appearanceConfig.ocrPromotionBehavior;
-  return 'append';
+  void kind;
+  return 'replace';
 }
 
 /** @param {SummarizerConfigInput} data */
