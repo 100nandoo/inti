@@ -1,5 +1,5 @@
 const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/feed.js","assets/dom.js","assets/metrics.js","assets/ocr.js","assets/workspace.js","assets/legacy.js","assets/providers.js","assets/summarizer.js","assets/download.js","assets/tts.js","assets/voices.js"])))=>i.map(i=>d[i]);
-import{t as w,a as y,b as g,g as m,r as k,c as x,N as _,d as S,o as E,i as P,e as T,f as A,h as R,p as C,j as I,m as L}from"./legacy.js";function z(d,u,r=!1,c=!1,s=!1,b=!1){var i=d,e="";if(r)var l=d;w(()=>{var t=y;if(e!==(e=u()??"")){if(r){t.nodes=null,l.innerHTML=e,e!==""&&g(m(l),l.lastChild);return}if(t.nodes!==null&&(k(t.nodes.start,t.nodes.end),t.nodes=null),e!==""){var o=c?_:s?S:void 0,n=x(c?"svg":s?"math":"template",o);n.innerHTML=e;var a=c||s?n:n.content;if(g(m(a),a.lastChild),c||s)for(;m(a);)i.before(m(a));else i.before(a)}}})}const O="modulepreload",D=function(d){return"/"+d},f={},p=function(u,r,c){let s=Promise.resolve();if(r&&r.length>0){let i=function(t){return Promise.all(t.map(o=>Promise.resolve(o).then(n=>({status:"fulfilled",value:n}),n=>({status:"rejected",reason:n}))))};document.getElementsByTagName("link");const e=document.querySelector("meta[property=csp-nonce]"),l=(e==null?void 0:e.nonce)||(e==null?void 0:e.getAttribute("nonce"));s=i(r.map(t=>{if(t=D(t),t in f)return;f[t]=!0;const o=t.endsWith(".css"),n=o?'[rel="stylesheet"]':"";if(document.querySelector(`link[href="${t}"]${n}`))return;const a=document.createElement("link");if(a.rel=o?"stylesheet":O,o||(a.as="script"),a.crossOrigin="",a.href=t,l&&a.setAttribute("nonce",l),document.head.appendChild(a),o)return new Promise((v,h)=>{a.addEventListener("load",v),a.addEventListener("error",()=>h(new Error(`Unable to preload CSS for ${t}`)))})}))}function b(i){const e=new Event("vite:preloadError",{cancelable:!0});if(e.payload=i,window.dispatchEvent(e),!e.defaultPrevented)throw i}return s.then(i=>{for(const e of i||[])e.status==="rejected"&&b(e.reason);return u().catch(b)})};function W(){return`
+import{t as w,a as y,b as g,g as m,r as k,c as x,N as _,d as S,o as E,i as P,e as T,f as A,h as R,p as C,j as I,m as L}from"./legacy.js";function z(d,u,o=!1,c=!1,s=!1,b=!1){var n=d,e="";if(o)var l=d;w(()=>{var t=y;if(e!==(e=u()??"")){if(o){t.nodes=null,l.innerHTML=e,e!==""&&g(m(l),l.lastChild);return}if(t.nodes!==null&&(k(t.nodes.start,t.nodes.end),t.nodes=null),e!==""){var r=c?_:s?S:void 0,i=x(c?"svg":s?"math":"template",r);i.innerHTML=e;var a=c||s?i:i.content;if(g(m(a),a.lastChild),c||s)for(;m(a);)n.before(m(a));else n.before(a)}}})}const O="modulepreload",D=function(d){return"/"+d},f={},p=function(u,o,c){let s=Promise.resolve();if(o&&o.length>0){let n=function(t){return Promise.all(t.map(r=>Promise.resolve(r).then(i=>({status:"fulfilled",value:i}),i=>({status:"rejected",reason:i}))))};document.getElementsByTagName("link");const e=document.querySelector("meta[property=csp-nonce]"),l=(e==null?void 0:e.nonce)||(e==null?void 0:e.getAttribute("nonce"));s=n(o.map(t=>{if(t=D(t),t in f)return;f[t]=!0;const r=t.endsWith(".css"),i=r?'[rel="stylesheet"]':"";if(document.querySelector(`link[href="${t}"]${i}`))return;const a=document.createElement("link");if(a.rel=r?"stylesheet":O,r||(a.as="script"),a.crossOrigin="",a.href=t,l&&a.setAttribute("nonce",l),document.head.appendChild(a),r)return new Promise((v,h)=>{a.addEventListener("load",v),a.addEventListener("error",()=>h(new Error(`Unable to preload CSS for ${t}`)))})}))}function b(n){const e=new Event("vite:preloadError",{cancelable:!0});if(e.payload=n,window.dispatchEvent(e),!e.defaultPrevented)throw n}return s.then(n=>{for(const e of n||[])e.status==="rejected"&&b(e.reason);return u().catch(b)})};function W(){return`
     <header class="header navbar inti-shell-header">
       <div class="logo">
         <div class="logo-icon" aria-hidden="true">
@@ -24,7 +24,7 @@ import{t as w,a as y,b as g,g as m,r as k,c as x,N as _,d as S,o as E,i as P,e a
         </button>
       </div>
     </header>
-  `}function M(){return`
+  `}function V(){return`
     <section class="panel panel-workspace inti-workspace-card card bg-base-100/90 shadow-2xl shadow-base-content/10" id="ocr-card">
       <div class="section-heading inti-panel-heading">
         <span class="ornament inti-panel-ornament" aria-hidden="true"></span>
@@ -89,26 +89,56 @@ import{t as w,a as y,b as g,g as m,r as k,c as x,N as _,d as S,o as E,i as P,e a
         <textarea id="working-text" rows="9" placeholder="Paste or build text here. OCR and summarization operate on this text by default."></textarea>
       </div>
 
-      <div id="workspace-actions" class="workspace-actions inti-control-band">
-        <button id="clear-workspace-btn" class="btn-secondary btn btn-ghost border border-base-300" title="Clear working text">
-          <span class="icon icon-x" aria-hidden="true"></span>
-          Clear
-        </button>
-        <div class="select-wrap provider-wrap inti-select-wrap">
-          <select class="select select-bordered" id="provider-select" title="Summarizer provider">
-            <option value="">Server default</option>
-          </select>
+      <div id="working-text-run-panel" class="inti-control-band working-text-run-panel">
+        <div class="run-mode-toggle" role="tablist" aria-label="Working Text run mode">
+          <button
+            id="run-mode-summary-btn"
+            class="run-mode-btn"
+            type="button"
+            role="tab"
+            aria-selected="true"
+            aria-controls="summary-run-panel"
+          >
+            Summary
+          </button>
+          <button
+            id="run-mode-voice-btn"
+            class="run-mode-btn"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            aria-controls="summary-run-panel"
+          >
+            Voice
+          </button>
         </div>
-        <div class="select-wrap provider-wrap inti-select-wrap" id="sum-model-wrap" hidden>
-          <select class="select select-bordered" id="sum-model-select" title="Summarizer model"></select>
+
+        <div id="summary-run-panel" class="run-mode-panel">
+          <div class="run-config-row">
+            <div class="select-wrap provider-wrap inti-select-wrap">
+              <select class="select select-bordered" id="provider-select" title="Summarizer provider">
+                <option value="">Server default</option>
+              </select>
+            </div>
+            <div class="select-wrap provider-wrap inti-select-wrap" id="sum-model-wrap" hidden>
+              <select class="select select-bordered" id="sum-model-select" title="Summarizer model"></select>
+            </div>
+          </div>
+
+          <div class="run-action-row">
+            <button id="clear-workspace-btn" class="btn-secondary btn btn-ghost border border-base-300" title="Clear working text">
+              <span class="icon icon-x" aria-hidden="true"></span>
+              Clear
+            </button>
+            <button id="summarize-btn" class="btn-primary btn btn-primary" title="Summarize source text">
+              <span class="icon icon-bolt" aria-hidden="true"></span>
+              <span>Summarize</span>
+            </button>
+          </div>
         </div>
-        <button id="summarize-btn" class="btn-primary btn btn-primary" title="Summarize source text">
-          <span class="icon icon-bolt" aria-hidden="true"></span>
-          <span>Summarize</span>
-        </button>
       </div>
     </section>
-  `}function V(){return`
+  `}function M(){return`
     <section class="panel panel-result inti-workspace-card card bg-base-100/90 shadow-2xl shadow-base-content/10">
       <div class="section-heading inti-panel-heading">
         <span class="ornament inti-panel-ornament" aria-hidden="true"></span>
@@ -260,11 +290,11 @@ import{t as w,a as y,b as g,g as m,r as k,c as x,N as _,d as S,o as E,i as P,e a
     <div class="app inti-shell">
       ${W()}
       <main class="main-grid inti-shell-main">
-        ${M()}
         ${V()}
+        ${M()}
         ${$()}
         ${G()}
       </main>
     </div>
     ${j()}
-  `}function N(d,u){I(u,!1);const r=F();async function c(){const[{initFeed:i},{updateTextMetrics:e},{initOCR:l},{initProviders:t},{initSummarizer:o},{initTTS:n,synthesizeText:a},{initVoices:v}]=await Promise.all([p(()=>import("./feed.js").then(h=>h.c),__vite__mapDeps([0,1])),p(()=>import("./metrics.js"),__vite__mapDeps([2,1])),p(()=>import("./ocr.js"),__vite__mapDeps([3,1,0,4,5])),p(()=>import("./providers.js"),__vite__mapDeps([6,1,0,4,5])),p(()=>import("./summarizer.js"),__vite__mapDeps([7,1,0,2,4,5,8])),p(()=>import("./tts.js"),__vite__mapDeps([9,1,0,2,4,5,8])),p(()=>import("./voices.js"),__vite__mapDeps([10,1,0,4,5]))]);i(),t(),await v(),l(),o({synthesizeText:a}),n(),e()}E(()=>{if(!window.__intiLegacyWorkspaceInitialized)return window.__intiLegacyWorkspaceInitialized=!0,c()}),P();var s=T(),b=A(s);z(b,()=>r),R(d,s),C()}L(N,{target:document.getElementById("app")});
+  `}function N(d,u){I(u,!1);const o=F();async function c(){const[{initFeed:n},{updateTextMetrics:e},{initOCR:l},{initProviders:t},{initSummarizer:r},{initTTS:i,synthesizeText:a},{initVoices:v}]=await Promise.all([p(()=>import("./feed.js").then(h=>h.c),__vite__mapDeps([0,1])),p(()=>import("./metrics.js"),__vite__mapDeps([2,1])),p(()=>import("./ocr.js"),__vite__mapDeps([3,1,0,4,5])),p(()=>import("./providers.js"),__vite__mapDeps([6,1,0,4,5])),p(()=>import("./summarizer.js"),__vite__mapDeps([7,1,0,2,4,5,8])),p(()=>import("./tts.js"),__vite__mapDeps([9,1,0,2,4,5,8])),p(()=>import("./voices.js"),__vite__mapDeps([10,1,0,4,5]))]);n(),t(),await v(),l(),r({synthesizeText:a}),i(),e()}E(()=>{if(!window.__intiLegacyWorkspaceInitialized)return window.__intiLegacyWorkspaceInitialized=!0,c()}),P();var s=T(),b=A(s);z(b,()=>o),R(d,s),C()}L(N,{target:document.getElementById("app")});
