@@ -51,17 +51,15 @@ export function buildSpeechPanelViewModel(workspace) {
     lastAudioModel,
   } = workspace;
   const hasWorkingText = workingText.trim().length > 0;
-  const hasResult = latestTextResult.plainText.trim().length > 0;
   const hasAudio = Boolean(lastAudioBlob);
   const providerDetails = buildAudioProviderDetails(lastAudioProvider, lastAudioVoice, lastAudioModel);
 
   return {
     hasWorkingText,
-    hasResult,
     hasAudio,
     speechPreviewHtml: workingText.trim()
       ? renderSpeechPreview(workingText)
-      : '<p>Generate speech from the current working text or the latest text result.</p>',
+      : '<p>Generate speech from Working Text to keep an audio snapshot here.</p>',
     speechPreviewLength: String(workingText.length),
     controlsDisabled: processing,
     audioMeta: hasAudio
@@ -69,7 +67,7 @@ export function buildSpeechPanelViewModel(workspace) {
       : 'No audio yet',
     audioCardHtml: hasAudio
       ? `<p>${escHtml(lastAudioSourceLabel || 'Generated from working text')}</p><p>${escHtml(providerDetails)}</p><p>${escHtml(truncate(lastAudioSourceText, 180))}</p>`
-      : '<p>Generate speech from the current working text or the latest text result to keep an audio snapshot here.</p>',
+      : '<p>Generate speech from Working Text to keep an audio snapshot here.</p>',
   };
 }
 

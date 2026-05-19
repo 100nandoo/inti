@@ -4,7 +4,6 @@ import {
   audioResultCard,
   audioResultMeta,
   downloadAudioBtn,
-  generateResultAudioBtn,
   generateWorkingAudioBtn,
   genderFilter,
   modelSelect,
@@ -51,7 +50,6 @@ function syncTTSControls() {
   voiceSelect.disabled = viewModel.controlsDisabled;
   speechProviderSelect.disabled = viewModel.controlsDisabled;
   generateWorkingAudioBtn.disabled = processing || !viewModel.hasWorkingText;
-  generateResultAudioBtn.disabled = processing || !viewModel.hasResult;
   actionSpeak.disabled = viewModel.controlsDisabled;
   actionDownload.disabled = viewModel.controlsDisabled;
   playAudioBtn.disabled = processing || !viewModel.hasAudio;
@@ -162,13 +160,6 @@ export function initTTS() {
     const text = workingText.trim();
     if (!text || processing) return;
     await synthesizeText(text, { sourceLabel: 'Working Text' });
-  });
-
-  generateResultAudioBtn.addEventListener('click', async () => {
-    const { processing, latestTextResult } = getWorkspace();
-    const text = latestTextResult.plainText.trim();
-    if (!text || processing) return;
-    await synthesizeText(text, { sourceLabel: latestTextResult.title || 'Latest Text Result' });
   });
 
   playAudioBtn.addEventListener('click', async () => {

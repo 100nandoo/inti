@@ -41,7 +41,6 @@ export const resultDownloadGroup = document.getElementById('result-download-grou
 export const resultDownloadBtn = document.getElementById('result-download-btn');
 export const resultDownloadToggle = document.getElementById('result-download-toggle');
 export const resultDownloadMenu = document.getElementById('result-download-menu');
-export const resultSpeakBtn = document.getElementById('result-speak-btn');
 
 export const speechInputPreview = document.getElementById('speech-input-preview');
 export const speechInputCount = document.getElementById('speech-input-count');
@@ -52,7 +51,6 @@ export const voiceSelect = document.getElementById('voice-select');
 export const actionSpeak = document.getElementById('action-speak');
 export const actionDownload = document.getElementById('action-download');
 export const generateWorkingAudioBtn = document.getElementById('generate-working-audio-btn');
-export const generateResultAudioBtn = document.getElementById('generate-result-audio-btn');
 export const playingBar = document.getElementById('playing-bar');
 export const statusText = document.getElementById('status-text');
 export const audioResultMeta = document.getElementById('audio-result-meta');

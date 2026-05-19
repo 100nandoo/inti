@@ -181,7 +181,6 @@ export interface SpeechPanelWorkspace {
 
 export interface SpeechPanelViewModel {
   hasWorkingText: boolean;
-  hasResult: boolean;
   hasAudio: boolean;
   speechPreviewHtml: string;
   speechPreviewLength: string;
