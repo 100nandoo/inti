@@ -52,7 +52,7 @@ test('saveSettings preserves the current backend contracts', async () => {
       theme: 'dark',
       summaryDownloadFormat: 'txt',
       ocrPromotionBehavior: 'replace',
-      summaryPromotionBehavior: 'append',
+      summaryPromotionBehavior: 'replace',
     },
     fetchImpl: async (_url, options = {}) => {
       const body = JSON.parse(options.body as string);
@@ -71,7 +71,7 @@ test('saveSettings preserves the current backend contracts', async () => {
       theme: 'dark',
       summaryDownloadFormat: 'txt',
       ocrPromotionBehavior: 'replace',
-      summaryPromotionBehavior: 'append',
+      summaryPromotionBehavior: 'replace',
     },
   ]);
   assert.equal(result.summarizerConfig.model, 'llama-3.3-70b-versatile');

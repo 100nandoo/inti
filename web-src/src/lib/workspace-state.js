@@ -44,8 +44,8 @@ function createInitialState() {
     latestTextResult: createEmptyTextResult(),
     appearanceConfig: {
       summaryDownloadFormat: 'md',
-      ocrPromotionBehavior: 'append',
-      summaryPromotionBehavior: 'append',
+      ocrPromotionBehavior: 'replace',
+      summaryPromotionBehavior: 'replace',
     },
     summarizerConfig: {
       provider: '',
@@ -232,12 +232,9 @@ export function promoteLatestTextResult(mode) {
   const rawText = state.latestTextResult.rawText || '';
   if (!rawText.trim()) return false;
 
-  if (mode === 'replace') {
-    replaceWorkingText(rawText);
-    return true;
-  }
-
-  appendToWorkingText(rawText);
+  void mode;
+  // Promotion is replace-only even if stale runtime settings still reference append.
+  replaceWorkingText(rawText);
   return true;
 }
 
@@ -247,8 +244,8 @@ export function applyAppearanceConfig(data) {
     ...state,
     appearanceConfig: {
       summaryDownloadFormat: data.summaryDownloadFormat === 'txt' ? 'txt' : 'md',
-      ocrPromotionBehavior: normalizePromotionBehavior(data.ocrPromotionBehavior),
-      summaryPromotionBehavior: normalizePromotionBehavior(data.summaryPromotionBehavior),
+      ocrPromotionBehavior: 'replace',
+      summaryPromotionBehavior: 'replace',
     },
   }));
 }
@@ -257,10 +254,8 @@ export function applyAppearanceConfig(data) {
  * @returns {PromotionBehavior}
  */
 export function getDefaultPromotionBehavior(kind) {
-  const state = getWorkspaceSnapshot();
-  if (kind === 'summary') return state.appearanceConfig.summaryPromotionBehavior;
-  if (kind === 'ocr') return state.appearanceConfig.ocrPromotionBehavior;
-  return 'append';
+  void kind;
+  return 'replace';
 }
 
 /** @param {SummarizerConfigInput} data */

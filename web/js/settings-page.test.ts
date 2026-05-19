@@ -99,15 +99,13 @@ test('settings page loads and saves through the current backend APIs', async (t)
     ['light', 'dark'],
   );
   assert.equal(requiredElement<HTMLSelectElement>('summary-download-format-select').value, 'md');
-  assert.equal(requiredElement<HTMLSelectElement>('ocr-promotion-behavior-select').value, 'append');
-  assert.equal(requiredElement<HTMLSelectElement>('summary-promotion-behavior-select').value, 'replace');
+  assert.equal(document.getElementById('ocr-promotion-behavior-select'), null);
+  assert.equal(document.getElementById('summary-promotion-behavior-select'), null);
   assert.equal(requiredElement<HTMLInputElement>('key-groq').value, 'gsk_existing');
 
   setSelectValue(requiredElement<HTMLSelectElement>('sum-model-select'), 'mixtral-scout');
   setSelectValue(requiredElement<HTMLSelectElement>('appearance-theme-select'), 'dark');
   setSelectValue(requiredElement<HTMLSelectElement>('summary-download-format-select'), 'txt');
-  setSelectValue(requiredElement<HTMLSelectElement>('ocr-promotion-behavior-select'), 'replace');
-  setSelectValue(requiredElement<HTMLSelectElement>('summary-promotion-behavior-select'), 'append');
   setInputValue(requiredElement<HTMLInputElement>('key-groq'), 'gsk_saved');
   setInputValue(requiredElement<HTMLInputElement>('key-openrouter'), 'sk-or-saved');
 
@@ -139,7 +137,7 @@ test('settings page loads and saves through the current backend APIs', async (t)
         theme: 'dark',
         summaryDownloadFormat: 'txt',
         ocrPromotionBehavior: 'replace',
-        summaryPromotionBehavior: 'append',
+        summaryPromotionBehavior: 'replace',
       },
     },
   ]);
@@ -210,8 +208,8 @@ test('settings page labels and scopes clear provider settings narrowly', async (
   assert.equal(requiredElement<HTMLButtonElement>('sum-clear-btn').textContent.trim(), 'Clear Provider Settings');
   assert.equal(requiredElement<HTMLSelectElement>('appearance-theme-select').value, 'dark');
   assert.equal(requiredElement<HTMLSelectElement>('summary-download-format-select').value, 'txt');
-  assert.equal(requiredElement<HTMLSelectElement>('ocr-promotion-behavior-select').value, 'replace');
-  assert.equal(requiredElement<HTMLSelectElement>('summary-promotion-behavior-select').value, 'append');
+  assert.equal(document.getElementById('ocr-promotion-behavior-select'), null);
+  assert.equal(document.getElementById('summary-promotion-behavior-select'), null);
 
   requiredElement<HTMLButtonElement>('sum-clear-btn').click();
   await flushAsyncWork();
@@ -235,8 +233,8 @@ test('settings page labels and scopes clear provider settings narrowly', async (
   assert.equal(requiredElement<HTMLInputElement>('key-openrouter').value, '');
   assert.equal(requiredElement<HTMLSelectElement>('appearance-theme-select').value, 'dark');
   assert.equal(requiredElement<HTMLSelectElement>('summary-download-format-select').value, 'txt');
-  assert.equal(requiredElement<HTMLSelectElement>('ocr-promotion-behavior-select').value, 'replace');
-  assert.equal(requiredElement<HTMLSelectElement>('summary-promotion-behavior-select').value, 'append');
+  assert.equal(document.getElementById('ocr-promotion-behavior-select'), null);
+  assert.equal(document.getElementById('summary-promotion-behavior-select'), null);
 });
 
 test('settings page falls back removed theme values to dark before saving', async (t) => {
@@ -323,8 +321,8 @@ test('settings page falls back removed theme values to dark before saving', asyn
       body: {
         theme: 'dark',
         summaryDownloadFormat: 'md',
-        ocrPromotionBehavior: 'append',
-        summaryPromotionBehavior: 'append',
+        ocrPromotionBehavior: 'replace',
+        summaryPromotionBehavior: 'replace',
       },
     },
   ]);

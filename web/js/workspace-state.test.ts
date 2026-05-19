@@ -41,8 +41,8 @@ test('promotion defaults stay scoped to summary and OCR result kinds', () => {
   });
 
   assert.equal(getDefaultPromotionBehavior('summary'), 'replace');
-  assert.equal(getDefaultPromotionBehavior('ocr'), 'append');
-  assert.equal(getDefaultPromotionBehavior('unknown' as Parameters<typeof getDefaultPromotionBehavior>[0]), 'append');
+  assert.equal(getDefaultPromotionBehavior('ocr'), 'replace');
+  assert.equal(getDefaultPromotionBehavior('unknown' as Parameters<typeof getDefaultPromotionBehavior>[0]), 'replace');
 });
 
 test('input mode changes preserve staged OCR files and working text', () => {
@@ -66,7 +66,7 @@ test('re-entering working text mode from OCR resets the run mode to summary', ()
   assert.equal(getWorkspaceSnapshot().workingTextRunMode, 'summary');
 });
 
-test('promoting the latest text result preserves append and replace semantics', () => {
+test('promoting the latest text result is replace-only even with legacy append inputs', () => {
   setWorkingText('Working draft');
   setLatestTextResult({
     kind: 'summary',
@@ -76,7 +76,7 @@ test('promoting the latest text result preserves append and replace semantics', 
   });
 
   assert.equal(promoteLatestTextResult('append'), true);
-  assert.equal(getWorkspaceSnapshot().workingText, 'Working draft\n\nCondensed result');
+  assert.equal(getWorkspaceSnapshot().workingText, 'Condensed result');
 
   replaceWorkingText('Working draft');
   assert.equal(promoteLatestTextResult('replace'), true);
