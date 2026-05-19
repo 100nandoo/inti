@@ -22,7 +22,10 @@ type speakRequest struct {
 }
 
 type speakResponse struct {
-	Opus string `json:"opus"`
+	Opus     string `json:"opus"`
+	Provider string `json:"provider"`
+	Voice    string `json:"voice"`
+	Model    string `json:"model"`
 }
 
 type voicesResponse struct {
@@ -146,7 +149,10 @@ func handleSpeak(cfg *config.Config, speechSettings *settings.SpeechSettings, pr
 		}
 
 		writeJSON(w, http.StatusOK, speakResponse{
-			Opus: base64.StdEncoding.EncodeToString(result.Opus),
+			Opus:     base64.StdEncoding.EncodeToString(result.Opus),
+			Provider: result.Provider,
+			Voice:    result.Voice,
+			Model:    result.Model,
 		})
 	}
 }

@@ -32,6 +32,10 @@ import {
   requestSpeechSynthesis,
 } from '../../web-src/src/lib/speech-flow.js';
 
+function formatSpeechProvider(provider) {
+  return provider === 'kokoro-heart' ? 'kokoro heart' : (provider || 'speech');
+}
+
 function syncTTSControls() {
   const { processing } = getWorkspace();
   const viewModel = buildSpeechPanelViewModel(getWorkspace());
@@ -69,18 +73,29 @@ export async function synthesizeText(text, { sourceLabel = 'Working Text' } = {}
 
   const startTime = performance.now();
   const wordCount = text.trim().split(/\s+/).length;
-  const configLabel = [provider, model, voice].filter(Boolean).join(' · ');
+  const configLabel = [formatSpeechProvider(provider), model, voice].filter(Boolean).join(' · ');
   const feedItem = addFeed('info', `"${truncate(text, 60)}"`, `${configLabel} · synthesizing…`);
 
   try {
-    const { blob, bytes: opusBytes } = await requestSpeechSynthesis({
+    const {
+      blob,
+      bytes: opusBytes,
+      provider: resolvedProvider,
+      voice: resolvedVoice,
+      model: resolvedModel,
+    } = await requestSpeechSynthesis({
       apiURL: window.apiURL,
       provider,
       text,
       voice,
       model,
     });
-    setLastAudioResult(blob, text, sourceLabel);
+    const resolvedConfigLabel = [formatSpeechProvider(resolvedProvider), resolvedModel, resolvedVoice].filter(Boolean).join(' · ');
+    setLastAudioResult(blob, text, sourceLabel, {
+      provider: resolvedProvider,
+      voice: resolvedVoice,
+      model: resolvedModel,
+    });
 
     const duration = ((performance.now() - startTime) / 1000).toFixed(1);
     setStatus('Audio result ready.', 'success');
@@ -88,7 +103,7 @@ export async function synthesizeText(text, { sourceLabel = 'Working Text' } = {}
       feedItem,
       'ok',
       `"${truncate(text, 60)}"`,
-      `${wordCount} words · ${duration}s · ${configLabel} · ${(opusBytes.length / 1024).toFixed(1)} KB`,
+      `${wordCount} words · ${duration}s · ${resolvedConfigLabel} · ${(opusBytes.length / 1024).toFixed(1)} KB`,
     );
 
     if (actionSpeak.checked) {

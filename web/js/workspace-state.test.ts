@@ -62,11 +62,18 @@ test('promoting the latest text result preserves append and replace semantics', 
 test('audio result metadata survives later working text edits', () => {
   const blob = new Blob(['opus-audio'], { type: 'audio/opus' });
 
-  setLastAudioResult(blob, 'Stable audio snapshot', 'Summary Result');
+  setLastAudioResult(blob, 'Stable audio snapshot', 'Summary Result', {
+    provider: 'kokoro-heart',
+    voice: 'cheery',
+    model: '',
+  });
   appendToWorkingText('Edited later');
 
   const state = getWorkspaceSnapshot();
   assert.equal(state.lastAudioBlob, blob);
   assert.equal(state.lastAudioSourceText, 'Stable audio snapshot');
   assert.equal(state.lastAudioSourceLabel, 'Summary Result');
+  assert.equal(state.lastAudioProvider, 'kokoro-heart');
+  assert.equal(state.lastAudioVoice, 'cheery');
+  assert.equal(state.lastAudioModel, '');
 });
