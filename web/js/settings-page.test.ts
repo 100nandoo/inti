@@ -86,7 +86,7 @@ test('settings page loads and saves through the current backend APIs', async (t)
 
   assert.deepEqual(
     [...document.querySelectorAll('.header-settings-link')].map((link) => link.getAttribute('href')),
-    ['/api-keys.html?key=main-secret', '/?key=main-secret'],
+    ['/api-keys.html?key=main-secret', '/settings.html?key=main-secret', '/?key=main-secret'],
   );
   assert.match(document.body.textContent ?? '', /Runtime Settings/);
   assert.match(document.body.textContent ?? '', /Visual Theme/);

@@ -54,12 +54,6 @@
   const protectedPage = createProtectedPage({
     navItems: [
       {
-        path: '/api-keys.html',
-        label: 'API Keys',
-        title: 'Manage API keys',
-        iconClass: 'icon-key',
-      },
-      {
         path: '/',
         label: 'Back',
         title: 'Back to app',
@@ -291,7 +285,7 @@
   });
 </script>
 
-<PageShell badge="Settings" {navLinks}>
+<PageShell {navLinks}>
   <section class="card inti-page-card">
     <div class="card-body gap-5">
       <div class="inti-section-heading">

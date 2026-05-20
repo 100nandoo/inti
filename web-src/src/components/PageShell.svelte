@@ -1,7 +1,6 @@
 <script lang="ts">
-  import type { PageShellBadge, PageShellNavLink } from '../lib/page-shell-contracts';
+  import type { PageShellNavLink } from '../lib/page-shell-contracts';
 
-  export let badge: PageShellBadge = '';
   export let navLinks: PageShellNavLink[] = [];
 </script>
 
@@ -13,7 +12,6 @@
         <img class="logo-icon-light" src="/icons/inti-light.svg" alt="" />
       </div>
       <span class="logo-name">Inti</span>
-      <span class="logo-badge inti-badge">{badge}</span>
     </div>
     <div class="header-nav">
       {#each navLinks as link}

@@ -8,6 +8,22 @@ import {
 /** @typedef {import('./page-shell-contracts').PageShellNavItem} PageShellNavItem */
 /** @typedef {import('./page-shell-contracts').PageShellNavLink} PageShellNavLink */
 
+/** @type {PageShellNavItem[]} */
+const defaultNavItems = [
+  {
+    path: '/api-keys.html',
+    label: 'API Keys',
+    title: 'Manage API keys',
+    iconClass: 'icon-key',
+  },
+  {
+    path: '/settings.html',
+    label: 'Settings',
+    title: 'Summarizer settings',
+    iconClass: 'icon-settings',
+  },
+];
+
 /**
  * @param {{
  *   navItems?: PageShellNavItem[];
@@ -20,6 +36,13 @@ export function createProtectedPage({
   win = window,
   fetchImpl = fetch,
 } = {}) {
+  const mergedNavItems = [...defaultNavItems];
+
+  for (const navItem of navItems) {
+    if (mergedNavItems.some((item) => item.path === navItem.path)) continue;
+    mergedNavItems.push(navItem);
+  }
+
   /** @param {string} path */
   function apiURL(path) {
     return buildAuthenticatedAPIURL(path, win.location);
@@ -32,7 +55,7 @@ export function createProtectedPage({
 
   /** @returns {PageShellNavLink[]} */
   function navLinks() {
-    return navItems.map(({ path, ...link }) => ({
+    return mergedNavItems.map(({ path, ...link }) => ({
       ...link,
       href: buildPageLink(path),
     }));

@@ -23,12 +23,6 @@ test('protected page utilities preserve key-aware links and requests', async () 
   const protectedPage = createProtectedPage({
     navItems: [
       {
-        path: '/api-keys.html',
-        label: 'API Keys',
-        title: 'Manage API keys',
-        iconClass: 'icon-key',
-      },
-      {
         path: '/',
         label: 'Back',
         title: 'Back to app',
@@ -45,7 +39,7 @@ test('protected page utilities preserve key-aware links and requests', async () 
   assert.equal(protectedPage.currentAPIKey(), 'secret');
   assert.deepEqual(
     protectedPage.navLinks().map((link: { href: string }) => link.href),
-    ['/api-keys.html?key=secret', '/?key=secret'],
+    ['/api-keys.html?key=secret', '/settings.html?key=secret', '/?key=secret'],
   );
 
   await protectedPage.fetch('/api/theme-config', { method: 'POST' });
@@ -58,7 +52,7 @@ test('protected page utilities preserve key-aware links and requests', async () 
 
   assert.deepEqual(
     protectedPage.setCurrentAPIKey('next-secret').map((link: { href: string }) => link.href),
-    ['/api-keys.html?key=next-secret', '/?key=next-secret'],
+    ['/api-keys.html?key=next-secret', '/settings.html?key=next-secret', '/?key=next-secret'],
   );
   assert.equal(win.location.href, 'http://localhost:8282/settings.html?key=next-secret');
   assert.equal(protectedPage.currentAPIKey(), 'next-secret');

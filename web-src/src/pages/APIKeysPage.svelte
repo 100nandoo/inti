@@ -28,12 +28,6 @@
   const protectedPage = createProtectedPage({
     navItems: [
       {
-        path: '/settings.html',
-        label: 'Settings',
-        title: 'Settings',
-        iconClass: 'icon-settings',
-      },
-      {
         path: '/',
         label: 'Back',
         title: 'Back to app',
@@ -148,7 +142,7 @@
   });
 </script>
 
-<PageShell badge="API Keys" {navLinks}>
+<PageShell {navLinks}>
   <div class="card inti-page-card">
     <div class="info-row inti-section-heading">
       <span class="pill inti-kicker">Manage Keys</span>
