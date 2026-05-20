@@ -32,6 +32,7 @@
         label: 'Back',
         title: 'Back to app',
         iconClass: 'icon-chevron-left',
+        placement: 'start',
       },
     ],
   });

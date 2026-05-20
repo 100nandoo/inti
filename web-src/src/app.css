@@ -42,6 +42,10 @@ body {
   flex-wrap: wrap;
 }
 
+.header-nav-start {
+  margin-right: auto;
+}
+
 .header-settings-link,
 .theme-toggle {
   border-radius: 999px;

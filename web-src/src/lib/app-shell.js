@@ -169,7 +169,7 @@ export function renderResultSurface() {
             <span class="icon icon-copy" aria-hidden="true"></span>
             <span id="result-copy-label">Copy</span>
           </button>
-          <div class="split-button inti-split-button" id="result-download-group">
+          <div class="dropdown dropdown-end split-button inti-split-button" id="result-download-group">
             <button id="result-download-btn" class="btn-secondary btn btn-ghost border border-base-300 split-button-main">
               <span class="icon icon-download" aria-hidden="true"></span>
               Download
@@ -184,10 +184,10 @@ export function renderResultSurface() {
             >
               <span class="icon icon-chevron-down" aria-hidden="true"></span>
             </button>
-            <div id="result-download-menu" class="split-menu" role="menu" hidden>
-              <button type="button" class="split-menu-item" data-format="txt" role="menuitem">Download .txt</button>
-              <button type="button" class="split-menu-item" data-format="md" role="menuitem">Download .md</button>
-            </div>
+            <ul id="result-download-menu" class="dropdown-content menu split-menu" role="menu" hidden>
+              <li><button type="button" class="split-menu-item" data-format="txt" role="menuitem">Download .txt</button></li>
+              <li><button type="button" class="split-menu-item" data-format="md" role="menuitem">Download .md</button></li>
+            </ul>
           </div>
         </div>
       </div>

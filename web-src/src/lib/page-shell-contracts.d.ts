@@ -5,6 +5,7 @@ export interface PageShellNavLink {
   label: string;
   title: string;
   iconClass: string;
+  placement?: 'start' | 'end';
 }
 
 export interface PageShellNavItem {
@@ -12,4 +13,5 @@ export interface PageShellNavItem {
   label: string;
   title: string;
   iconClass: string;
+  placement?: 'start' | 'end';
 }

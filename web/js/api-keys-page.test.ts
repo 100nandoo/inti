@@ -85,7 +85,7 @@ test('API keys page preserves authenticated admin flows', async (t) => {
   assert.match(document.body.textContent ?? '', /Bootstrap Key/);
   assert.deepEqual(
     [...document.querySelectorAll('.header-settings-link')].map((link) => link.getAttribute('href')),
-    ['/api-keys.html?key=main-secret', '/settings.html?key=main-secret', '/?key=main-secret'],
+    ['/?key=main-secret', '/api-keys.html?key=main-secret', '/settings.html?key=main-secret'],
   );
 
   setInputValue(requiredElement<HTMLInputElement>('new-key-name'), 'Desktop');
@@ -106,7 +106,7 @@ test('API keys page preserves authenticated admin flows', async (t) => {
   assert.equal(window.location.search, '?key=inti_secret_1');
   assert.deepEqual(
     [...document.querySelectorAll('.header-settings-link')].map((link) => link.getAttribute('href')),
-    ['/api-keys.html?key=inti_secret_1', '/settings.html?key=inti_secret_1', '/?key=inti_secret_1'],
+    ['/?key=inti_secret_1', '/api-keys.html?key=inti_secret_1', '/settings.html?key=inti_secret_1'],
   );
   assert.match(document.body.textContent ?? '', /Desktop/);
 

@@ -7,14 +7,83 @@
 @layer base {
   :root {
     color-scheme: dark;
+    --color-base-100: var(--paper);
+    --color-base-200: color-mix(in srgb, var(--paper-2) 88%, var(--paper));
+    --color-base-300: color-mix(in srgb, var(--paper-3) 76%, var(--paper));
+    --color-base-content: var(--ink);
+    --color-primary: var(--accent);
+    --color-primary-content: var(--btn-primary-fg);
+    --color-secondary: var(--accent-2);
+    --color-secondary-content: var(--btn-primary-fg);
+    --color-accent: var(--gold);
+    --color-accent-content: #211306;
+    --color-neutral: color-mix(in srgb, var(--paper-3) 18%, #090806);
+    --color-neutral-content: var(--ink);
+    --color-info: color-mix(in srgb, var(--accent-2) 42%, #7ea2d6);
+    --color-info-content: #180f07;
+    --color-success: var(--success);
+    --color-success-content: #180f07;
+    --color-warning: color-mix(in srgb, var(--gold) 86%, #f0c36a);
+    --color-warning-content: #180f07;
+    --color-error: var(--error);
+    --color-error-content: #180f07;
+    --radius-box: 1rem;
+    --radius-field: .8rem;
+    --radius-selector: .8rem;
   }
 
   :root[data-theme="light"] {
     color-scheme: light;
+    --color-base-100: var(--paper);
+    --color-base-200: color-mix(in srgb, var(--paper-2) 84%, var(--paper));
+    --color-base-300: color-mix(in srgb, var(--paper-3) 72%, var(--paper));
+    --color-base-content: var(--ink);
+    --color-primary: var(--accent);
+    --color-primary-content: var(--btn-primary-fg);
+    --color-secondary: var(--accent-2);
+    --color-secondary-content: var(--paper);
+    --color-accent: var(--gold);
+    --color-accent-content: color-mix(in srgb, var(--ink) 90%, black);
+    --color-neutral: color-mix(in srgb, var(--ink) 88%, black);
+    --color-neutral-content: var(--paper-2);
+    --color-info: color-mix(in srgb, var(--accent-2) 46%, #6a88af);
+    --color-info-content: var(--ink);
+    --color-success: var(--success);
+    --color-success-content: var(--paper-2);
+    --color-warning: color-mix(in srgb, var(--gold) 92%, #e6b85e);
+    --color-warning-content: color-mix(in srgb, var(--ink) 90%, black);
+    --color-error: var(--error);
+    --color-error-content: var(--paper-2);
+    --radius-box: 1rem;
+    --radius-field: .8rem;
+    --radius-selector: .8rem;
   }
 
   :root[data-theme="dark"] {
     color-scheme: dark;
+    --color-base-100: var(--paper);
+    --color-base-200: color-mix(in srgb, var(--paper-2) 88%, var(--paper));
+    --color-base-300: color-mix(in srgb, var(--paper-3) 76%, var(--paper));
+    --color-base-content: var(--ink);
+    --color-primary: var(--accent);
+    --color-primary-content: var(--btn-primary-fg);
+    --color-secondary: var(--accent-2);
+    --color-secondary-content: var(--btn-primary-fg);
+    --color-accent: var(--gold);
+    --color-accent-content: #211306;
+    --color-neutral: color-mix(in srgb, var(--paper-3) 18%, #090806);
+    --color-neutral-content: var(--ink);
+    --color-info: color-mix(in srgb, var(--accent-2) 42%, #7ea2d6);
+    --color-info-content: #180f07;
+    --color-success: var(--success);
+    --color-success-content: #180f07;
+    --color-warning: color-mix(in srgb, var(--gold) 86%, #f0c36a);
+    --color-warning-content: #180f07;
+    --color-error: var(--error);
+    --color-error-content: #180f07;
+    --radius-box: 1rem;
+    --radius-field: .8rem;
+    --radius-selector: .8rem;
   }
 }
 
@@ -52,7 +121,15 @@
   }
 
   .inti-kicker {
-    @apply badge badge-outline badge-warning;
+    @apply inline-flex items-center self-start rounded-full border px-3 py-2 text-sm font-semibold uppercase tracking-[0.18em];
+    color: color-mix(in srgb, var(--accent) 84%, var(--ink));
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--gold) 24%, var(--paper-2)), color-mix(in srgb, var(--paper) 92%, transparent)),
+      color-mix(in srgb, var(--paper-2) 88%, transparent);
+    border-color: color-mix(in srgb, var(--gold) 38%, var(--color-base-300));
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.28),
+      0 10px 22px color-mix(in srgb, var(--gold) 10%, transparent);
   }
 
   .inti-muted {

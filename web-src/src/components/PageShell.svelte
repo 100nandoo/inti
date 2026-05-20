@@ -2,6 +2,9 @@
   import type { PageShellNavLink } from '../lib/page-shell-contracts';
 
   export let navLinks: PageShellNavLink[] = [];
+
+  $: startNavLinks = navLinks.filter((link) => link.placement === 'start');
+  $: endNavLinks = navLinks.filter((link) => link.placement !== 'start');
 </script>
 
 <div class="app inti-shell">
@@ -13,8 +16,18 @@
       </div>
       <span class="logo-name">Inti</span>
     </div>
-    <div class="header-nav">
-      {#each navLinks as link}
+    {#if startNavLinks.length > 0}
+      <div class="header-nav header-nav-start">
+        {#each startNavLinks as link}
+          <a href={link.href} class="header-settings-link inti-nav-link" title={link.title}>
+            <span class={`icon ${link.iconClass}`} aria-hidden="true"></span>
+            {link.label}
+          </a>
+        {/each}
+      </div>
+    {/if}
+    <div class="header-nav header-nav-end">
+      {#each endNavLinks as link}
         <a href={link.href} class="header-settings-link inti-nav-link" title={link.title}>
           <span class={`icon ${link.iconClass}`} aria-hidden="true"></span>
           {link.label}
