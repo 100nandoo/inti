@@ -878,180 +878,6 @@ button:disabled {
   flex-basis: 150px;
 }
 
-.has-daisy-dropdown.select-wrap::after {
-  display: none;
-}
-
-.inti-select-native {
-  position: absolute !important;
-  width: 1px !important;
-  height: 1px !important;
-  padding: 0 !important;
-  margin: -1px !important;
-  overflow: hidden !important;
-  clip: rect(0, 0, 0, 0) !important;
-  white-space: nowrap !important;
-  border: 0 !important;
-}
-
-.inti-select-dropdown {
-  display: block;
-}
-
-.inti-select-trigger {
-  width: 100%;
-  min-height: 2.75rem;
-  justify-content: space-between;
-  padding: 0.68rem 0.9rem;
-  color: var(--ink);
-  font-size: 13px;
-  font-weight: 700;
-  text-transform: none;
-  border-color: color-mix(in srgb, var(--paper-3) 76%, var(--line));
-  border-radius: 0.8rem;
-  background:
-    linear-gradient(180deg, color-mix(in srgb, rgba(255,255,255,.24) 100%, transparent), transparent 38%),
-    linear-gradient(180deg, color-mix(in srgb, var(--paper-2) 96%, transparent), color-mix(in srgb, var(--paper) 94%, transparent)),
-    color-mix(in srgb, var(--paper) 82%, transparent);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, .22),
-    inset 0 -1px 0 rgba(122, 82, 36, .06),
-    0 10px 20px rgba(87, 54, 19, .06);
-}
-
-.inti-select-trigger:hover:not(:disabled),
-.dropdown:focus-within .inti-select-trigger {
-  color: var(--ink);
-  border-color: color-mix(in srgb, var(--accent) 44%, var(--paper-3));
-}
-
-.inti-select-trigger:focus-visible {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, .22),
-    inset 0 -1px 0 rgba(122, 82, 36, .06),
-    0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
-}
-
-.inti-select-trigger-label {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.inti-select-trigger-icon {
-  flex: 0 0 auto;
-  width: 0.58rem;
-  height: 0.58rem;
-  margin-left: 0.8rem;
-  border-right: 2px solid color-mix(in srgb, var(--accent) 72%, var(--ink-muted));
-  border-bottom: 2px solid color-mix(in srgb, var(--accent) 72%, var(--ink-muted));
-  transform: translateY(-0.1rem) rotate(45deg);
-  opacity: .92;
-}
-
-.inti-select-menu {
-  z-index: 40;
-  width: 100%;
-  min-width: 12rem;
-  margin-top: 0.45rem;
-  padding: 0.45rem;
-  border: 1px solid color-mix(in srgb, var(--paper-3) 72%, var(--line));
-  border-radius: 1rem;
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--paper-2) 98%, transparent), color-mix(in srgb, var(--paper) 95%, transparent)),
-    color-mix(in srgb, var(--paper) 92%, transparent);
-  box-shadow:
-    0 22px 42px rgba(47, 35, 24, .18),
-    inset 0 1px 0 rgba(255, 255, 255, .18);
-}
-
-.inti-select-menu li + li {
-  margin-top: 0.18rem;
-}
-
-.inti-select-option {
-  width: 100%;
-  justify-content: flex-start;
-  min-height: 2.4rem;
-  padding: 0.6rem 0.75rem;
-  color: var(--ink);
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: none;
-  border: 1px solid transparent;
-  border-radius: 0.75rem;
-  background: transparent;
-  box-shadow: none;
-}
-
-.inti-select-option:hover:not(:disabled),
-.inti-select-option:focus-visible,
-.inti-select-option.is-active {
-  color: var(--ink);
-  border-color: color-mix(in srgb, var(--accent) 24%, transparent);
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--gold) 14%, transparent), transparent 90%),
-    color-mix(in srgb, var(--paper-2) 82%, transparent);
-  box-shadow: none;
-}
-
-.inti-select-option:focus-visible {
-  outline: none;
-}
-
-.select-wrap::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  right: 0.95rem;
-  width: 0.58rem;
-  height: 0.58rem;
-  pointer-events: none;
-  border-right: 2px solid color-mix(in srgb, var(--accent) 72%, var(--ink-muted));
-  border-bottom: 2px solid color-mix(in srgb, var(--accent) 72%, var(--ink-muted));
-  transform: translateY(-62%) rotate(45deg);
-  opacity: .92;
-}
-
-select {
-  height: 2.75rem;
-  min-height: 2.75rem;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  appearance: none;
-  background-image: none;
-  padding: 0.68rem 2.7rem 0.68rem 0.9rem;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 700;
-  line-height: 1.2;
-  border-color: color-mix(in srgb, var(--paper-3) 76%, var(--line));
-  background:
-    linear-gradient(180deg, color-mix(in srgb, rgba(255,255,255,.24) 100%, transparent), transparent 38%),
-    linear-gradient(180deg, color-mix(in srgb, var(--paper-2) 96%, transparent), color-mix(in srgb, var(--paper) 94%, transparent)),
-    color-mix(in srgb, var(--paper) 82%, transparent);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, .22),
-    inset 0 -1px 0 rgba(122, 82, 36, .06),
-    0 10px 20px rgba(87, 54, 19, .06);
-}
-
-select option {
-  background: var(--paper-2);
-  color: var(--ink);
-}
-
-select:hover {
-  border-color: color-mix(in srgb, var(--accent) 44%, var(--paper-3));
-}
-
-select:focus {
-  border-color: var(--accent);
-}
-
 .action-checkboxes {
   display: flex;
   align-items: center;
@@ -1204,6 +1030,21 @@ select:focus {
 .card > * {
   position: relative;
   z-index: 1;
+}
+
+.inti-page-card,
+.inti-page-card .card-body,
+.inti-page-card .inti-form-grid,
+.inti-page-card .inti-field {
+  overflow: visible;
+}
+
+.inti-page-card .dropdown {
+  position: relative;
+}
+
+.inti-page-card .dropdown.dropdown-open {
+  z-index: 20;
 }
 
 .info-row {
@@ -1419,40 +1260,13 @@ select:focus {
 }
 
 .split-menu {
-  position: absolute;
-  right: 0;
-  bottom: calc(100% + 5px);
-  z-index: 30;
   display: flex;
   flex-direction: column;
   gap: 3px;
-  min-width: 150px;
-  padding: 5px;
-  background: var(--paper-2);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-sm);
-  box-shadow: 0 14px 32px var(--shadow);
 }
 
 .split-button.is-open {
   z-index: 31;
-}
-
-.split-menu .split-menu-item {
-  width: 100%;
-  justify-content: flex-start;
-  min-height: 30px;
-  background: transparent;
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
-}
-
-.split-menu .split-menu-item:hover:not(:disabled),
-.split-menu .split-menu-item:focus-visible {
-  background: color-mix(in srgb, var(--accent) 10%, transparent);
-  border: 0;
-  box-shadow: none;
 }
 
 .btn-spinner {

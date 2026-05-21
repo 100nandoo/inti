@@ -15,7 +15,7 @@ function installThemeDom({
   const dom = new JSDOM(
     `<!DOCTYPE html><html><body>
       <button id="theme-toggle" type="button"><span id="theme-toggle-label"></span></button>
-      <select id="appearance-theme-select">
+      <select id="appearance-theme-select" data-inti-dropdown>
         <option value="light">Light</option>
         <option value="dark">Dark</option>
       </select>
@@ -45,8 +45,10 @@ test('theme runtime falls back to dark for removed themes and toggles only betwe
   const dom = installThemeDom({ storedTheme: 'minimal-dark' });
   const root = dom.window.document.documentElement;
   const toggle = dom.window.document.getElementById('theme-toggle') as HTMLButtonElement;
+  const trigger = dom.window.document.querySelector('.dropdown > .btn');
 
   assert.equal(root.dataset.theme, 'dark');
+  assert.ok(trigger);
   toggle.click();
   assert.equal(root.dataset.theme, 'light');
   toggle.click();

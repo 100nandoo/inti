@@ -8,6 +8,7 @@
   };
   const root = document.documentElement;
   const SELECT_ENHANCED_ATTR = 'data-inti-dropdown-enhanced';
+  const SELECT_DROPDOWN_ATTR = 'data-inti-dropdown';
 
   function isKnownTheme(theme) {
     return THEMES.includes(theme);
@@ -109,14 +110,10 @@
     const button = document.createElement('button');
 
     button.type = 'button';
-    button.className = 'inti-select-option';
+    button.className = option.value === select.value ? 'menu-active' : '';
     button.disabled = option.disabled;
     button.dataset.value = option.value;
     button.textContent = option.textContent || option.label || option.value;
-
-    if (option.value === select.value) {
-      button.classList.add('is-active');
-    }
 
     button.addEventListener('click', () => {
       if (option.disabled) return;
@@ -139,33 +136,74 @@
   function enhanceSelect(select) {
     if (!(select instanceof HTMLSelectElement)) return;
     if (select.multiple || select.hasAttribute(SELECT_ENHANCED_ATTR)) return;
+    if (!select.hasAttribute(SELECT_DROPDOWN_ATTR)) return;
 
     select.setAttribute(SELECT_ENHANCED_ATTR, 'true');
-    select.classList.add('inti-select-native');
+    Object.assign(select.style, {
+      position: 'absolute',
+      width: '1px',
+      height: '1px',
+      padding: '0',
+      margin: '-1px',
+      overflow: 'hidden',
+      clip: 'rect(0, 0, 0, 0)',
+      whiteSpace: 'nowrap',
+      border: '0',
+    });
     select.tabIndex = -1;
 
     const trigger = document.createElement('button');
     trigger.type = 'button';
-    trigger.className = 'btn inti-select-trigger';
-    trigger.setAttribute('tabindex', '0');
+    trigger.className = 'btn justify-between w-full';
     trigger.setAttribute('aria-haspopup', 'menu');
-    trigger.innerHTML = '<span class="inti-select-trigger-label"></span><span class="inti-select-trigger-icon" aria-hidden="true"></span>';
+    trigger.setAttribute('aria-expanded', 'false');
+    trigger.innerHTML = '<span class="truncate"></span><svg class="size-4 opacity-70" aria-hidden="true" viewBox="0 0 20 20" fill="none"><path d="M5 7.5 10 12.5 15 7.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
     const menu = document.createElement('ul');
-    menu.className = 'dropdown-content menu inti-select-menu';
-    menu.setAttribute('tabindex', '-1');
+    menu.className = 'dropdown-content menu bg-base-100 rounded-box z-1 w-full p-2 shadow-sm';
+    menu.hidden = true;
+    menu.setAttribute('role', 'menu');
+    menu.tabIndex = 0;
 
     const dropdown = document.createElement('div');
-    dropdown.className = 'dropdown w-full inti-select-dropdown';
+    dropdown.className = 'dropdown dropdown-bottom w-full';
     dropdown.append(trigger, menu);
 
     select.insertAdjacentElement('afterend', dropdown);
-    select.parentElement?.classList.add('has-daisy-dropdown');
 
-    const labelNode = trigger.querySelector('.inti-select-trigger-label');
+    const labelNode = trigger.querySelector('span');
+    const getButtons = () => [...menu.querySelectorAll('button:not(:disabled)')];
 
     function closeMenu() {
-      trigger.blur();
+      dropdown.classList.remove('dropdown-open');
+      menu.hidden = true;
+      trigger.setAttribute('aria-expanded', 'false');
+    }
+
+    function openMenu() {
+      if (trigger.disabled) return;
+      dropdown.classList.add('dropdown-open');
+      menu.hidden = false;
+      trigger.setAttribute('aria-expanded', 'true');
+    }
+
+    function toggleMenu() {
+      if (menu.hidden) {
+        openMenu();
+        return;
+      }
+      closeMenu();
+    }
+
+    function focusMenuButton(index) {
+      const buttons = getButtons();
+      const button = buttons[index];
+      button?.focus();
+    }
+
+    function focusSelectedButton() {
+      const selectedIndex = getButtons().findIndex((button) => button.dataset.value === select.value);
+      focusMenuButton(selectedIndex >= 0 ? selectedIndex : 0);
     }
 
     function sync() {
@@ -180,6 +218,7 @@
 
       trigger.disabled = select.disabled;
       trigger.setAttribute('aria-label', select.title || labelNode?.textContent || 'Select');
+      if (select.disabled) closeMenu();
       menu.innerHTML = '';
 
       Array.from(select.options).forEach((option) => {
@@ -190,8 +229,51 @@
     select.__intiDropdownSync = sync;
     sync();
 
+    trigger.addEventListener('click', (event) => {
+      event.stopPropagation();
+      toggleMenu();
+    });
+
     trigger.addEventListener('keydown', (event) => {
-      if (event.key === 'Escape') closeMenu();
+      if (event.key === 'Escape') {
+        closeMenu();
+        return;
+      }
+
+      if (event.key === 'Enter' || event.key === ' ' || event.key === 'ArrowDown') {
+        event.preventDefault();
+        openMenu();
+        focusSelectedButton();
+      }
+    });
+
+    menu.addEventListener('keydown', (event) => {
+      const buttons = getButtons();
+      const currentIndex = buttons.indexOf(document.activeElement);
+
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeMenu();
+        trigger.focus();
+        return;
+      }
+
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        focusMenuButton(Math.min(currentIndex + 1, buttons.length - 1));
+        return;
+      }
+
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        focusMenuButton(Math.max(currentIndex - 1, 0));
+      }
+    });
+
+    document.addEventListener('click', (event) => {
+      if (!dropdown.contains(event.target)) {
+        closeMenu();
+      }
     });
 
     select.addEventListener('change', sync);
@@ -208,7 +290,7 @@
 
   function initDropdownSelects() {
     document
-      .querySelectorAll('select.select, select.select-bordered')
+      .querySelectorAll(`select[${SELECT_DROPDOWN_ATTR}]`)
       .forEach((select) => enhanceSelect(select));
   }
 

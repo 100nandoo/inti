@@ -312,7 +312,7 @@
       <div class="inti-form-grid">
         <fieldset class="inti-field">
           <legend class="inti-field-legend">Active provider</legend>
-          <select class="select select-bordered w-full" id="sum-provider-select" bind:value={provider} title="Active summarizer provider" on:change={handleProviderChange}>
+          <select class="select select-bordered w-full" id="sum-provider-select" data-inti-dropdown bind:value={provider} title="Active summarizer provider" on:change={handleProviderChange}>
             {#each providerOptions as option}
               <option value={option.value}>{option.label}</option>
             {/each}
@@ -320,7 +320,7 @@
         </fieldset>
         <fieldset class="inti-field" hidden={modelOptions.length === 0}>
           <legend class="inti-field-legend">Model</legend>
-          <select class="select select-bordered w-full" id="sum-model-select" bind:value={model} title="Active summarizer model">
+          <select class="select select-bordered w-full" id="sum-model-select" data-inti-dropdown bind:value={model} title="Active summarizer model">
             {#each modelOptions as option}
               <option value={option.value}>{option.label}</option>
             {/each}
@@ -340,7 +340,7 @@
       <div class="inti-form-grid">
         <fieldset class="inti-field">
           <legend class="inti-field-legend">Visual Theme</legend>
-          <select class="select select-bordered w-full" id="appearance-theme-select" bind:value={theme} title="Server theme" on:change={handleThemePreview}>
+          <select class="select select-bordered w-full" id="appearance-theme-select" data-inti-dropdown bind:value={theme} title="Server theme" on:change={handleThemePreview}>
             {#each themeOptions as option}
               <option value={option.value}>{option.label}</option>
             {/each}
@@ -349,7 +349,7 @@
         </fieldset>
         <fieldset class="inti-field">
           <legend class="inti-field-legend">Summary download format</legend>
-          <select class="select select-bordered w-full" id="summary-download-format-select" bind:value={summaryDownloadFormat} title="Default summary download format">
+          <select class="select select-bordered w-full" id="summary-download-format-select" data-inti-dropdown bind:value={summaryDownloadFormat} title="Default summary download format">
             {#each summaryFormatOptions as option}
               <option value={option.value}>{option.label}</option>
             {/each}

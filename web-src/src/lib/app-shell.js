@@ -120,12 +120,12 @@ export function renderWorkingTextPanel() {
         <div id="summary-run-panel" class="run-mode-panel">
           <div class="run-config-row">
             <div class="select-wrap provider-wrap inti-select-wrap">
-              <select class="select select-bordered" id="provider-select" title="Summarizer provider">
+              <select class="select select-bordered" id="provider-select" data-inti-dropdown title="Summarizer provider">
                 <option value="">Server default</option>
               </select>
             </div>
             <div class="select-wrap provider-wrap inti-select-wrap" id="sum-model-wrap" hidden>
-              <select class="select select-bordered" id="sum-model-select" title="Summarizer model"></select>
+              <select class="select select-bordered" id="sum-model-select" data-inti-dropdown title="Summarizer model"></select>
             </div>
           </div>
 
@@ -169,7 +169,7 @@ export function renderResultSurface() {
             <span class="icon icon-copy" aria-hidden="true"></span>
             <span id="result-copy-label">Copy</span>
           </button>
-          <div class="dropdown dropdown-end split-button inti-split-button" id="result-download-group">
+          <div class="dropdown dropdown-top dropdown-end split-button inti-split-button" id="result-download-group">
             <button id="result-download-btn" class="btn-secondary btn btn-ghost border border-base-300 split-button-main">
               <span class="icon icon-download" aria-hidden="true"></span>
               Download
@@ -184,9 +184,9 @@ export function renderResultSurface() {
             >
               <span class="icon icon-chevron-down" aria-hidden="true"></span>
             </button>
-            <ul id="result-download-menu" class="dropdown-content menu split-menu" role="menu" hidden>
-              <li><button type="button" class="split-menu-item" data-format="txt" role="menuitem">Download .txt</button></li>
-              <li><button type="button" class="split-menu-item" data-format="md" role="menuitem">Download .md</button></li>
+            <ul id="result-download-menu" class="dropdown-content menu bg-base-100 rounded-box z-1 w-52 p-2 shadow-sm split-menu" role="menu" hidden>
+              <li><button type="button" data-format="txt" role="menuitem">Download .txt</button></li>
+              <li><button type="button" data-format="md" role="menuitem">Download .md</button></li>
             </ul>
           </div>
         </div>
@@ -214,19 +214,19 @@ export function renderSpeechPanel() {
 
       <div class="controls inti-control-band">
         <div class="select-wrap inti-select-wrap">
-          <select class="select select-bordered" id="speech-provider-select" title="Select speech provider">
+          <select class="select select-bordered" id="speech-provider-select" data-inti-dropdown title="Select speech provider">
             <option value="gemini">Gemini</option>
             <option value="kokoro-heart">kokoro heart</option>
           </select>
         </div>
         <div class="select-wrap inti-select-wrap">
-          <select class="select select-bordered" id="model-select" title="Select TTS model"></select>
+          <select class="select select-bordered" id="model-select" data-inti-dropdown title="Select TTS model"></select>
         </div>
         <div class="select-wrap inti-select-wrap">
-          <select class="select select-bordered" id="voice-select" title="Select voice"></select>
+          <select class="select select-bordered" id="voice-select" data-inti-dropdown title="Select voice"></select>
         </div>
         <div class="select-wrap inti-select-wrap">
-          <select class="select select-bordered" id="gender-filter" title="Filter by gender">
+          <select class="select select-bordered" id="gender-filter" data-inti-dropdown title="Filter by gender">
             <option value="All">All voices</option>
             <option value="Female">Female</option>
             <option value="Male">Male</option>

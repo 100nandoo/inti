@@ -99,12 +99,14 @@ function applySummaryDownloadFormat(format) {
 
 function openResultDownloadMenu() {
   resultDownloadMenu.hidden = false;
+  resultDownloadGroup.classList.add('dropdown-open');
   resultDownloadGroup.classList.add('is-open');
   resultDownloadToggle.setAttribute('aria-expanded', 'true');
 }
 
 function closeResultDownloadMenu() {
   resultDownloadMenu.hidden = true;
+  resultDownloadGroup.classList.remove('dropdown-open');
   resultDownloadGroup.classList.remove('is-open');
   resultDownloadToggle.setAttribute('aria-expanded', 'false');
 }
@@ -222,7 +224,7 @@ export function initSummarizer() {
   });
 
   resultDownloadMenu.addEventListener('click', (event) => {
-    const item = event.target.closest('.split-menu-item');
+    const item = event.target.closest('[data-format]');
     if (!item) return;
 
     const format = item.dataset.format;
