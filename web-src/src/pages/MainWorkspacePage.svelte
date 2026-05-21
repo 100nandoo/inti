@@ -4,6 +4,7 @@
   import type { PageShellNavLink } from '../lib/page-shell-contracts';
   import {
     applyAppearanceConfig,
+    applySummarizerConfig,
     getSelectedSummarizerModel,
     getSelectedSummarizerProvider,
     promoteLatestTextResult,
@@ -11,6 +12,7 @@
     setInputMode,
     setLatestTextResult,
     setProcessing,
+    setSelectedSummarizerSelection,
     setWorkingText,
     setWorkingTextRunMode,
     workspaceStore,
@@ -21,10 +23,18 @@
     buildPromotionStatusMessage,
     executeMainWorkspaceSummary,
   } from '../lib/main-workspace-flow.js';
+  import {
+    buildMainWorkspaceProviderOptions,
+    loadMainWorkspaceModelOptions,
+    loadMainWorkspaceSummarizerConfig,
+    saveMainWorkspaceSummarizerConfig,
+  } from '../lib/main-workspace-summary-controls.js';
   import type { SummaryDownloadFormat, WorkspaceState } from '../lib/workspace-contracts';
   import { addFeed, setStatus, updateFeedItem } from '../../../web/js/feed.js';
 
   export let navLinks: PageShellNavLink[] = [];
+
+  type SummaryOption = { value: string; label: string };
 
   let workspace: WorkspaceState;
   let summaryDownloadFormat: SummaryDownloadFormat = 'md';
@@ -32,6 +42,10 @@
   let resultCopyLabel = 'Copy';
   let resultDownloadGroup: HTMLDivElement | null = null;
   let resetCopyLabelTimer: ReturnType<typeof window.setTimeout> | null = null;
+  let providerOptions: SummaryOption[] = [{ value: '', label: 'Server default' }];
+  let modelOptions: SummaryOption[] = [];
+  let summaryModelHidden = true;
+  let summaryControlsRequestKey = 0;
 
   const unsubscribeWorkspace = workspaceStore.subscribe((value) => {
     workspace = value;
@@ -59,6 +73,77 @@
   function handleThemeConfigEvent(event: Event): void {
     const customEvent = event as CustomEvent<typeof window.IntiTheme>;
     applyThemeConfig(customEvent.detail || {});
+  }
+
+  async function syncSummarizerControls(preferredProvider?: string, preferredModel?: string): Promise<void> {
+    const requestKey = ++summaryControlsRequestKey;
+    const options = buildMainWorkspaceProviderOptions(workspace.summarizerConfig);
+    providerOptions = options;
+
+    const configuredProvider = preferredProvider !== undefined
+      ? preferredProvider
+      : (workspace.selectedSummarizerProvider || workspace.summarizerConfig.provider || '');
+    const nextProvider = options.some((option) => option.value === configuredProvider) ? configuredProvider : '';
+    const configuredModel = preferredModel !== undefined
+      ? preferredModel
+      : (workspace.selectedSummarizerModel || workspace.summarizerConfig.model || '');
+    const { hidden, options: nextModelOptions, selectedModel } = await loadMainWorkspaceModelOptions({
+      provider: nextProvider,
+      selectedModel: configuredModel,
+    });
+
+    if (requestKey !== summaryControlsRequestKey) return;
+
+    modelOptions = nextModelOptions as SummaryOption[];
+    summaryModelHidden = hidden;
+    setSelectedSummarizerSelection(nextProvider, selectedModel);
+  }
+
+  async function saveSummarizerSelection(provider: string, model: string): Promise<void> {
+    const summarizerConfig = await saveMainWorkspaceSummarizerConfig({
+      apiURL: window.apiURL || ((path: string) => path),
+      provider,
+      model,
+      keys: workspace.summarizerConfig.keys,
+    });
+    applySummarizerConfig(summarizerConfig);
+  }
+
+  async function initializeSummarizerControls(): Promise<void> {
+    try {
+      const summarizerConfig = await loadMainWorkspaceSummarizerConfig({
+        apiURL: window.apiURL || ((path: string) => path),
+      });
+      applySummarizerConfig(summarizerConfig);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not load summarizer settings.';
+      setStatus(message, 'error');
+    }
+
+    await syncSummarizerControls();
+  }
+
+  async function handleProviderChange(provider: string): Promise<void> {
+    const currentModel = provider === 'openrouter' ? '' : workspace.selectedSummarizerModel;
+    await syncSummarizerControls(provider, currentModel);
+
+    try {
+      await saveSummarizerSelection(provider, provider === 'openrouter' ? '' : getSelectedSummarizerModel());
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not save summarizer settings.';
+      setStatus(message, 'error');
+    }
+  }
+
+  async function handleModelChange(model: string): Promise<void> {
+    setSelectedSummarizerSelection(workspace.selectedSummarizerProvider, model);
+
+    try {
+      await saveSummarizerSelection(workspace.selectedSummarizerProvider, model);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not save summarizer settings.';
+      setStatus(message, 'error');
+    }
   }
 
   async function summarizeWorkingText(): Promise<void> {
@@ -122,6 +207,7 @@
     applyThemeConfig(window.IntiTheme);
     document.addEventListener('inti:theme-config', handleThemeConfigEvent);
     document.addEventListener('click', handleDocumentClick);
+    void initializeSummarizerControls();
   });
 
   onDestroy(() => {
@@ -251,12 +337,36 @@
         <div id="summary-run-panel" class="run-mode-panel" hidden={!isSummaryMode}>
           <div class="run-config-row">
             <div class="select-wrap provider-wrap inti-select-wrap">
-              <select class="select select-bordered" id="provider-select" data-inti-dropdown title="Summarizer provider">
-                <option value="">Server default</option>
+              <select
+                class="select select-bordered"
+                id="provider-select"
+                data-inti-dropdown
+                title="Summarizer provider"
+                value={workspace.selectedSummarizerProvider}
+                on:change={(event) => {
+                  void handleProviderChange((event.currentTarget as HTMLSelectElement).value);
+                }}
+              >
+                {#each providerOptions as option}
+                  <option value={option.value}>{option.label}</option>
+                {/each}
               </select>
             </div>
-            <div class="select-wrap provider-wrap inti-select-wrap" id="sum-model-wrap" hidden>
-              <select class="select select-bordered" id="sum-model-select" data-inti-dropdown title="Summarizer model"></select>
+            <div class="select-wrap provider-wrap inti-select-wrap" id="sum-model-wrap" hidden={summaryModelHidden}>
+              <select
+                class="select select-bordered"
+                id="sum-model-select"
+                data-inti-dropdown
+                title="Summarizer model"
+                value={workspace.selectedSummarizerModel}
+                on:change={(event) => {
+                  void handleModelChange((event.currentTarget as HTMLSelectElement).value);
+                }}
+              >
+                {#each modelOptions as option}
+                  <option value={option.value}>{option.label}</option>
+                {/each}
+              </select>
             </div>
           </div>
 
