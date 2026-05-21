@@ -26,5 +26,5 @@ interface Window {
     summaryPromotionBehavior?: string;
   };
   apiURL?: (path: string) => string;
-  __intiLegacyWorkspaceInitialized?: boolean;
+  preserveKeyLinks?: () => void;
 }
