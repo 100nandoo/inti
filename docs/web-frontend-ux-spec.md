@@ -20,18 +20,14 @@ OCR, summarization, and speech synthesis are actions that operate on the current
 
 - OCR and summarization both write to a shared result surface
 - The result surface is non-destructive by default
-- The result surface exposes promotion actions:
-  - `Replace working text`
-  - `Append to working text`
-- The default promotion behavior is configurable in Settings per transform type
+- The result surface exposes one promotion action: `Replace working text`
+- Promotion is replace-only across the product
 
 ### Latest Audio Result
 
 - Speech generation creates a separate audio result surface
 - The audio result remains available for playback and download after **Working Text** changes
-- Audio generation should work from:
-  - **Working Text**
-  - the current **Latest Text Result** without forcing promotion first
+- Audio generation works from **Working Text**
 
 ### Activity History
 
@@ -56,22 +52,20 @@ The import affordance should remain easy to discover, but it should not dominate
 2. OCR runs and produces a **Latest Text Result**
 3. If **Working Text** is empty, OCR may auto-promote by replacing it
 4. If **Working Text** already has content, the OCR result stays separate until promoted
-5. Promotion supports both `Replace working text` and `Append to working text`
-6. The user's default OCR promotion behavior is configurable in Settings
+5. Promotion replaces **Working Text**
 
 ## Summarization flow
 
 1. Summarization runs against **Working Text**
 2. The app produces one canonical summary result
 3. The summary appears in **Latest Text Result**
-4. Promotion supports both `Replace working text` and `Append to working text`
-5. The user's default summary promotion behavior is configurable in Settings
+4. Promotion replaces **Working Text**
 
 `Summarize + TTS` is not a primary action in this model. If it remains at all, it should be a secondary shortcut.
 
 ## Speech flow
 
-1. The user generates speech from **Working Text** or from **Latest Text Result**
+1. The user generates speech from **Working Text**
 2. The app creates a **Latest Audio Result**
 3. The user can play or download the result without losing it when the workspace text changes
 
@@ -85,13 +79,9 @@ The separate editable `Text to speak` field should be removed because it duplica
 
 ## Settings
 
-Settings should include separate defaults for:
+Settings should include:
 
 - Visual Theme: `light` or `dark`, with `dark` as the first-paint default
-- OCR promotion behavior: `append` or `replace`
-- Summary promotion behavior: `append` or `replace`
-
-These settings define the default action when a user promotes a result. The result should still expose both explicit actions in the UI.
 
 ## Out of scope for the first pass
 
