@@ -64,7 +64,7 @@
     ],
   });
 
-  let navLinks: PageShellNavLink[] = [];
+  let navLinks: PageShellNavLink[] = protectedPage.navLinks();
 
   let provider: SummarizerProvider = '';
   let model = '';
