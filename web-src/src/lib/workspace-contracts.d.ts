@@ -1,6 +1,6 @@
 export type TextResultKind = 'summary' | 'ocr' | '';
 export type TextResultFormat = 'plain' | 'markdown';
-export type PromotionBehavior = 'append' | 'replace';
+export type PromotionBehavior = 'replace';
 export type InputMode = 'ocr' | 'working-text';
 export type WorkingTextRunMode = 'summary' | 'voice';
 export type SummaryDownloadFormat = 'md' | 'txt';

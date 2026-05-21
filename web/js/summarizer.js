@@ -57,10 +57,7 @@ function syncWorkspaceControls() {
   const hasWorkingText = currentWorkingText.trim().length > 0;
   const isWorkingTextMode = inputMode === 'working-text';
   const isSummaryMode = isWorkingTextMode && workingTextRunMode === 'summary';
-  const viewModel = buildResultSurfaceViewModel(
-    getWorkspace(),
-    'replace',
-  );
+  const viewModel = buildResultSurfaceViewModel(getWorkspace());
 
   if (workingText.value !== currentWorkingText) {
     workingText.value = currentWorkingText;

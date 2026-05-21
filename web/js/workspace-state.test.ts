@@ -66,7 +66,7 @@ test('re-entering working text mode from OCR resets the run mode to summary', ()
   assert.equal(getWorkspaceSnapshot().workingTextRunMode, 'summary');
 });
 
-test('promoting the latest text result is replace-only even with legacy append inputs', () => {
+test('promoting the latest text result replaces working text', () => {
   setWorkingText('Working draft');
   setLatestTextResult({
     kind: 'summary',
@@ -75,10 +75,6 @@ test('promoting the latest text result is replace-only even with legacy append i
     plainText: 'Condensed result',
   });
 
-  assert.equal(promoteLatestTextResult('append'), true);
-  assert.equal(getWorkspaceSnapshot().workingText, 'Condensed result');
-
-  replaceWorkingText('Working draft');
   assert.equal(promoteLatestTextResult('replace'), true);
   assert.equal(getWorkspaceSnapshot().workingText, 'Condensed result');
 });

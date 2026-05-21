@@ -1,6 +1,7 @@
 // @ts-check
 
 /** @typedef {import('./settings-contracts').AppearanceSettingsPayload} AppearanceSettingsPayload */
+/** @typedef {import('./settings-contracts').AppearanceSettingsInput} AppearanceSettingsInput */
 /** @typedef {import('./settings-contracts').LoadSettingsInput} LoadSettingsInput */
 /** @typedef {import('./settings-contracts').SaveSettingsInput} SaveSettingsInput */
 /** @typedef {import('./settings-contracts').SettingsLoadResult} SettingsLoadResult */
@@ -21,6 +22,21 @@ async function readJSON(response) {
 }
 
 /**
+ * Keep the frontend's shared contract replace-only while accepting older backend payloads.
+ *
+ * @param {AppearanceSettingsInput} appearanceConfig
+ * @returns {AppearanceSettingsPayload}
+ */
+function normalizeAppearanceConfig(appearanceConfig) {
+  return {
+    theme: appearanceConfig.theme === 'light' ? 'light' : 'dark',
+    summaryDownloadFormat: appearanceConfig.summaryDownloadFormat === 'txt' ? 'txt' : 'md',
+    ocrPromotionBehavior: 'replace',
+    summaryPromotionBehavior: 'replace',
+  };
+}
+
+/**
  * @param {LoadSettingsInput} input
  * @returns {Promise<SettingsLoadResult>}
  */
@@ -36,10 +52,10 @@ export async function loadSettings({ fetchImpl = fetch, apiURL }) {
 
   const [summarizerConfig, appearanceConfig] = await Promise.all([
     /** @type {Promise<SummarizerSettingsPayload>} */ (summarizerResponse.json()),
-    /** @type {Promise<AppearanceSettingsPayload>} */ (themeResponse.json()),
+    /** @type {Promise<AppearanceSettingsInput>} */ (themeResponse.json()),
   ]);
 
-  return { summarizerConfig, appearanceConfig };
+  return { summarizerConfig, appearanceConfig: normalizeAppearanceConfig(appearanceConfig) };
 }
 
 /**
@@ -72,7 +88,7 @@ export async function saveSettings({
     readJSON(themeResponse),
   ]);
 
-  return { summarizerConfig, appearanceConfig: nextAppearanceConfig };
+  return { summarizerConfig, appearanceConfig: normalizeAppearanceConfig(nextAppearanceConfig) };
 }
 
 /**

@@ -80,11 +80,6 @@ function normalizeWorkingTextRunMode(value) {
   return value === 'voice' ? 'voice' : 'summary';
 }
 
-/** @param {string} value */
-function normalizePromotionBehavior(value) {
-  return value === 'replace' ? 'replace' : 'append';
-}
-
 /** @param {string} current
  * @param {string} incoming
  * @returns {string}
