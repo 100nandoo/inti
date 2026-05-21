@@ -257,7 +257,12 @@ func (s *Service) handlePhoto(c tele.Context) error {
 	if err != nil {
 		return fmt.Errorf("read photo: %w", err)
 	}
-	result, err := s.processor.ExtractText(context.Background(), textprocessing.OCRRequest{ImageBytes: imageBytes})
+	var result textprocessing.OCRResult
+	err = s.withChatAction(c.Chat(), tele.Typing, func() error {
+		var actionErr error
+		result, actionErr = s.processor.ExtractText(context.Background(), textprocessing.OCRRequest{ImageBytes: imageBytes})
+		return actionErr
+	})
 	if err != nil {
 		if textprocessing.IsNoTextFound(err) {
 			return c.Send("No text found in the image.")
@@ -290,7 +295,12 @@ func (s *Service) handleDocument(c tele.Context) error {
 	if err != nil {
 		return fmt.Errorf("read document: %w", err)
 	}
-	result, err := s.processor.ExtractText(context.Background(), textprocessing.OCRRequest{ImageBytes: imageBytes})
+	var result textprocessing.OCRResult
+	err = s.withChatAction(c.Chat(), tele.Typing, func() error {
+		var actionErr error
+		result, actionErr = s.processor.ExtractText(context.Background(), textprocessing.OCRRequest{ImageBytes: imageBytes})
+		return actionErr
+	})
 	if err != nil {
 		if textprocessing.IsNoTextFound(err) {
 			return c.Send("No text found in the image.")
@@ -357,11 +367,16 @@ func (s *Service) processSummary(c tele.Context, speak bool) error {
 
 func (s *Service) summarize(c tele.Context, text string) (string, error) {
 	provider, model, keys, _ := s.state.Summarizer.Get()
-	result, err := s.processor.Summarize(context.Background(), textprocessing.SummaryRequest{
-		Text:     text,
-		Provider: provider,
-		Model:    model,
-		APIKey:   keys[provider],
+	var result textprocessing.SummaryResult
+	err := s.withChatAction(c.Chat(), tele.Typing, func() error {
+		var actionErr error
+		result, actionErr = s.processor.Summarize(context.Background(), textprocessing.SummaryRequest{
+			Text:     text,
+			Provider: provider,
+			Model:    model,
+			APIKey:   keys[provider],
+		})
+		return actionErr
 	})
 	if err != nil {
 		return "", err
@@ -374,11 +389,16 @@ func (s *Service) sendSpeech(c tele.Context, text string) error {
 	if !ok {
 		return c.Send("Not authenticated. Use /auth <inti_api_key>.")
 	}
-	result, err := s.processor.SynthesizeSpeech(context.Background(), textprocessing.SpeechRequest{
-		Text:   text,
-		Voice:  session.Voice,
-		Model:  session.Model,
-		APIKey: s.cfg.GeminiAPIKey,
+	var result textprocessing.SpeechResult
+	err := s.withChatAction(c.Chat(), tele.RecordingAudio, func() error {
+		var actionErr error
+		result, actionErr = s.processor.SynthesizeSpeech(context.Background(), textprocessing.SpeechRequest{
+			Text:   text,
+			Voice:  session.Voice,
+			Model:  session.Model,
+			APIKey: s.cfg.GeminiAPIKey,
+		})
+		return actionErr
 	})
 	if err != nil {
 		if errors.Is(err, textprocessing.ErrTTSUnavailable) {
@@ -388,13 +408,53 @@ func (s *Service) sendSpeech(c tele.Context, text string) error {
 	}
 	voice := &tele.Voice{File: tele.FromReader(bytes.NewReader(result.Opus))}
 	audioFile := &tele.Audio{File: tele.FromReader(bytes.NewReader(result.Opus))}
+	s.notifyChatAction(c.Chat(), tele.UploadingAudio)
 	if _, err := s.bot.Send(c.Chat(), voice); err != nil {
 		return fmt.Errorf("send voice note: %w", err)
 	}
+	s.notifyChatAction(c.Chat(), tele.UploadingAudio)
 	if _, err := s.bot.Send(c.Chat(), audioFile); err != nil {
 		return fmt.Errorf("send audio file: %w", err)
 	}
 	return nil
+}
+
+func (s *Service) withChatAction(chat *tele.Chat, action tele.ChatAction, run func() error) error {
+	if chat == nil {
+		return run()
+	}
+
+	stop := make(chan struct{})
+	done := make(chan struct{})
+
+	go func() {
+		defer close(done)
+		s.notifyChatAction(chat, action)
+
+		ticker := time.NewTicker(4 * time.Second)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-stop:
+				return
+			case <-ticker.C:
+				s.notifyChatAction(chat, action)
+			}
+		}
+	}()
+
+	err := run()
+	close(stop)
+	<-done
+	return err
+}
+
+func (s *Service) notifyChatAction(chat *tele.Chat, action tele.ChatAction) {
+	if s == nil || s.bot == nil || chat == nil {
+		return
+	}
+	_ = s.bot.Notify(chat, action)
 }
 
 func (s *Service) sendTextChunks(chat *tele.Chat, text string) error {
