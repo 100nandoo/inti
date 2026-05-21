@@ -4,19 +4,26 @@
   import type { PageShellNavLink } from '../lib/page-shell-contracts';
   import {
     applyAppearanceConfig,
+    applySpeechConfig,
     applySummarizerConfig,
+    getSelectedSpeechModel,
+    getSelectedSpeechProvider,
+    getSelectedSpeechVoice,
     getSelectedSummarizerModel,
     getSelectedSummarizerProvider,
     promoteLatestTextResult,
+    setLastAudioResult,
     setGroqRateLimits,
     setInputMode,
     setLatestTextResult,
     setProcessing,
+    setSelectedSpeechSelection,
     setSelectedSummarizerSelection,
     setWorkingText,
     setWorkingTextRunMode,
     workspaceStore,
   } from '../lib/workspace-state.js';
+  import { buildSpeechPanelViewModel } from '../lib/speech-flow.js';
   import { copyLatestResultText, downloadLatestResult } from '../lib/result-surface.js';
   import {
     buildMainWorkspaceViewModel,
@@ -24,13 +31,25 @@
     executeMainWorkspaceSummary,
   } from '../lib/main-workspace-flow.js';
   import {
+    MAIN_WORKSPACE_SPEECH_PROVIDER_OPTIONS,
+    currentDefaultSpeechVoice,
+    loadMainWorkspaceSpeechConfig,
+    loadMainWorkspaceSpeechControlState,
+    saveMainWorkspaceSpeechConfig,
+  } from '../lib/main-workspace-speech-controls.js';
+  import {
+    downloadMainWorkspaceAudioSnapshot,
+    executeMainWorkspaceSpeech,
+    playMainWorkspaceAudio,
+  } from '../lib/main-workspace-speech-flow.js';
+  import {
     buildMainWorkspaceProviderOptions,
     loadMainWorkspaceModelOptions,
     loadMainWorkspaceSummarizerConfig,
     saveMainWorkspaceSummarizerConfig,
   } from '../lib/main-workspace-summary-controls.js';
   import type { SummaryDownloadFormat, WorkspaceState } from '../lib/workspace-contracts';
-  import { addFeed, setStatus, updateFeedItem } from '../../../web/js/feed.js';
+  import { addFeed, setPlaying, setStatus, updateFeedItem } from '../../../web/js/feed.js';
 
   export let navLinks: PageShellNavLink[] = [];
 
@@ -46,6 +65,13 @@
   let modelOptions: SummaryOption[] = [];
   let summaryModelHidden = true;
   let summaryControlsRequestKey = 0;
+  let speechProviderOptions: SummaryOption[] = MAIN_WORKSPACE_SPEECH_PROVIDER_OPTIONS;
+  let speechModelOptions: SummaryOption[] = [];
+  let speechVoiceOptions: SummaryOption[] = [];
+  let speechGenderFilter = 'All';
+  let speechControlsRequestKey = 0;
+  let autoPlayAudio = false;
+  let autoDownloadAudio = false;
 
   const unsubscribeWorkspace = workspaceStore.subscribe((value) => {
     workspace = value;
@@ -123,6 +149,72 @@
     await syncSummarizerControls();
   }
 
+  async function syncSpeechControls(
+    preferredProvider?: string,
+    preferredVoice?: string,
+    preferredModel?: string,
+    preferredGenderFilter?: string,
+  ): Promise<void> {
+    const requestKey = ++speechControlsRequestKey;
+    const provider = preferredProvider !== undefined
+      ? preferredProvider
+      : (getSelectedSpeechProvider() || workspace.speechConfig.provider || 'gemini');
+    const voice = preferredVoice !== undefined
+      ? preferredVoice
+      : (getSelectedSpeechVoice() || workspace.speechConfig.voice || currentDefaultSpeechVoice(provider));
+    const model = preferredModel !== undefined
+      ? preferredModel
+      : (getSelectedSpeechModel() || workspace.speechConfig.model || '');
+    const genderFilter = preferredGenderFilter !== undefined ? preferredGenderFilter : speechGenderFilter;
+
+    try {
+      const nextControls = await loadMainWorkspaceSpeechControlState({
+        apiURL: window.apiURL || ((path: string) => path),
+        provider,
+        selectedVoice: voice,
+        selectedModel: model,
+        genderFilter,
+      });
+      if (requestKey !== speechControlsRequestKey) return;
+
+      speechGenderFilter = nextControls.genderFilter;
+      speechModelOptions = nextControls.modelOptions as SummaryOption[];
+      speechVoiceOptions = nextControls.voiceOptions as SummaryOption[];
+      setSelectedSpeechSelection(
+        nextControls.provider,
+        nextControls.selectedVoice,
+        nextControls.selectedModel,
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not load speech settings.';
+      setStatus(message, 'error');
+    }
+  }
+
+  async function saveSpeechSelection(provider: string, voice: string, model: string): Promise<void> {
+    const speechConfig = await saveMainWorkspaceSpeechConfig({
+      apiURL: window.apiURL || ((path: string) => path),
+      provider,
+      voice,
+      model,
+    });
+    applySpeechConfig(speechConfig);
+  }
+
+  async function initializeSpeechControls(): Promise<void> {
+    try {
+      const speechConfig = await loadMainWorkspaceSpeechConfig({
+        apiURL: window.apiURL || ((path: string) => path),
+      });
+      applySpeechConfig(speechConfig);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not load speech settings.';
+      setStatus(message, 'error');
+    }
+
+    await syncSpeechControls();
+  }
+
   async function handleProviderChange(provider: string): Promise<void> {
     const currentModel = provider === 'openrouter' ? '' : workspace.selectedSummarizerModel;
     await syncSummarizerControls(provider, currentModel);
@@ -144,6 +236,49 @@
       const message = error instanceof Error ? error.message : 'Could not save summarizer settings.';
       setStatus(message, 'error');
     }
+  }
+
+  async function handleSpeechProviderChange(provider: string): Promise<void> {
+    const nextVoice = currentDefaultSpeechVoice(provider);
+    await syncSpeechControls(provider, nextVoice, '', 'All');
+
+    try {
+      await saveSpeechSelection(provider, getSelectedSpeechVoice(), getSelectedSpeechModel());
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not save speech settings.';
+      setStatus(message, 'error');
+    }
+  }
+
+  async function handleSpeechVoiceChange(voice: string): Promise<void> {
+    setSelectedSpeechSelection(getSelectedSpeechProvider(), voice, getSelectedSpeechModel());
+
+    try {
+      await saveSpeechSelection(getSelectedSpeechProvider(), voice, getSelectedSpeechModel());
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not save speech settings.';
+      setStatus(message, 'error');
+    }
+  }
+
+  async function handleSpeechModelChange(model: string): Promise<void> {
+    setSelectedSpeechSelection(getSelectedSpeechProvider(), getSelectedSpeechVoice(), model);
+
+    try {
+      await saveSpeechSelection(getSelectedSpeechProvider(), getSelectedSpeechVoice(), model);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not save speech settings.';
+      setStatus(message, 'error');
+    }
+  }
+
+  function handleSpeechGenderFilterChange(value: string): void {
+    void syncSpeechControls(
+      getSelectedSpeechProvider(),
+      getSelectedSpeechVoice(),
+      getSelectedSpeechModel(),
+      value,
+    );
   }
 
   async function summarizeWorkingText(): Promise<void> {
@@ -168,6 +303,69 @@
       setLatestTextResult(summaryResult);
       setStatus('Summary result ready for review.', 'success');
       updateFeedItem(feedItem, 'ok', feedLabel, feedMeta);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      setStatus(message, 'error');
+      updateFeedItem(feedItem, 'fail', 'Working Text', message);
+    } finally {
+      setProcessing(false);
+    }
+  }
+
+  async function playLatestAudio(): Promise<void> {
+    if (!workspace.lastAudioBlob) return;
+
+    setStatus('Playing…');
+    setPlaying(true);
+
+    try {
+      await playMainWorkspaceAudio(workspace.lastAudioBlob);
+      setStatus('');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not play audio.';
+      setStatus(message, 'error');
+    } finally {
+      setPlaying(false);
+    }
+  }
+
+  function handleDownloadAudioSnapshot(): void {
+    if (!downloadMainWorkspaceAudioSnapshot(workspace.lastAudioBlob, workspace.lastAudioSourceText || 'audio')) {
+      return;
+    }
+    addFeed('ok', 'Downloaded', 'Opus file saved to your downloads folder');
+  }
+
+  async function synthesizeWorkingText(): Promise<void> {
+    const text = workspace.workingText.trim();
+    if (!text || workspace.processing) return;
+
+    setProcessing(true);
+    setStatus('Synthesizing…');
+    const feedItem = addFeed('info', `"${text.slice(0, 60)}${text.length > 60 ? '…' : ''}"`, 'speech · synthesizing…');
+
+    try {
+      const result = await executeMainWorkspaceSpeech({
+        apiURL: window.apiURL || ((path: string) => path),
+        text,
+        provider: getSelectedSpeechProvider(),
+        voice: getSelectedSpeechVoice(),
+        model: getSelectedSpeechModel(),
+      });
+      setLastAudioResult(result.blob, result.sourceText, 'Working Text', {
+        provider: result.provider,
+        voice: result.voice,
+        model: result.model,
+      });
+      setStatus('Audio result ready.', 'success');
+      updateFeedItem(feedItem, 'ok', result.feedLabel, result.feedMeta);
+
+      if (autoPlayAudio) {
+        await playLatestAudio();
+      }
+      if (autoDownloadAudio) {
+        handleDownloadAudioSnapshot();
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       setStatus(message, 'error');
@@ -208,6 +406,7 @@
     document.addEventListener('inti:theme-config', handleThemeConfigEvent);
     document.addEventListener('click', handleDocumentClick);
     void initializeSummarizerControls();
+    void initializeSpeechControls();
   });
 
   onDestroy(() => {
@@ -227,6 +426,7 @@
   $: isVoiceMode = mainWorkspaceViewModel.isVoiceMode;
   $: hasWorkingText = mainWorkspaceViewModel.hasWorkingText;
   $: textResultCharacterCount = mainWorkspaceViewModel.textResultCharacterCount;
+  $: speechViewModel = buildSpeechPanelViewModel(workspace);
 </script>
 
 <PageShell {navLinks}>
@@ -493,43 +693,103 @@
         <span class="source-chip badge badge-outline">Audio stays available after edits</span>
       </div>
 
-      <div class="field-block inti-surface">
-        <div class="field-head">
-          <span>Working Text</span>
-          <span id="speech-input-count">{workspace.workingText.length} characters</span>
-        </div>
-        <div id="speech-input-preview" class="summary-markdown speech-preview"></div>
+        <div class="field-block inti-surface">
+          <div class="field-head">
+            <span>Working Text</span>
+            <span id="speech-input-count">{mainWorkspaceViewModel.speechInputCharacterCount} characters</span>
+          </div>
+        <div id="speech-input-preview" class="summary-markdown speech-preview">{@html speechViewModel.speechPreviewHtml}</div>
       </div>
 
       <div class="controls inti-control-band">
         <div class="select-wrap inti-select-wrap">
-          <select class="select select-bordered" id="speech-provider-select" data-inti-dropdown title="Select speech provider">
-            <option value="gemini">Gemini</option>
-            <option value="kokoro-heart">kokoro heart</option>
+          <select
+            class="select select-bordered"
+            id="speech-provider-select"
+            data-inti-dropdown
+            title="Select speech provider"
+            value={workspace.selectedSpeechProvider}
+            disabled={speechViewModel.controlsDisabled}
+            on:change={(event) => {
+              void handleSpeechProviderChange((event.currentTarget as HTMLSelectElement).value);
+            }}
+          >
+            {#each speechProviderOptions as option}
+              <option value={option.value}>{option.label}</option>
+            {/each}
           </select>
         </div>
         <div class="select-wrap inti-select-wrap">
-          <select class="select select-bordered" id="model-select" data-inti-dropdown title="Select TTS model"></select>
+          <select
+            class="select select-bordered"
+            id="model-select"
+            data-inti-dropdown
+            title="Select TTS model"
+            value={workspace.selectedSpeechModel}
+            disabled={speechViewModel.controlsDisabled || workspace.selectedSpeechProvider === 'kokoro-heart' || speechModelOptions.length === 0}
+            on:change={(event) => {
+              void handleSpeechModelChange((event.currentTarget as HTMLSelectElement).value);
+            }}
+          >
+            {#if speechModelOptions.length === 0}
+              <option value="">No model selection</option>
+            {:else}
+              {#each speechModelOptions as option}
+                <option value={option.value}>{option.label}</option>
+              {/each}
+            {/if}
+          </select>
         </div>
         <div class="select-wrap inti-select-wrap">
-          <select class="select select-bordered" id="voice-select" data-inti-dropdown title="Select voice"></select>
+          <select
+            class="select select-bordered"
+            id="voice-select"
+            data-inti-dropdown
+            title="Select voice"
+            value={workspace.selectedSpeechVoice}
+            disabled={speechViewModel.controlsDisabled}
+            on:change={(event) => {
+              void handleSpeechVoiceChange((event.currentTarget as HTMLSelectElement).value);
+            }}
+          >
+            {#each speechVoiceOptions as option}
+              <option value={option.value}>{option.label}</option>
+            {/each}
+          </select>
         </div>
         <div class="select-wrap inti-select-wrap">
-          <select class="select select-bordered" id="gender-filter" data-inti-dropdown title="Filter by gender">
+          <select
+            class="select select-bordered"
+            id="gender-filter"
+            data-inti-dropdown
+            title="Filter by gender"
+            value={speechGenderFilter}
+            disabled={speechViewModel.controlsDisabled || workspace.selectedSpeechProvider !== 'gemini'}
+            on:change={(event) => {
+              handleSpeechGenderFilterChange((event.currentTarget as HTMLSelectElement).value);
+            }}
+          >
             <option value="All">All voices</option>
             <option value="Female">Female</option>
             <option value="Male">Male</option>
           </select>
-        </div>
+              </div>
 
-        <div class="action-checkboxes inti-checkboxes">
-          <label class="action-check label cursor-pointer gap-2 rounded-full border border-base-300 bg-base-100/80 px-3 py-2"><input type="checkbox" id="action-speak" class="checkbox checkbox-sm" /> Auto-play</label>
-          <label class="action-check label cursor-pointer gap-2 rounded-full border border-base-300 bg-base-100/80 px-3 py-2"><input type="checkbox" id="action-download" class="checkbox checkbox-sm" /> Download</label>
-        </div>
-        <button id="generate-working-audio-btn" class="btn-primary btn btn-primary generate-btn">
-          <span class="icon icon-speaker" aria-hidden="true"></span>
-          Generate from Working Text
-        </button>
+              <div class="action-checkboxes inti-checkboxes">
+                <label class="action-check label cursor-pointer gap-2 rounded-full border border-base-300 bg-base-100/80 px-3 py-2"><input type="checkbox" id="action-speak" class="checkbox checkbox-sm" bind:checked={autoPlayAudio} disabled={speechViewModel.controlsDisabled} /> Auto-play</label>
+                <label class="action-check label cursor-pointer gap-2 rounded-full border border-base-300 bg-base-100/80 px-3 py-2"><input type="checkbox" id="action-download" class="checkbox checkbox-sm" bind:checked={autoDownloadAudio} disabled={speechViewModel.controlsDisabled} /> Download</label>
+              </div>
+              <button
+                id="generate-working-audio-btn"
+                class="btn-primary btn btn-primary generate-btn"
+                disabled={workspace.processing || !speechViewModel.hasWorkingText}
+                on:click={() => {
+                  void synthesizeWorkingText();
+                }}
+              >
+                <span class="icon icon-speaker" aria-hidden="true"></span>
+                Generate from Working Text
+              </button>
         <div class="playing-bar" id="playing-bar">
           <div class="bar"></div>
           <div class="bar"></div>
@@ -541,21 +801,33 @@
         <span class="status-text" id="status-text"></span>
       </div>
 
-      <div class="field-block inti-surface">
-        <div class="field-head">
-          <span>Latest audio result</span>
-          <span id="audio-result-meta">No audio yet</span>
-        </div>
-        <div id="audio-result-card" class="summary-markdown speech-preview"></div>
-        <div class="summary-actions inti-action-row">
-          <button id="play-audio-btn" class="btn-secondary btn btn-ghost border border-base-300">
-            <span class="icon icon-speaker-waves" aria-hidden="true"></span>
-            Play
-          </button>
-          <button id="download-audio-btn" class="btn-secondary btn btn-ghost border border-base-300">
-            <span class="icon icon-download" aria-hidden="true"></span>
-            Download
-          </button>
+            <div class="field-block inti-surface">
+              <div class="field-head">
+                <span>Latest audio result</span>
+                <span id="audio-result-meta">{speechViewModel.audioMeta}</span>
+              </div>
+              <div id="audio-result-card" class="summary-markdown speech-preview">{@html speechViewModel.audioCardHtml}</div>
+              <div class="summary-actions inti-action-row">
+                <button
+                  id="play-audio-btn"
+                  class="btn-secondary btn btn-ghost border border-base-300"
+                  disabled={workspace.processing || !speechViewModel.hasAudio}
+                  on:click={() => {
+                    void playLatestAudio();
+                  }}
+                >
+                  <span class="icon icon-speaker-waves" aria-hidden="true"></span>
+                  Play
+                </button>
+                <button
+                  id="download-audio-btn"
+                  class="btn-secondary btn btn-ghost border border-base-300"
+                  disabled={workspace.processing || !speechViewModel.hasAudio}
+                  on:click={handleDownloadAudioSnapshot}
+                >
+                  <span class="icon icon-download" aria-hidden="true"></span>
+                  Download
+                </button>
         </div>
       </div>
     </section>
