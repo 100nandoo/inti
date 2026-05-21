@@ -166,19 +166,35 @@ Rewrite the main page in vertical slices, not by utility file:
 1. `workspace`
    Own the canonical Working Text surface, input mode selection, run mode selection, and shared layout composition.
 
-2. `ocr`
-   Own file staging UI, OCR trigger flow, OCR result creation, and promotion actions.
-
-3. `summarize`
+2. `summarize`
    Own provider/model selectors, summary execution, summary result rendering, and promotion actions.
 
-4. `speech`
+3. `speech`
    Own provider/model/voice selectors, generate action, playback/download affordances, and `Audio Result` surface.
+
+4. `ocr`
+   Own file staging UI, OCR trigger flow, OCR result creation, and promotion actions.
 
 5. `feed` or activity history
    Keep secondary and compact. Do not let it dominate the primary workspace flow.
 
-Each feature should render its own Svelte components and talk to shared stores through explicit imports, not DOM ids. Temporary DOM-id compatibility is acceptable only as a migration seam while a feature is still backed by a named legacy bridge.
+Phase 2 is complete only when the three primary product surfaces are both rendered and interaction-wired by Svelte-owned feature code:
+
+- `Working Text`
+- `Transform Result`
+- `Audio Result`
+
+That means this phase is not satisfied by moving markup alone. If the user can still interact with one of those primary surfaces only through a legacy runtime bridge, that feature has not finished Phase 2.
+
+Each feature should render its own Svelte components and talk to shared stores through explicit imports, not DOM ids. Temporary DOM-id compatibility is acceptable only as a migration seam while a feature is still backed by a named legacy bridge. Control ownership belongs to the feature slice even when request orchestration still sits behind a transitional service boundary until Phase 3.
+
+Phase 2 should preserve the current product contract rather than redesign it:
+
+- `Transform Result` remains one shared latest-result surface for OCR and summarization
+- `Audio Result` remains one latest audio snapshot, overwritten by the next speech generation
+- speech continues to run from `Working Text` only; there is no separate editable speech-input concept
+- OCR may still auto-promote only when `Working Text` is empty; otherwise it lands in `Transform Result` until promoted
+- display copy such as `Latest Text Result` or `Latest Audio Result` may remain where useful, but the canonical product concepts stay `Transform Result` and `Audio Result`
 
 ### 4. Move Side Effects Behind Services
 
@@ -247,9 +263,24 @@ Phase 0 exit criteria:
 
 ### Phase 2: Workspace Rewrite
 
-- implement `Working Text`, `Transform Result`, and `Audio Result` as native Svelte surfaces
+- implement `Working Text`, `Transform Result`, and `Audio Result` as native Svelte-owned surfaces with Svelte-owned interaction wiring
 - keep feature behavior identical where possible
 - preserve the current UX spec rather than redesigning mid-migration
+- migrate in this order unless a local dependency forces a smaller resequencing:
+  1. `workspace`
+  2. `summarize`
+  3. `speech`
+  4. `ocr`
+- keep `feed` and other secondary activity UI out of scope unless it blocks the primary workspace flow
+- remove append-era workspace APIs and public contracts as soon as no active Svelte-owned feature still depends on them
+
+Phase 2 exit criteria:
+
+- `Working Text`, `Transform Result`, and `Audio Result` are rendered and interaction-wired entirely from `web-src/src/*`
+- `LegacySummaryBridge` and `LegacySpeechBridge` are deleted
+- no legacy runtime bridge remains responsible for the primary workspace flow
+- any remaining DOM ids on the main page are compatibility seams with explicit deletion targets, not the ownership model
+- tests cover rewritten feature behavior through Svelte-owned seams rather than only through legacy DOM-plumbing tests
 
 ### Phase 3: Side-Effect Cleanup
 
