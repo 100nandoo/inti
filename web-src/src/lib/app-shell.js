@@ -1,4 +1,14 @@
-export function renderHeader() {
+import { buildAppShellNavLinks } from './app-shell-nav.js';
+
+/**
+ * @param {{
+ *   navLinks?: import('./page-shell-contracts').PageShellNavLink[];
+ * }} [options]
+ */
+export function renderHeader({ navLinks = buildAppShellNavLinks() } = {}) {
+  const startNavLinks = navLinks.filter((link) => link.placement === 'start');
+  const endNavLinks = navLinks.filter((link) => link.placement !== 'start');
+
   return `
     <header class="header navbar inti-shell-header">
       <div class="logo">
@@ -8,15 +18,20 @@ export function renderHeader() {
         </div>
         <span class="logo-name">Inti</span>
       </div>
-      <div class="header-nav">
-        <a href="/api-keys.html" class="header-settings-link inti-nav-link" title="Manage API keys">
-          <span class="icon icon-key" aria-hidden="true"></span>
-          API Keys
-        </a>
-        <a href="/settings.html" class="header-settings-link inti-nav-link" title="Summarizer settings">
-          <span class="icon icon-settings" aria-hidden="true"></span>
-          Settings
-        </a>
+      ${startNavLinks.length > 0 ? `
+      <div class="header-nav header-nav-start">
+        ${startNavLinks.map((link) => `
+        <a href="${link.href}" class="header-settings-link inti-nav-link" title="${link.title}">
+          <span class="icon ${link.iconClass}" aria-hidden="true"></span>
+          ${link.label}
+        </a>`).join('')}
+      </div>` : ''}
+      <div class="header-nav header-nav-end">
+        ${endNavLinks.map((link) => `
+        <a href="${link.href}" class="header-settings-link inti-nav-link" title="${link.title}">
+          <span class="icon ${link.iconClass}" aria-hidden="true"></span>
+          ${link.label}
+        </a>`).join('')}
         <button id="theme-toggle" class="theme-toggle inti-theme-toggle" type="button" title="Switch theme" aria-label="Switch theme">
           <span class="theme-icon theme-icon-light icon icon-sun" aria-hidden="true"></span>
           <span class="theme-icon theme-icon-dark icon icon-moon" aria-hidden="true"></span>
@@ -300,10 +315,15 @@ export function renderImagePreviewModal() {
   `;
 }
 
-export function renderAppShell() {
+/**
+ * @param {{
+ *   navLinks?: import('./page-shell-contracts').PageShellNavLink[];
+ * }} [options]
+ */
+export function renderAppShell({ navLinks } = {}) {
   return `
     <div class="app inti-shell">
-      ${renderHeader()}
+      ${renderHeader({ navLinks })}
       <main class="main-grid inti-shell-main">
         ${renderWorkingTextPanel()}
         ${renderResultSurface()}

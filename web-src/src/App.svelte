@@ -1,6 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { renderAppShell } from './lib/app-shell.js';
+  import { initializeAppRuntime } from './lib/app-runtime.js';
+  import { createProtectedPage } from './lib/protected-page.js';
 
   type FeedModule = {
     initFeed: () => void;
@@ -33,7 +35,10 @@
     initVoices: () => Promise<void>;
   };
 
-  const appShell = renderAppShell();
+  const protectedPage = createProtectedPage();
+  const appShell = renderAppShell({
+    navLinks: protectedPage.navLinks(),
+  });
 
   async function bootstrapLegacyWorkspace(): Promise<void> {
     const [
@@ -66,6 +71,9 @@
   onMount(() => {
     if (window.__intiLegacyWorkspaceInitialized) return;
     window.__intiLegacyWorkspaceInitialized = true;
+    initializeAppRuntime({
+      apiURL: protectedPage.apiURL,
+    });
 
     return bootstrapLegacyWorkspace();
   });

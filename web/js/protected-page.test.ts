@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
+import { renderAppShell } from '../../web-src/src/lib/app-shell.js';
 import { createProtectedPage } from '../../web-src/src/lib/protected-page.js';
 
 test('protected page utilities preserve key-aware links and requests', async () => {
@@ -56,4 +57,6 @@ test('protected page utilities preserve key-aware links and requests', async () 
   );
   assert.equal(win.location.href, 'http://localhost:8282/settings.html?key=next-secret');
   assert.equal(protectedPage.currentAPIKey(), 'next-secret');
+  assert.match(renderAppShell({ navLinks: protectedPage.navLinks() }), /\/api-keys\.html\?key=next-secret/);
+  assert.match(renderAppShell({ navLinks: protectedPage.navLinks() }), /\/settings\.html\?key=next-secret/);
 });

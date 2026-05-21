@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import PageShell from '../components/PageShell.svelte';
+  import { initializeAppRuntime } from '../lib/app-runtime.js';
   import { createProtectedPage } from '../lib/protected-page.js';
   import { createAPIKey, deleteAPIKey, listAPIKeys } from '../lib/api-keys-service.js';
 
@@ -139,6 +140,9 @@
   }
 
   onMount(() => {
+    initializeAppRuntime({
+      apiURL: protectedPage.apiURL,
+    });
     void handleLoad();
   });
 </script>

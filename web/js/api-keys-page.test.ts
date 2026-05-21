@@ -48,6 +48,24 @@ test('API keys page preserves authenticated admin flows', async (t) => {
     const urlText = String(url);
     requests.push({ url: urlText, method, body: options.body ? JSON.parse(options.body as string) : null });
 
+    if (method === 'GET' && urlText === 'http://localhost:8282/api/theme-config?key=main-secret') {
+      return Response.json({
+        theme: 'dark',
+        summaryDownloadFormat: 'md',
+        ocrPromotionBehavior: 'replace',
+        summaryPromotionBehavior: 'replace',
+      });
+    }
+
+    if (method === 'GET' && urlText === 'http://localhost:8282/api/theme-config?key=inti_secret_1') {
+      return Response.json({
+        theme: 'dark',
+        summaryDownloadFormat: 'md',
+        ocrPromotionBehavior: 'replace',
+        summaryPromotionBehavior: 'replace',
+      });
+    }
+
     if (method === 'GET' && urlText === 'http://localhost:8282/api/admin/keys?key=main-secret') {
       return Response.json({ keys });
     }
@@ -92,7 +110,10 @@ test('API keys page preserves authenticated admin flows', async (t) => {
   requiredElement<HTMLButtonElement>('create-key-btn').click();
   await flushAsyncWork();
 
-  assert.equal((requests[1]?.body as { name?: string } | undefined)?.name, 'Desktop');
+  assert.equal(
+    requests.find((request) => request.method === 'POST' && request.url === 'http://localhost:8282/api/admin/keys?key=main-secret')?.body?.name,
+    'Desktop',
+  );
   assert.match(document.body.textContent ?? '', /API Key Created/);
   assert.equal(requiredElement<HTMLElement>('key-modal-value').textContent, 'inti_secret_1');
 
