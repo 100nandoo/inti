@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 
 test('App owns the main page through Svelte components and named legacy bridges', () => {
   const appSource = readFileSync(new URL('../../web-src/src/App.svelte', import.meta.url), 'utf8');
@@ -20,4 +20,17 @@ test('App owns the main page through Svelte components and named legacy bridges'
   assert.match(pageSource, /id="working-text"/);
   assert.match(pageSource, /id="text-result-content"/);
   assert.match(pageSource, /id="audio-result-card"/);
+});
+
+test('embedded main-page output keeps the generated Svelte entrypoint and removes the legacy bootstrap file', () => {
+  const sourceHtml = readFileSync(new URL('../../web-src/index.html', import.meta.url), 'utf8');
+  const builtHtml = readFileSync(new URL('../../web/index.html', import.meta.url), 'utf8');
+
+  assert.match(sourceHtml, /<script type="module" src="\.\/src\/entries\/app\.js"><\/script>/);
+  assert.doesNotMatch(sourceHtml, /main\.js/);
+  assert.match(builtHtml, /\/assets\/index\.js/);
+  assert.match(builtHtml, /\/assets\/PageShell\.js/);
+  assert.match(builtHtml, /\/assets\/PageShell\.css/);
+  assert.doesNotMatch(builtHtml, /main\.js/);
+  assert.equal(existsSync(new URL('../../web/main.js', import.meta.url)), false);
 });
