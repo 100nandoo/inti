@@ -1,7 +1,7 @@
 import test, { after, before, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { renderAppShell } from '../../web-src/src/lib/app-shell.js';
 import { createOCRTextResult } from '../../web-src/src/lib/ocr-result.js';
+import { renderMainWorkspaceFixture } from './main-workspace-fixture.ts';
 import {
   flushAsyncWork,
   installDomWithHTML,
@@ -184,7 +184,7 @@ function typeWorkingText(text: string) {
 }
 
 before(async () => {
-  dom = installDomWithHTML('http://localhost:8282/', renderAppShell());
+  dom = installDomWithHTML('http://localhost:8282/', renderMainWorkspaceFixture());
   (window as typeof window & { apiURL: (path: string) => string }).apiURL = (path) => path;
   (
     window as typeof window & {

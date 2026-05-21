@@ -1,49 +1,12 @@
-import { buildAppShellNavLinks } from './app-shell-nav.js';
+<script lang="ts">
+  import PageShell from '../components/PageShell.svelte';
+  import type { PageShellNavLink } from '../lib/page-shell-contracts';
 
-/**
- * @param {{
- *   navLinks?: import('./page-shell-contracts').PageShellNavLink[];
- * }} [options]
- */
-export function renderHeader({ navLinks = buildAppShellNavLinks() } = {}) {
-  const startNavLinks = navLinks.filter((link) => link.placement === 'start');
-  const endNavLinks = navLinks.filter((link) => link.placement !== 'start');
+  export let navLinks: PageShellNavLink[] = [];
+</script>
 
-  return `
-    <header class="header navbar inti-shell-header">
-      <div class="logo">
-        <div class="logo-icon" aria-hidden="true">
-          <img class="logo-icon-dark" src="/icons/inti-logo.svg" alt="" />
-          <img class="logo-icon-light" src="/icons/inti-light.svg" alt="" />
-        </div>
-        <span class="logo-name">Inti</span>
-      </div>
-      ${startNavLinks.length > 0 ? `
-      <div class="header-nav header-nav-start">
-        ${startNavLinks.map((link) => `
-        <a href="${link.href}" class="header-settings-link inti-nav-link" title="${link.title}">
-          <span class="icon ${link.iconClass}" aria-hidden="true"></span>
-          ${link.label}
-        </a>`).join('')}
-      </div>` : ''}
-      <div class="header-nav header-nav-end">
-        ${endNavLinks.map((link) => `
-        <a href="${link.href}" class="header-settings-link inti-nav-link" title="${link.title}">
-          <span class="icon ${link.iconClass}" aria-hidden="true"></span>
-          ${link.label}
-        </a>`).join('')}
-        <button id="theme-toggle" class="theme-toggle inti-theme-toggle" type="button" title="Switch theme" aria-label="Switch theme">
-          <span class="theme-icon theme-icon-light icon icon-sun" aria-hidden="true"></span>
-          <span class="theme-icon theme-icon-dark icon icon-moon" aria-hidden="true"></span>
-          <span id="theme-toggle-label">Theme</span>
-        </button>
-      </div>
-    </header>
-  `;
-}
-
-export function renderWorkingTextPanel() {
-  return `
+<PageShell {navLinks}>
+  <div class="main-grid">
     <section class="panel panel-workspace inti-workspace-card card bg-base-100/90 shadow-2xl shadow-base-content/10" id="ocr-card">
       <div class="section-heading inti-panel-heading">
         <span class="ornament inti-panel-ornament" aria-hidden="true"></span>
@@ -157,11 +120,7 @@ export function renderWorkingTextPanel() {
         </div>
       </div>
     </section>
-  `;
-}
 
-export function renderResultSurface() {
-  return `
     <section class="panel panel-result inti-workspace-card card bg-base-100/90 shadow-2xl shadow-base-content/10">
       <div class="section-heading inti-panel-heading">
         <span class="ornament inti-panel-ornament" aria-hidden="true"></span>
@@ -207,11 +166,7 @@ export function renderResultSurface() {
         </div>
       </div>
     </section>
-  `;
-}
 
-export function renderSpeechPanel() {
-  return `
     <section class="panel panel-tts inti-workspace-card card bg-base-100/90 shadow-2xl shadow-base-content/10">
       <div class="section-heading inti-panel-heading">
         <span class="ornament inti-panel-ornament" aria-hidden="true"></span>
@@ -285,11 +240,7 @@ export function renderSpeechPanel() {
         </div>
       </div>
     </section>
-  `;
-}
 
-export function renderActivityPanel() {
-  return `
     <section class="panel panel-activity inti-workspace-card card bg-base-100/90 shadow-2xl shadow-base-content/10">
       <div class="section-heading inti-panel-heading">
         <span class="ornament inti-panel-ornament" aria-hidden="true"></span>
@@ -300,37 +251,13 @@ export function renderActivityPanel() {
       </div>
       <button class="btn-secondary btn btn-ghost border border-base-300 view-all-btn" type="button">View all</button>
     </section>
-  `;
-}
+  </div>
+</PageShell>
 
-export function renderImagePreviewModal() {
-  return `
-    <div id="img-preview-modal" hidden>
-      <div id="img-preview-backdrop"></div>
-      <div id="img-preview-box">
-        <img id="img-preview-img" src="" alt="Preview" />
-        <button id="img-preview-close" title="Close">×</button>
-      </div>
-    </div>
-  `;
-}
-
-/**
- * @param {{
- *   navLinks?: import('./page-shell-contracts').PageShellNavLink[];
- * }} [options]
- */
-export function renderAppShell({ navLinks } = {}) {
-  return `
-    <div class="app inti-shell">
-      ${renderHeader({ navLinks })}
-      <main class="main-grid inti-shell-main">
-        ${renderWorkingTextPanel()}
-        ${renderResultSurface()}
-        ${renderSpeechPanel()}
-        ${renderActivityPanel()}
-      </main>
-    </div>
-    ${renderImagePreviewModal()}
-  `;
-}
+<div id="img-preview-modal" hidden>
+  <div id="img-preview-backdrop"></div>
+  <div id="img-preview-box">
+    <img id="img-preview-img" src="" alt="Preview" />
+    <button id="img-preview-close" title="Close">×</button>
+  </div>
+</div>
