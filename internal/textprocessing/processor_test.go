@@ -1,6 +1,7 @@
 package textprocessing
 
 import (
+	"context"
 	"encoding/binary"
 	"errors"
 	"io"
@@ -131,6 +132,76 @@ func TestSynthesizeSpeechKokoroHeartNormalizesWAVToOpus(t *testing.T) {
 	}
 	if !strings.Contains(requestBody, `"voice":"cheery"`) || !strings.Contains(requestBody, `"response_format":"wav"`) {
 		t.Fatalf("unexpected request body: %s", requestBody)
+	}
+}
+
+func TestSynthesizeSpeechWithKokoroFallbackOnGeminiRateLimit(t *testing.T) {
+	p := New(&config.Config{
+		SpeechProvider: config.SpeechProviderGemini,
+		DefaultVoice:   config.DefaultGeminiVoice,
+		DefaultModel:   config.DefaultModelName,
+		KokoroHeartURL: "http://example.test",
+	})
+	p.synthesizeGeminiFn = func(context.Context, speechResolver) (SpeechResult, error) {
+		return SpeechResult{}, ErrRateLimited
+	}
+	p.synthesizeKokoroHeartFn = func(_ context.Context, req speechResolver) (SpeechResult, error) {
+		if req.provider != config.SpeechProviderKokoroHeart {
+			t.Fatalf("provider = %q, want %q", req.provider, config.SpeechProviderKokoroHeart)
+		}
+		if req.voice != config.DefaultKokoroHeartVoice {
+			t.Fatalf("voice = %q, want %q", req.voice, config.DefaultKokoroHeartVoice)
+		}
+		if req.model != "" {
+			t.Fatalf("model = %q, want empty", req.model)
+		}
+		return SpeechResult{Provider: req.provider, Voice: req.voice}, nil
+	}
+
+	result, err := p.SynthesizeSpeechWithKokoroFallback(t.Context(), SpeechRequest{
+		Provider: config.SpeechProviderGemini,
+		Text:     "hello",
+		Voice:    config.DefaultGeminiVoice,
+		Model:    config.DefaultModelName,
+		APIKey:   "test-key",
+	})
+	if err != nil {
+		t.Fatalf("SynthesizeSpeechWithKokoroFallback() error = %v", err)
+	}
+	if result.Provider != config.SpeechProviderKokoroHeart {
+		t.Fatalf("provider = %q, want %q", result.Provider, config.SpeechProviderKokoroHeart)
+	}
+	if result.Voice != config.DefaultKokoroHeartVoice {
+		t.Fatalf("voice = %q, want %q", result.Voice, config.DefaultKokoroHeartVoice)
+	}
+}
+
+func TestSynthesizeSpeechWithKokoroFallbackPreservesBothErrors(t *testing.T) {
+	p := New(&config.Config{
+		SpeechProvider: config.SpeechProviderGemini,
+		DefaultVoice:   config.DefaultGeminiVoice,
+		DefaultModel:   config.DefaultModelName,
+		KokoroHeartURL: "http://example.test",
+	})
+	p.synthesizeGeminiFn = func(context.Context, speechResolver) (SpeechResult, error) {
+		return SpeechResult{}, ErrRateLimited
+	}
+	p.synthesizeKokoroHeartFn = func(context.Context, speechResolver) (SpeechResult, error) {
+		return SpeechResult{}, errors.New("kokoro unavailable")
+	}
+
+	_, err := p.SynthesizeSpeechWithKokoroFallback(t.Context(), SpeechRequest{
+		Provider: config.SpeechProviderGemini,
+		Text:     "hello",
+		Voice:    config.DefaultGeminiVoice,
+		Model:    config.DefaultModelName,
+		APIKey:   "test-key",
+	})
+	if err == nil {
+		t.Fatal("expected fallback error")
+	}
+	if !strings.Contains(err.Error(), "gemini rate limited") || !strings.Contains(err.Error(), "kokoro unavailable") {
+		t.Fatalf("error = %v, want both gemini and kokoro context", err)
 	}
 }
 

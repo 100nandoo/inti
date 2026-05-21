@@ -59,11 +59,48 @@ func (p *Processor) SynthesizeSpeech(ctx context.Context, req SpeechRequest) (Sp
 
 	switch resolved.provider {
 	case config.SpeechProviderGemini:
-		return p.synthesizeGeminiSpeech(ctx, resolved)
+		return p.synthesizeGemini(ctx, resolved)
 	case config.SpeechProviderKokoroHeart:
-		return p.synthesizeKokoroHeartSpeech(ctx, resolved)
+		return p.synthesizeKokoroHeart(ctx, resolved)
 	default:
 		return SpeechResult{}, fmt.Errorf("%w: unknown speech provider %q", ErrTTSUnavailable, resolved.provider)
+	}
+}
+
+func (p *Processor) SynthesizeSpeechWithKokoroFallback(ctx context.Context, req SpeechRequest) (SpeechResult, error) {
+	resolved, err := p.resolveSpeechRequest(req)
+	if err != nil {
+		return SpeechResult{}, err
+	}
+
+	result, err := p.synthesizeResolvedSpeech(ctx, resolved)
+	if err == nil || resolved.provider != config.SpeechProviderGemini || !IsRateLimited(err) {
+		return result, err
+	}
+
+	fallbackResolved, fallbackErr := p.resolveSpeechRequest(SpeechRequest{
+		Provider: config.SpeechProviderKokoroHeart,
+		Text:     req.Text,
+	})
+	if fallbackErr != nil {
+		return SpeechResult{}, fmt.Errorf("gemini rate limited; kokoro-heart fallback unavailable: %w", fallbackErr)
+	}
+
+	fallbackResult, fallbackErr := p.synthesizeKokoroHeart(ctx, fallbackResolved)
+	if fallbackErr != nil {
+		return SpeechResult{}, fmt.Errorf("gemini rate limited; kokoro-heart fallback failed: %w", fallbackErr)
+	}
+	return fallbackResult, nil
+}
+
+func (p *Processor) synthesizeResolvedSpeech(ctx context.Context, req speechResolver) (SpeechResult, error) {
+	switch req.provider {
+	case config.SpeechProviderGemini:
+		return p.synthesizeGemini(ctx, req)
+	case config.SpeechProviderKokoroHeart:
+		return p.synthesizeKokoroHeart(ctx, req)
+	default:
+		return SpeechResult{}, fmt.Errorf("%w: unknown speech provider %q", ErrTTSUnavailable, req.provider)
 	}
 }
 
@@ -150,6 +187,13 @@ func (p *Processor) synthesizeGeminiSpeech(ctx context.Context, req speechResolv
 	}, nil
 }
 
+func (p *Processor) synthesizeGemini(ctx context.Context, req speechResolver) (SpeechResult, error) {
+	if p != nil && p.synthesizeGeminiFn != nil {
+		return p.synthesizeGeminiFn(ctx, req)
+	}
+	return p.synthesizeGeminiSpeech(ctx, req)
+}
+
 func (p *Processor) synthesizeKokoroHeartSpeech(ctx context.Context, req speechResolver) (SpeechResult, error) {
 	if p.cfg == nil || strings.TrimSpace(p.cfg.KokoroHeartURL) == "" {
 		return SpeechResult{}, fmt.Errorf("%w: KOKORO_HEART_URL not configured", ErrTTSUnavailable)
@@ -177,4 +221,11 @@ func (p *Processor) synthesizeKokoroHeartSpeech(ctx context.Context, req speechR
 		Voice:    req.voice,
 		Model:    "",
 	}, nil
+}
+
+func (p *Processor) synthesizeKokoroHeart(ctx context.Context, req speechResolver) (SpeechResult, error) {
+	if p != nil && p.synthesizeKokoroHeartFn != nil {
+		return p.synthesizeKokoroHeartFn(ctx, req)
+	}
+	return p.synthesizeKokoroHeartSpeech(ctx, req)
 }

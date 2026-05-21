@@ -156,11 +156,15 @@ func (s *Service) handleAuth(c tele.Context) error {
 		session.UserID = sender.ID
 	}
 	session.APIKeyID = keyID
+	provider, defaultVoice, defaultModel := s.activeSpeechConfig()
 	if session.Voice == "" {
-		session.Voice = s.cfg.DefaultVoice
+		session.Voice = defaultVoice
 	}
-	if session.Model == "" {
-		session.Model = s.cfg.DefaultModel
+	if provider == config.SpeechProviderGemini && session.Model == "" {
+		session.Model = defaultModel
+	}
+	if provider == config.SpeechProviderKokoroHeart {
+		session.Model = ""
 	}
 	if err := s.state.Telegram.Save(session); err != nil {
 		return fmt.Errorf("save telegram session: %w", err)
@@ -185,8 +189,9 @@ func (s *Service) handleVoice(c tele.Context) error {
 		return c.Send("Usage: /voice <name>")
 	}
 	voice := strings.TrimSpace(args[0])
-	if !config.IsValidVoice(voice) {
-		return c.Send(fmt.Sprintf("Invalid voice %q.", voice))
+	provider, _, _ := s.activeSpeechConfig()
+	if !config.IsValidVoiceForProvider(provider, voice) {
+		return c.Send(fmt.Sprintf("Invalid voice %q for provider %q.", voice, provider))
 	}
 	session.Voice = voice
 	if err := s.state.Telegram.Save(session); err != nil {
@@ -204,9 +209,13 @@ func (s *Service) handleModel(c tele.Context) error {
 	if len(args) != 1 {
 		return c.Send("Usage: /model <name>")
 	}
+	provider, _, _ := s.activeSpeechConfig()
+	if provider == config.SpeechProviderKokoroHeart {
+		return c.Send("Model selection is unavailable for provider \"kokoro-heart\".")
+	}
 	model := strings.TrimSpace(args[0])
-	if !config.IsValidModel(model) {
-		return c.Send(fmt.Sprintf("Invalid model %q.", model))
+	if !config.IsValidModelForProvider(provider, model) {
+		return c.Send(fmt.Sprintf("Invalid model %q for provider %q.", model, provider))
 	}
 	session.Model = model
 	if err := s.state.Telegram.Save(session); err != nil {
@@ -220,8 +229,9 @@ func (s *Service) handleStatus(c tele.Context) error {
 	if !ok {
 		return c.Send("Not authenticated. Use /auth <inti_api_key>.")
 	}
+	provider, voice, model := s.resolveSessionSpeech(session)
 	_, hasText := s.working.Get(c.Chat().ID)
-	return c.Send(fmt.Sprintf("Authenticated.\nVoice: %s\nModel: %s\nWorking text loaded: %t", session.Voice, session.Model, hasText))
+	return c.Send(fmt.Sprintf("Authenticated.\nProvider: %s\nVoice: %s\nModel: %s\nWorking text loaded: %t", provider, voice, model, hasText))
 }
 
 func (s *Service) handleText(c tele.Context) error {
@@ -351,21 +361,21 @@ func (s *Service) processSummary(c tele.Context, speak bool) error {
 	if !ok {
 		return c.Send("No working text loaded. Send text or an image first.")
 	}
-	summary, err := s.summarize(c, text)
+	result, err := s.summarize(c, text)
 	if err != nil {
 		return err
 	}
-	s.working.Set(c.Chat().ID, summary)
-	if err := c.Send(renderTelegramMarkdown(summary), tele.ModeMarkdownV2, s.actionMarkup("", false)); err != nil {
+	s.working.Set(c.Chat().ID, result.Summary)
+	if err := c.Send(formatTelegramSummaryResult(result), tele.ModeMarkdownV2, s.actionMarkup("", false)); err != nil {
 		return err
 	}
 	if speak {
-		return s.sendSpeech(c, summary)
+		return s.sendSpeech(c, result.Summary)
 	}
 	return nil
 }
 
-func (s *Service) summarize(c tele.Context, text string) (string, error) {
+func (s *Service) summarize(c tele.Context, text string) (textprocessing.SummaryResult, error) {
 	provider, model, keys, _ := s.state.Summarizer.Get()
 	var result textprocessing.SummaryResult
 	err := s.withChatAction(c.Chat(), tele.Typing, func() error {
@@ -379,9 +389,9 @@ func (s *Service) summarize(c tele.Context, text string) (string, error) {
 		return actionErr
 	})
 	if err != nil {
-		return "", err
+		return textprocessing.SummaryResult{}, err
 	}
-	return result.Summary, nil
+	return result, nil
 }
 
 func (s *Service) sendSpeech(c tele.Context, text string) error {
@@ -389,14 +399,16 @@ func (s *Service) sendSpeech(c tele.Context, text string) error {
 	if !ok {
 		return c.Send("Not authenticated. Use /auth <inti_api_key>.")
 	}
+	provider, voice, model := s.resolveSessionSpeech(session)
 	var result textprocessing.SpeechResult
 	err := s.withChatAction(c.Chat(), tele.RecordingAudio, func() error {
 		var actionErr error
-		result, actionErr = s.processor.SynthesizeSpeech(context.Background(), textprocessing.SpeechRequest{
-			Text:   text,
-			Voice:  session.Voice,
-			Model:  session.Model,
-			APIKey: s.cfg.GeminiAPIKey,
+		result, actionErr = s.processor.SynthesizeSpeechWithKokoroFallback(context.Background(), textprocessing.SpeechRequest{
+			Provider: provider,
+			Text:     text,
+			Voice:    voice,
+			Model:    model,
+			APIKey:   s.cfg.GeminiAPIKey,
 		})
 		return actionErr
 	})
@@ -406,17 +418,54 @@ func (s *Service) sendSpeech(c tele.Context, text string) error {
 		}
 		return err
 	}
-	voice := &tele.Voice{File: tele.FromReader(bytes.NewReader(result.Opus))}
-	audioFile := &tele.Audio{File: tele.FromReader(bytes.NewReader(result.Opus))}
+	voiceNote := &tele.Voice{File: tele.FromReader(bytes.NewReader(result.Opus))}
 	s.notifyChatAction(c.Chat(), tele.UploadingAudio)
-	if _, err := s.bot.Send(c.Chat(), voice); err != nil {
+	if _, err := s.bot.Send(c.Chat(), voiceNote); err != nil {
 		return fmt.Errorf("send voice note: %w", err)
 	}
-	s.notifyChatAction(c.Chat(), tele.UploadingAudio)
-	if _, err := s.bot.Send(c.Chat(), audioFile); err != nil {
-		return fmt.Errorf("send audio file: %w", err)
-	}
 	return nil
+}
+
+func (s *Service) activeSpeechConfig() (provider, voice, model string) {
+	if s != nil && s.state != nil && s.state.Speech != nil {
+		provider, voice, model = s.state.Speech.Get()
+	}
+	if !config.IsValidSpeechProvider(provider) {
+		if s != nil && s.cfg != nil && config.IsValidSpeechProvider(s.cfg.SpeechProvider) {
+			provider = s.cfg.SpeechProvider
+		} else {
+			provider = config.SpeechProviderGemini
+		}
+	}
+	if !config.IsValidVoiceForProvider(provider, voice) {
+		voice = config.DefaultVoiceForProvider(provider)
+	}
+	if !config.IsValidModelForProvider(provider, model) {
+		model = config.DefaultModelForProvider(provider)
+	}
+	if provider == config.SpeechProviderKokoroHeart {
+		model = ""
+	}
+	return provider, voice, model
+}
+
+func (s *Service) resolveSessionSpeech(session settings.TelegramSession) (provider, voice, model string) {
+	provider, defaultVoice, defaultModel := s.activeSpeechConfig()
+
+	voice = strings.TrimSpace(session.Voice)
+	if !config.IsValidVoiceForProvider(provider, voice) {
+		voice = defaultVoice
+	}
+
+	model = strings.TrimSpace(session.Model)
+	if !config.IsValidModelForProvider(provider, model) {
+		model = defaultModel
+	}
+	if provider == config.SpeechProviderKokoroHeart {
+		model = ""
+	}
+
+	return provider, voice, model
 }
 
 func (s *Service) withChatAction(chat *tele.Chat, action tele.ChatAction, run func() error) error {

@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/100nandoo/inti/internal/appstate"
+	"github.com/100nandoo/inti/internal/config"
 	"github.com/100nandoo/inti/internal/settings"
 	tele "gopkg.in/telebot.v4"
 )
@@ -143,5 +145,32 @@ func TestSplitTelegramMessage(t *testing.T) {
 	}
 	if strings.Join(chunks, "\n") != text {
 		t.Fatalf("rejoined chunks = %q, want %q", strings.Join(chunks, "\n"), text)
+	}
+}
+
+func TestResolveSessionSpeechFallsBackToActiveProviderDefaults(t *testing.T) {
+	svc := &Service{
+		cfg: &config.Config{SpeechProvider: config.SpeechProviderKokoroHeart},
+		state: &settings.Runtime{
+			Speech: settings.NewSpeechSettings(&appstate.ActiveSpeechConfig{
+				Provider: config.SpeechProviderKokoroHeart,
+				Voice:    config.DefaultKokoroHeartVoice,
+				Model:    "",
+			}),
+		},
+	}
+
+	provider, voice, model := svc.resolveSessionSpeech(settings.TelegramSession{
+		Voice: "Kore",
+		Model: config.DefaultModelName,
+	})
+	if provider != config.SpeechProviderKokoroHeart {
+		t.Fatalf("provider = %q, want %q", provider, config.SpeechProviderKokoroHeart)
+	}
+	if voice != config.DefaultKokoroHeartVoice {
+		t.Fatalf("voice = %q, want %q", voice, config.DefaultKokoroHeartVoice)
+	}
+	if model != "" {
+		t.Fatalf("model = %q, want empty", model)
 	}
 }

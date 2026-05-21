@@ -3,6 +3,8 @@ package telegrambot
 import (
 	"regexp"
 	"strings"
+
+	"github.com/100nandoo/inti/internal/textprocessing"
 )
 
 var (
@@ -211,4 +213,30 @@ func escapeTelegramCode(text string) string {
 
 func escapeTelegramURL(text string) string {
 	return strings.NewReplacer(`\`, `\\`, ")", `\)`).Replace(text)
+}
+
+func formatTelegramSummaryResult(result textprocessing.SummaryResult) string {
+	var out strings.Builder
+	summary := strings.TrimSpace(result.Summary)
+	if summary != "" {
+		out.WriteString(renderTelegramMarkdown(summary))
+	}
+
+	if result.Provider != "" || result.Model != "" {
+		if out.Len() > 0 {
+			out.WriteString("\n\n")
+		}
+		meta := []string{}
+		if result.Provider != "" {
+			meta = append(meta, "Provider: "+result.Provider)
+		}
+		if result.Model != "" {
+			meta = append(meta, "Model: "+result.Model)
+		}
+		out.WriteString("_")
+		out.WriteString(escapeTelegramText(strings.Join(meta, " • ")))
+		out.WriteString("_")
+	}
+
+	return out.String()
 }

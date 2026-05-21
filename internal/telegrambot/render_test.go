@@ -3,6 +3,8 @@ package telegrambot
 import (
 	"strings"
 	"testing"
+
+	"github.com/100nandoo/inti/internal/textprocessing"
 )
 
 func TestRenderTelegramMarkdown(t *testing.T) {
@@ -19,6 +21,25 @@ func TestRenderTelegramMarkdown(t *testing.T) {
 	for _, want := range wantParts {
 		if !strings.Contains(got, want) {
 			t.Fatalf("renderTelegramMarkdown() missing %q in output:\n%s", want, got)
+		}
+	}
+}
+
+func TestFormatTelegramSummaryResultIncludesProviderAndModel(t *testing.T) {
+	got := formatTelegramSummaryResult(textprocessing.SummaryResult{
+		Summary:  "# Title\n\nCondensed text",
+		Provider: "groq",
+		Model:    "llama-3.3-70b-versatile",
+	})
+
+	wantParts := []string{
+		`*Title*`,
+		`Condensed text`,
+		`_Provider: groq • Model: llama\-3\.3\-70b\-versatile_`,
+	}
+	for _, want := range wantParts {
+		if !strings.Contains(got, want) {
+			t.Fatalf("formatTelegramSummaryResult() missing %q in output:\n%s", want, got)
 		}
 	}
 }
