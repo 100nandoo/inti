@@ -70,7 +70,7 @@ The browser UI should be composed from feature modules that own their markup, st
    Inti ships as a single Go binary with embedded web assets. The rewrite should keep the current Vite build to `web/` and Go embedding flow.
 
 2. Preserve the current product shape.
-   The core UX model in `docs/web-frontend-ux-spec.md` remains valid: one canonical Working Text, one shared Latest Text Result, one separate Latest Audio Result, replace-only Promotion, and speech generation from Working Text.
+   The core UX model in `docs/web-frontend-ux-spec.md` remains valid: one canonical `Working Text`, one shared `Transform Result`, one separate `Audio Result`, replace-only `Promotion`, and speech generation from `Working Text`.
 
 3. Do not introduce a client-side router.
    Separate entry pages for `/`, `/settings.html`, `/api-keys.html`, and `/401.html` are appropriate for the embedded app.
@@ -140,9 +140,11 @@ Phase 0 does not mean every handwritten file under `web/` disappears immediately
 Phase 0 should also reconcile documentation before the code freeze is considered complete. `CONTEXT.md`, ADRs, the UX spec, and the rewrite plan must all describe the same product contract:
 
 - `Working Text` is the single canonical editable text source
+- `Transform Result` is the canonical text-result concept; `Latest Text Result` is display copy only when used
 - `Promotion` is replace-only
 - speech generation runs from `Working Text`
-- `Latest Audio Result` remains independent after later text edits
+- `Audio Result` is the canonical audio concept; `Latest Audio Result` is display copy only when used
+- `Audio Result` remains independent after later text edits
 
 ### 2. Establish the App Shell and Shared Contracts
 
@@ -150,10 +152,12 @@ Create a clean baseline in `web-src/src/`:
 
 - keep page entrypoints in `src/entries/*`
 - replace HTML-string shell helpers with real Svelte components
+- move the full main-page shell and static workspace skeleton into Svelte instead of leaving it in `renderAppShell()`
 - move shared contracts into stable `lib/state/` and `lib/api/` modules
 - ensure theme, auth, and page-shell behavior are owned by the Svelte app layer
+- keep any temporary legacy bridges behind feature-owned Svelte roots with explicit deletion targets
 
-At the end of this phase, the app shell should be fully Svelte even if feature content is still partially legacy.
+At the end of this phase, the app shell and workspace skeleton should be fully Svelte even if feature behavior is still partially legacy.
 
 ### 3. Rewrite the Main Workspace as Native Svelte Features
 
@@ -169,12 +173,12 @@ Rewrite the main page in vertical slices, not by utility file:
    Own provider/model selectors, summary execution, summary result rendering, and promotion actions.
 
 4. `speech`
-   Own provider/model/voice selectors, generate action, playback/download affordances, and latest audio result surface.
+   Own provider/model/voice selectors, generate action, playback/download affordances, and `Audio Result` surface.
 
 5. `feed` or activity history
    Keep secondary and compact. Do not let it dominate the primary workspace flow.
 
-Each feature should render its own Svelte components and talk to shared stores through explicit imports, not DOM ids.
+Each feature should render its own Svelte components and talk to shared stores through explicit imports, not DOM ids. Temporary DOM-id compatibility is acceptable only as a migration seam while a feature is still backed by a named legacy bridge.
 
 ### 4. Move Side Effects Behind Services
 
@@ -229,18 +233,21 @@ Phase 0 exit criteria:
 
 - no new runtime feature code is added under `web/js/*`
 - no new handwritten product logic is added under `web/`
-- the authoritative docs agree on `Working Text`, `Latest Text Result`, `Latest Audio Result`, and replace-only `Promotion`
+- the authoritative docs agree on `Working Text`, `Transform Result`, `Audio Result`, and replace-only `Promotion`
 - every remaining legacy bridge has an owner and a deletion target
 
 ### Phase 1: Shell and Shared State
 
 - convert remaining shell HTML-string rendering into Svelte components
-- normalize theme and auth wiring
+- move the full main-page shell and static workspace skeleton out of `renderAppShell()` and into Svelte components
+- normalize theme and auth wiring behind shared app-layer modules rather than page-specific globals
+- keep `web/theme.js` only as a minimal first-paint helper while runtime theme behavior moves behind Svelte-owned app services
 - move shared state modules into a durable `lib/state/` home if needed
+- remove dead product-shape contracts such as append-capable promotion from public shared contract types
 
 ### Phase 2: Workspace Rewrite
 
-- implement Working Text, Latest Text Result, and Latest Audio Result as native Svelte surfaces
+- implement `Working Text`, `Transform Result`, and `Audio Result` as native Svelte surfaces
 - keep feature behavior identical where possible
 - preserve the current UX spec rather than redesigning mid-migration
 
@@ -323,8 +330,8 @@ Manual checks:
 
 1. Main page loads with no legacy bootstrap dependency from `App.svelte`
 2. Working Text remains the single canonical text source
-3. OCR writes to Latest Text Result and supports promotion
-4. Summarization runs from Working Text and updates Latest Text Result
-5. Speech generation works from the intended source and preserves Latest Audio Result after text edits
+3. OCR writes to `Transform Result` and supports promotion
+4. Summarization runs from `Working Text` and updates `Transform Result`
+5. Speech generation works from the intended source and preserves `Audio Result` after text edits
 6. Settings and API Keys pages still load through their Svelte entrypoints
 7. Embedded server output still serves the rewritten assets correctly
