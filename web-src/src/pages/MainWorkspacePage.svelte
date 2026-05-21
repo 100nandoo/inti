@@ -1,8 +1,146 @@
 <script lang="ts">
+  import { onDestroy, onMount } from 'svelte';
   import PageShell from '../components/PageShell.svelte';
   import type { PageShellNavLink } from '../lib/page-shell-contracts';
+  import {
+    applyAppearanceConfig,
+    getSelectedSummarizerModel,
+    getSelectedSummarizerProvider,
+    promoteLatestTextResult,
+    setGroqRateLimits,
+    setInputMode,
+    setLatestTextResult,
+    setProcessing,
+    setWorkingText,
+    setWorkingTextRunMode,
+    workspaceStore,
+  } from '../lib/workspace-state.js';
+  import { copyLatestResultText, downloadLatestResult } from '../lib/result-surface.js';
+  import {
+    buildMainWorkspaceViewModel,
+    buildPromotionStatusMessage,
+    executeMainWorkspaceSummary,
+  } from '../lib/main-workspace-flow.js';
+  import type { SummaryDownloadFormat, WorkspaceState } from '../lib/workspace-contracts';
+  import { addFeed, setStatus, updateFeedItem } from '../../../web/js/feed.js';
 
   export let navLinks: PageShellNavLink[] = [];
+
+  let workspace: WorkspaceState;
+  let summaryDownloadFormat: SummaryDownloadFormat = 'md';
+  let resultDownloadMenuOpen = false;
+  let resultCopyLabel = 'Copy';
+  let resultDownloadGroup: HTMLDivElement | null = null;
+  let resetCopyLabelTimer: ReturnType<typeof window.setTimeout> | null = null;
+
+  const unsubscribeWorkspace = workspaceStore.subscribe((value) => {
+    workspace = value;
+  });
+
+  function normalizeSummaryDownloadFormat(value?: string): SummaryDownloadFormat {
+    return value === 'txt' ? 'txt' : 'md';
+  }
+
+  function applyThemeConfig(config?: typeof window.IntiTheme): void {
+    applyAppearanceConfig(config || {});
+    summaryDownloadFormat = normalizeSummaryDownloadFormat(config?.summaryDownloadFormat);
+  }
+
+  function closeResultDownloadMenu(): void {
+    resultDownloadMenuOpen = false;
+  }
+
+  function handleDocumentClick(event: MouseEvent): void {
+    if (!resultDownloadGroup?.contains(event.target as Node)) {
+      closeResultDownloadMenu();
+    }
+  }
+
+  function handleThemeConfigEvent(event: Event): void {
+    const customEvent = event as CustomEvent<typeof window.IntiTheme>;
+    applyThemeConfig(customEvent.detail || {});
+  }
+
+  async function summarizeWorkingText(): Promise<void> {
+    const text = workspace.workingText.trim();
+    if (!text || workspace.processing || workspace.inputMode !== 'working-text' || workspace.workingTextRunMode !== 'summary') {
+      return;
+    }
+
+    setProcessing(true);
+    setStatus('Summarizing…');
+    const feedItem = addFeed('info', 'Working Text', 'summarizing…');
+
+    try {
+      const apiURL = window.apiURL || ((path: string) => path);
+      const { rateLimits, summaryResult, feedLabel, feedMeta } = await executeMainWorkspaceSummary({
+        apiURL,
+        text,
+        provider: getSelectedSummarizerProvider(),
+        model: getSelectedSummarizerModel(),
+      });
+      if (rateLimits) setGroqRateLimits(rateLimits);
+      setLatestTextResult(summaryResult);
+      setStatus('Summary result ready for review.', 'success');
+      updateFeedItem(feedItem, 'ok', feedLabel, feedMeta);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      setStatus(message, 'error');
+      updateFeedItem(feedItem, 'fail', 'Working Text', message);
+    } finally {
+      setProcessing(false);
+    }
+  }
+
+  function handlePromoteLatestTextResult(): void {
+    if (!promoteLatestTextResult('replace')) return;
+    setInputMode('working-text');
+    setStatus(buildPromotionStatusMessage(workspace.latestTextResult.kind), 'success');
+  }
+
+  async function handleCopyLatestResult(): Promise<void> {
+    const copied = await copyLatestResultText(workspace.latestTextResult);
+    if (!copied) return;
+
+    resultCopyLabel = 'Copied!';
+    if (resetCopyLabelTimer) {
+      window.clearTimeout(resetCopyLabelTimer);
+    }
+    resetCopyLabelTimer = window.setTimeout(() => {
+      resultCopyLabel = 'Copy';
+      resetCopyLabelTimer = null;
+    }, 1500);
+  }
+
+  function handleDownloadLatestResult(format: SummaryDownloadFormat = summaryDownloadFormat): void {
+    if (workspace.processing) return;
+    downloadLatestResult(workspace.latestTextResult, format);
+    closeResultDownloadMenu();
+  }
+
+  onMount(() => {
+    applyThemeConfig(window.IntiTheme);
+    document.addEventListener('inti:theme-config', handleThemeConfigEvent);
+    document.addEventListener('click', handleDocumentClick);
+  });
+
+  onDestroy(() => {
+    unsubscribeWorkspace();
+    document.removeEventListener('inti:theme-config', handleThemeConfigEvent);
+    document.removeEventListener('click', handleDocumentClick);
+    if (resetCopyLabelTimer) {
+      window.clearTimeout(resetCopyLabelTimer);
+    }
+  });
+
+  $: mainWorkspaceViewModel = buildMainWorkspaceViewModel(workspace);
+  $: resultViewModel = mainWorkspaceViewModel.resultViewModel;
+  $: isOcrMode = mainWorkspaceViewModel.isOcrMode;
+  $: isWorkingTextMode = mainWorkspaceViewModel.isWorkingTextMode;
+  $: isSummaryMode = mainWorkspaceViewModel.isSummaryMode;
+  $: isVoiceMode = mainWorkspaceViewModel.isVoiceMode;
+  $: hasWorkingText = mainWorkspaceViewModel.hasWorkingText;
+  $: textResultCharacterCount = mainWorkspaceViewModel.textResultCharacterCount;
 </script>
 
 <PageShell {navLinks}>
@@ -17,26 +155,30 @@
         <button
           id="input-mode-ocr-btn"
           class="input-mode-btn"
+          class:is-active={isOcrMode}
           type="button"
           role="tab"
-          aria-selected="false"
+          aria-selected={isOcrMode}
           aria-controls="ocr-input-panel"
+          on:click={() => setInputMode('ocr')}
         >
           OCR
         </button>
         <button
           id="input-mode-working-text-btn"
           class="input-mode-btn"
+          class:is-active={!isOcrMode}
           type="button"
           role="tab"
-          aria-selected="true"
+          aria-selected={!isOcrMode}
           aria-controls="working-text-panel"
+          on:click={() => setInputMode('working-text')}
         >
           Working Text
         </button>
       </div>
 
-      <div id="ocr-input-panel" class="input-mode-panel">
+      <div id="ocr-input-panel" class="input-mode-panel" hidden={!isOcrMode}>
         <div class="drop-zone inti-surface" id="drop-zone" role="button" tabindex="0" aria-label="Import images for OCR">
           <span class="icon icon-upload-cloud drop-zone-icon" aria-hidden="true"></span>
           <p>Import images for OCR<br />or click to <label for="file-input" class="file-label">browse</label></p>
@@ -63,39 +205,50 @@
         </div>
       </div>
 
-      <div id="working-text-panel" class="field-block inti-surface ocr-output-block input-mode-panel">
+      <div id="working-text-panel" class="field-block inti-surface ocr-output-block input-mode-panel" hidden={isOcrMode}>
         <div class="field-head">
           <span>Working Text</span>
-          <span id="working-text-count">0 characters</span>
+          <span id="working-text-count">{workspace.workingText.length} characters</span>
         </div>
-        <textarea id="working-text" rows="9" placeholder="Paste or build text here. OCR and summarization operate on this text by default."></textarea>
+        <textarea
+          id="working-text"
+          rows="9"
+          placeholder="Paste or build text here. OCR and summarization operate on this text by default."
+          value={workspace.workingText}
+          disabled={workspace.processing}
+          on:input={(event) => setWorkingText((event.currentTarget as HTMLTextAreaElement).value)}
+        ></textarea>
       </div>
 
-      <div id="working-text-run-panel" class="inti-control-band working-text-run-panel">
+      <div id="working-text-run-panel" class="inti-control-band working-text-run-panel" hidden={!isWorkingTextMode}>
         <div class="run-mode-toggle" role="tablist" aria-label="Working Text run mode">
           <button
             id="run-mode-summary-btn"
             class="run-mode-btn"
+            class:is-active={isSummaryMode}
             type="button"
             role="tab"
-            aria-selected="true"
+            aria-selected={isSummaryMode}
             aria-controls="summary-run-panel"
+            on:click={() => setWorkingTextRunMode('summary')}
           >
             Summary
           </button>
           <button
             id="run-mode-voice-btn"
             class="run-mode-btn"
+            class:is-active={isVoiceMode}
             type="button"
             role="tab"
-            aria-selected="false"
+            aria-selected={isVoiceMode}
             aria-controls="summary-run-panel"
+            on:click={() => setWorkingTextRunMode('voice')}
           >
             Voice
           </button>
         </div>
 
-        <div id="summary-run-panel" class="run-mode-panel">
+        <div id="summary-run-panel" class="run-mode-panel" hidden={!isSummaryMode}>
           <div class="run-config-row">
             <div class="select-wrap provider-wrap inti-select-wrap">
               <select class="select select-bordered" id="provider-select" data-inti-dropdown title="Summarizer provider">
@@ -108,11 +261,28 @@
           </div>
 
           <div class="run-action-row">
-            <button id="clear-workspace-btn" class="btn-secondary btn btn-ghost border border-base-300" title="Clear working text">
+            <button
+              id="clear-workspace-btn"
+              class="btn-secondary btn btn-ghost border border-base-300"
+              title="Clear working text"
+              disabled={workspace.processing || !hasWorkingText || !isSummaryMode}
+              on:click={() => {
+                setWorkingText('');
+                setStatus('Working text cleared.', 'success');
+              }}
+            >
               <span class="icon icon-x" aria-hidden="true"></span>
               Clear
             </button>
-            <button id="summarize-btn" class="btn-primary btn btn-primary" title="Summarize source text">
+            <button
+              id="summarize-btn"
+              class="btn-primary btn btn-primary"
+              title="Summarize source text"
+              disabled={workspace.processing || !hasWorkingText || !isSummaryMode}
+              on:click={() => {
+                void summarizeWorkingText();
+              }}
+            >
               <span class="icon icon-bolt" aria-hidden="true"></span>
               <span>Summarize</span>
             </button>
@@ -125,26 +295,49 @@
       <div class="section-heading inti-panel-heading">
         <span class="ornament inti-panel-ornament" aria-hidden="true"></span>
         <h2>Latest Text Result</h2>
-        <span class="source-chip badge badge-outline" id="text-result-kind-chip">No result yet</span>
+        <span class="source-chip badge badge-outline" id="text-result-kind-chip">{resultViewModel.kindChip}</span>
       </div>
 
       <div id="text-result" class="field-block inti-surface">
         <div class="field-head">
-          <span id="text-result-title">Transform result</span>
-          <span id="text-result-count">0 characters</span>
+          <span id="text-result-title">{resultViewModel.title}</span>
+          <span id="text-result-count">{textResultCharacterCount} characters</span>
         </div>
-        <div id="text-result-content" class="summary-markdown"></div>
+        <div id="text-result-content" class="summary-markdown">{@html resultViewModel.contentHtml}</div>
         <div class="summary-actions result-actions inti-action-row">
-          <button id="result-promote-default-btn" class="btn-primary btn btn-primary">
+          <button
+            id="result-promote-default-btn"
+            class="btn-primary btn btn-primary"
+            disabled={workspace.processing || !resultViewModel.hasResult}
+            on:click={handlePromoteLatestTextResult}
+          >
             <span class="icon icon-arrow-up" aria-hidden="true"></span>
-            <span id="result-promote-default-label">Replace Working Text</span>
+            <span id="result-promote-default-label">{resultViewModel.defaultPromotionLabel}</span>
           </button>
-          <button id="result-copy-btn" class="btn-secondary btn btn-ghost border border-base-300">
+          <button
+            id="result-copy-btn"
+            class="btn-secondary btn btn-ghost border border-base-300"
+            disabled={workspace.processing || !resultViewModel.hasResult}
+            on:click={() => {
+              void handleCopyLatestResult();
+            }}
+          >
             <span class="icon icon-copy" aria-hidden="true"></span>
-            <span id="result-copy-label">Copy</span>
+            <span id="result-copy-label">{resultCopyLabel}</span>
           </button>
-          <div class="dropdown dropdown-top dropdown-end split-button inti-split-button" id="result-download-group">
-            <button id="result-download-btn" class="btn-secondary btn btn-ghost border border-base-300 split-button-main">
+          <div
+            class="dropdown dropdown-top dropdown-end split-button inti-split-button"
+            class:dropdown-open={resultDownloadMenuOpen}
+            class:is-open={resultDownloadMenuOpen}
+            id="result-download-group"
+            bind:this={resultDownloadGroup}
+          >
+            <button
+              id="result-download-btn"
+              class="btn-secondary btn btn-ghost border border-base-300 split-button-main"
+              disabled={workspace.processing || !resultViewModel.hasResult}
+              on:click={() => handleDownloadLatestResult()}
+            >
               <span class="icon icon-download" aria-hidden="true"></span>
               Download
             </button>
@@ -152,15 +345,31 @@
               id="result-download-toggle"
               class="btn-secondary btn btn-ghost border border-base-300 split-button-toggle"
               aria-haspopup="menu"
-              aria-expanded="false"
+              aria-expanded={resultDownloadMenuOpen}
               aria-controls="result-download-menu"
               title="Choose download format"
+              disabled={workspace.processing || !resultViewModel.hasResult}
+              on:click|stopPropagation={() => {
+                if (workspace.processing || !resultViewModel.hasResult) return;
+                resultDownloadMenuOpen = !resultDownloadMenuOpen;
+              }}
             >
               <span class="icon icon-chevron-down" aria-hidden="true"></span>
             </button>
-            <ul id="result-download-menu" class="dropdown-content menu bg-base-100 rounded-box z-1 w-52 p-2 shadow-sm split-menu" role="menu" hidden>
-              <li><button type="button" data-format="txt" role="menuitem">Download .txt</button></li>
-              <li><button type="button" data-format="md" role="menuitem">Download .md</button></li>
+            <ul
+              id="result-download-menu"
+              class="dropdown-content menu bg-base-100 rounded-box z-1 w-52 p-2 shadow-sm split-menu"
+              role="menu"
+              hidden={!resultDownloadMenuOpen}
+              on:keydown={(event) => {
+                if (event.key === 'Escape') {
+                  closeResultDownloadMenu();
+                  (document.getElementById('result-download-toggle') as HTMLButtonElement | null)?.focus();
+                }
+              }}
+            >
+              <li><button type="button" data-format="txt" role="menuitem" on:click={() => handleDownloadLatestResult('txt')}>Download .txt</button></li>
+              <li><button type="button" data-format="md" role="menuitem" on:click={() => handleDownloadLatestResult('md')}>Download .md</button></li>
             </ul>
           </div>
         </div>
@@ -177,7 +386,7 @@
       <div class="field-block inti-surface">
         <div class="field-head">
           <span>Working Text</span>
-          <span id="speech-input-count">0 characters</span>
+          <span id="speech-input-count">{workspace.workingText.length} characters</span>
         </div>
         <div id="speech-input-preview" class="summary-markdown speech-preview"></div>
       </div>
