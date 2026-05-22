@@ -66,7 +66,11 @@
     loadMainWorkspaceSummarizerConfig,
     saveMainWorkspaceSummarizerConfig,
   } from '../lib/main-workspace-summary-controls.js';
-  import type { SummaryDownloadFormat, WorkspaceState } from '../lib/workspace-contracts';
+  import type {
+    SpeechAudioSnapshot,
+    SummaryDownloadFormat,
+    WorkspaceState,
+  } from '../lib/workspace-contracts';
   import { addFeed, setPlaying, setStatus, updateFeedItem } from '../../../web/js/feed.js';
 
   export let navLinks: PageShellNavLink[] = [];
@@ -541,21 +545,21 @@
         provider: getSelectedSpeechProvider(),
         voice: getSelectedSpeechVoice(),
         model: getSelectedSpeechModel(),
+        autoPlay: autoPlayAudio,
+        autoDownload: autoDownloadAudio,
+        onAudioSnapshotReady: (audioSnapshot: SpeechAudioSnapshot) => {
+          setLastAudioResult(audioSnapshot.blob, audioSnapshot.sourceText, audioSnapshot.sourceLabel, {
+            provider: audioSnapshot.provider,
+            voice: audioSnapshot.voice,
+            model: audioSnapshot.model,
+          });
+          setActiveOutputTab('voice');
+        },
       });
-      setLastAudioResult(result.blob, result.sourceText, 'Working Text', {
-        provider: result.provider,
-        voice: result.voice,
-        model: result.model,
-      });
-      setActiveOutputTab('voice');
       setStatus('Audio result ready.', 'success');
       updateFeedItem(feedItem, 'ok', result.feedLabel, result.feedMeta);
-
-      if (autoPlayAudio) {
-        await playLatestAudio();
-      }
-      if (autoDownloadAudio) {
-        handleDownloadAudioSnapshot();
+      if (result.downloadedAudio) {
+        addFeed('ok', 'Downloaded', 'Opus file saved to your downloads folder');
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
