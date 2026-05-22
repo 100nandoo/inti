@@ -836,6 +836,7 @@
         <p>Extract text from the staged files and send the result to Output.</p>
         <div class="run-action-row">
           <button
+            id="execute-ocr-btn"
             class="btn-primary btn btn-primary"
             disabled={workspace.processing || workspace.stagedFiles.length === 0}
             on:click={() => {

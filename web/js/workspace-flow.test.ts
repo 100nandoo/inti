@@ -275,6 +275,17 @@ test('summary and OCR promotions honor their configured default behaviors', asyn
   assert.equal(workspace.getWorkspace().workingText, 'Scanned text');
 });
 
+test('action panel exposes the OCR extract button and enables it for staged files', async () => {
+  const image = new File(['image-bytes'], 'scan.png', { type: 'image/png' });
+
+  workspace.setInputMode('ocr');
+  workspace.setStagedFiles([image]);
+  await flushAsyncWork();
+
+  assert.equal(elements.executeOcrBtn.id, 'execute-ocr-btn');
+  assert.equal(elements.executeOcrBtn.disabled, false);
+});
+
 test('working text mode keeps Summary and Voice available while OCR stays visible but unavailable', async () => {
   typeWorkingText('Working draft');
   await flushAsyncWork();

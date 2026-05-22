@@ -73,11 +73,6 @@ export function renderMainWorkspaceFixture(navLinks: NavLink[] = []) {
                   <button id="clear-files-btn" class="btn-secondary btn btn-ghost border border-base-300 icon-only" title="Clear staged files">
                     <span class="icon icon-trash" aria-hidden="true"></span>
                   </button>
-                  <button id="execute-ocr-btn" class="btn-primary btn btn-primary">
-                    <span aria-hidden="true">--</span>
-                    Extract Text
-                    <span class="icon icon-bolt" aria-hidden="true"></span>
-                  </button>
                 </div>
               </div>
             </div>
@@ -117,7 +112,7 @@ export function renderMainWorkspaceFixture(navLinks: NavLink[] = []) {
               </div>
               <p>Extract text from the staged files and send the result to Output.</p>
               <div class="run-action-row">
-                <button class="btn-primary btn btn-primary" disabled>
+                <button id="execute-ocr-btn" class="btn-primary btn btn-primary" disabled>
                   <span aria-hidden="true">--</span>
                   Extract Text
                   <span class="icon icon-bolt" aria-hidden="true"></span>

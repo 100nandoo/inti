@@ -1,1 +1,1 @@
-import{a1 as y}from"./PageShell.js";function f(e,s,i,r){var l=e.__style;if(l!==s){var t=y(s);t==null?e.removeAttribute("style"):e.style.cssText=t,e.__style=s}return r}export{f as s};
+import{b as r,a1 as f}from"./PageShell.js";function a(s,e,p,i){var l=s[r];if(l!==e){var t=f(e);t==null?s.removeAttribute("style"):s.style.cssText=t,s[r]=e}return i}export{a as s};
