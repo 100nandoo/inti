@@ -44,13 +44,12 @@ import {
   setWorkingText,
   subscribeWorkspace,
 } from './workspace.js';
-import { truncate } from './text.js';
 import { buildMainWorkspaceViewModel } from '../../web-src/src/lib/main-workspace-flow.js';
 import {
   copyLatestResultText,
   downloadLatestResult,
 } from '../../web-src/src/lib/result-surface.js';
-import { executeSummaryRequest } from '../../web-src/src/lib/summary-flow.js';
+import { executeMainWorkspaceSummary } from '../../web-src/src/lib/main-workspace-summary-service.js';
 
 let summaryDownloadFormat = 'md';
 const VALID_SUMMARY_DOWNLOAD_FORMATS = new Set(['txt', 'md']);
@@ -151,33 +150,24 @@ export async function summarizeText(text) {
   setProcessing(true);
   setStatus('Summarizing…');
 
-  const startTime = performance.now();
-  const wordCount = text.trim().split(/\s+/).length;
-  const feedItem = addFeed('info', `"${truncate(text, 60)}"`, 'summarizing…');
+  const feedItem = addFeed('info', 'Working Text', 'summarizing…');
 
   try {
-    const provider = getSelectedSummarizerProvider();
-    const { model, provider: resolvedProvider, rateLimits, summaryResult } = await executeSummaryRequest({
+    const { rateLimits, summaryResult, feedLabel, feedMeta } = await executeMainWorkspaceSummary({
       apiURL: window.apiURL,
       text,
-      provider,
+      provider: getSelectedSummarizerProvider(),
       model: getSelectedSummarizerModel(),
     });
     if (rateLimits) setGroqRateLimits(rateLimits);
     setLatestTextResult(summaryResult);
 
-    const duration = ((performance.now() - startTime) / 1000).toFixed(1);
-    const modelTag = model ? ` · ${model}` : (resolvedProvider ? ` · ${resolvedProvider}` : '');
     setStatus('Summary result ready for review.', 'success');
-    updateFeedItem(
-      feedItem,
-      'ok',
-      `"${truncate(text, 60)}"`,
-      `${wordCount} words → summary · ${duration}s${modelTag}`,
-    );
+    updateFeedItem(feedItem, 'ok', feedLabel, feedMeta);
   } catch (error) {
-    setStatus(error.message, 'error');
-    updateFeedItem(feedItem, 'fail', `"${truncate(text, 60)}"`, error.message);
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    setStatus(message, 'error');
+    updateFeedItem(feedItem, 'fail', 'Working Text', message);
   } finally {
     setProcessing(false);
   }

@@ -19,6 +19,12 @@ test('api keys route uses the Svelte secondary-page entrypoint', () => {
 test('API keys page preserves authenticated admin flows', async (t) => {
   let copiedValue = '';
   let createdCount = 1;
+  const themeConfig = {
+    theme: 'dark',
+    summaryDownloadFormat: 'md',
+    ocrPromotionBehavior: 'replace',
+    summaryPromotionBehavior: 'replace',
+  };
   let keys = [
     {
       id: 'k1',
@@ -28,7 +34,7 @@ test('API keys page preserves authenticated admin flows', async (t) => {
       lastUsedAt: '2026-05-13T12:00:00Z',
     },
   ];
-  const requests: Array<{ url: string; method: string; body: unknown }> = [];
+  const requests: Array<{ url: string; method: string; body: Record<string, unknown> | null }> = [];
 
   const dom = installDom('http://localhost:8282/api-keys.html?key=main-secret');
   t.after(() => teardownPage(dom));
@@ -49,21 +55,11 @@ test('API keys page preserves authenticated admin flows', async (t) => {
     requests.push({ url: urlText, method, body: options.body ? JSON.parse(options.body as string) : null });
 
     if (method === 'GET' && urlText === 'http://localhost:8282/api/theme-config?key=main-secret') {
-      return Response.json({
-        theme: 'dark',
-        summaryDownloadFormat: 'md',
-        ocrPromotionBehavior: 'replace',
-        summaryPromotionBehavior: 'replace',
-      });
+      return Response.json(themeConfig);
     }
 
     if (method === 'GET' && urlText === 'http://localhost:8282/api/theme-config?key=inti_secret_1') {
-      return Response.json({
-        theme: 'dark',
-        summaryDownloadFormat: 'md',
-        ocrPromotionBehavior: 'replace',
-        summaryPromotionBehavior: 'replace',
-      });
+      return Response.json(themeConfig);
     }
 
     if (method === 'GET' && urlText === 'http://localhost:8282/api/admin/keys?key=main-secret') {
@@ -75,10 +71,12 @@ test('API keys page preserves authenticated admin flows', async (t) => {
     }
 
     if (method === 'POST' && urlText === 'http://localhost:8282/api/theme-config?key=main-secret') {
+      const body = options.body ? (JSON.parse(options.body as string) as Record<string, unknown>) : null;
       return Response.json(body);
     }
 
     if (method === 'POST' && urlText === 'http://localhost:8282/api/theme-config?key=inti_secret_1') {
+      const body = options.body ? (JSON.parse(options.body as string) as Record<string, unknown>) : null;
       return Response.json(body);
     }
 
