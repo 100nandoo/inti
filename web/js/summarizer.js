@@ -1,5 +1,8 @@
 import {
   clearWorkspaceBtn,
+  outputTabOcrBtn,
+  outputTabSummaryBtn,
+  outputTabVoiceBtn,
   resultCopyBtn,
   resultCopyLabel,
   resultDownloadBtn,
@@ -11,10 +14,13 @@ import {
   runModeSummaryBtn,
   runModeVoiceBtn,
   summaryRunPanel,
+  textResultPanel,
   summarizeBtn,
   textResultContent,
   textResultKindChip,
   textResultTitle,
+  voiceResultPanel,
+  voiceRunPanel,
   workingText,
   workingTextRunPanel,
 } from './dom.js';
@@ -66,22 +72,31 @@ function syncWorkspaceControls() {
   workingText.disabled = processing;
   workingTextRunPanel.hidden = !isWorkingTextMode;
   summaryRunPanel.hidden = !isSummaryMode;
+  voiceRunPanel.hidden = !(isWorkingTextMode && workingTextRunMode === 'voice');
   clearWorkspaceBtn.disabled = processing || !hasWorkingText || !isSummaryMode;
   summarizeBtn.disabled = processing || !hasWorkingText || !isSummaryMode;
   runModeSummaryBtn.setAttribute('aria-selected', String(isSummaryMode));
   runModeVoiceBtn.setAttribute('aria-selected', String(isWorkingTextMode && workingTextRunMode === 'voice'));
   runModeSummaryBtn.classList.toggle('is-active', isSummaryMode);
   runModeVoiceBtn.classList.toggle('is-active', isWorkingTextMode && workingTextRunMode === 'voice');
+  outputTabOcrBtn?.setAttribute('aria-selected', String(viewModel.activeTab === 'ocr'));
+  outputTabSummaryBtn?.setAttribute('aria-selected', String(viewModel.activeTab === 'summary'));
+  outputTabVoiceBtn?.setAttribute('aria-selected', String(viewModel.activeTab === 'voice'));
+  outputTabOcrBtn?.classList.toggle('is-active', viewModel.activeTab === 'ocr');
+  outputTabSummaryBtn?.classList.toggle('is-active', viewModel.activeTab === 'summary');
+  outputTabVoiceBtn?.classList.toggle('is-active', viewModel.activeTab === 'voice');
+  textResultPanel.hidden = viewModel.isVoiceTab;
+  voiceResultPanel.hidden = !viewModel.isVoiceTab;
 
   textResultContent.innerHTML = viewModel.contentHtml;
   textResultKindChip.textContent = viewModel.kindChip;
   textResultTitle.textContent = viewModel.title;
   resultPromoteDefaultLabel.textContent = viewModel.defaultPromotionLabel;
 
-  resultPromoteDefaultBtn.disabled = processing || !viewModel.hasResult;
-  resultCopyBtn.disabled = processing || !viewModel.hasResult;
-  resultDownloadBtn.disabled = processing || !viewModel.hasResult;
-  resultDownloadToggle.disabled = processing || !viewModel.hasResult;
+  resultPromoteDefaultBtn.disabled = processing || !viewModel.hasTextResult;
+  resultCopyBtn.disabled = processing || !viewModel.hasTextResult;
+  resultDownloadBtn.disabled = processing || !viewModel.hasTextResult;
+  resultDownloadToggle.disabled = processing || !viewModel.hasTextResult;
 
   if (resultDownloadBtn.disabled) {
     closeResultDownloadMenu();
@@ -184,6 +199,18 @@ export function initSummarizer() {
 
   runModeVoiceBtn?.addEventListener('click', () => {
     setWorkingTextRunMode('voice');
+  });
+
+  outputTabOcrBtn?.addEventListener('click', () => {
+    setActiveOutputTab('ocr');
+  });
+
+  outputTabSummaryBtn?.addEventListener('click', () => {
+    setActiveOutputTab('summary');
+  });
+
+  outputTabVoiceBtn?.addEventListener('click', () => {
+    setActiveOutputTab('voice');
   });
 
   summarizeBtn.addEventListener('click', async () => {
