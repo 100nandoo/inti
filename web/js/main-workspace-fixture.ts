@@ -47,7 +47,7 @@ export function renderMainWorkspaceFixture(navLinks: NavLink[] = []) {
           <section class="panel panel-workspace inti-workspace-card card bg-base-100/90 shadow-2xl shadow-base-content/10" id="ocr-card">
             <div class="section-heading inti-panel-heading">
               <span class="ornament inti-panel-ornament" aria-hidden="true"></span>
-              <h2>Text Workspace</h2>
+              <h2>Input</h2>
               <span class="source-chip badge badge-warning badge-outline">One working text</span>
             </div>
             <div class="input-mode-toggle inti-input-mode-toggle" role="tablist" aria-label="Input mode">
@@ -73,7 +73,7 @@ export function renderMainWorkspaceFixture(navLinks: NavLink[] = []) {
                   <button id="clear-files-btn" class="btn-secondary btn btn-ghost border border-base-300 icon-only" title="Clear staged files">
                     <span class="icon icon-trash" aria-hidden="true"></span>
                   </button>
-                  <button id="run-ocr-btn" class="btn-primary btn btn-primary">
+                  <button id="execute-ocr-btn" class="btn-primary btn btn-primary">
                     <span aria-hidden="true">--</span>
                     Extract Text
                     <span class="icon icon-bolt" aria-hidden="true"></span>
@@ -88,48 +88,128 @@ export function renderMainWorkspaceFixture(navLinks: NavLink[] = []) {
                 <span id="working-text-count">0 characters</span>
               </div>
               <textarea id="working-text" rows="9" placeholder="Paste or build text here. OCR and summarization operate on this text by default."></textarea>
-            </div>
-
-            <div id="working-text-run-panel" class="inti-control-band working-text-run-panel">
-              <div class="run-mode-toggle" role="tablist" aria-label="Working Text run mode">
-                <button id="run-mode-summary-btn" class="run-mode-btn" type="button" role="tab" aria-selected="true" aria-controls="summary-run-panel">Summary</button>
-                <button id="run-mode-voice-btn" class="run-mode-btn" type="button" role="tab" aria-selected="false" aria-controls="summary-run-panel">Voice</button>
-              </div>
-
-              <div id="summary-run-panel" class="run-mode-panel">
-                <div class="run-config-row">
-                  <div class="select-wrap provider-wrap inti-select-wrap">
-                    <select class="select select-bordered" id="provider-select" data-inti-dropdown title="Summarizer provider">
-                      <option value="">Server default</option>
-                    </select>
-                  </div>
-                  <div class="select-wrap provider-wrap inti-select-wrap" id="sum-model-wrap" hidden>
-                    <select class="select select-bordered" id="sum-model-select" data-inti-dropdown title="Summarizer model"></select>
-                  </div>
-                </div>
-
-                <div class="run-action-row">
-                  <button id="clear-workspace-btn" class="btn-secondary btn btn-ghost border border-base-300" title="Clear working text">
-                    <span class="icon icon-x" aria-hidden="true"></span>
-                    Clear
-                  </button>
-                  <button id="summarize-btn" class="btn-primary btn btn-primary" title="Summarize source text">
-                    <span class="icon icon-bolt" aria-hidden="true"></span>
-                    <span>Summarize</span>
-                  </button>
-                </div>
+              <div class="run-action-row">
+                <button id="clear-workspace-btn" class="btn-secondary btn btn-ghost border border-base-300" title="Clear working text">
+                  <span class="icon icon-x" aria-hidden="true"></span>
+                  Clear
+                </button>
               </div>
             </div>
           </section>
 
-          <section class="panel panel-result inti-workspace-card card bg-base-100/90 shadow-2xl shadow-base-content/10">
+          <section class="panel panel-result inti-workspace-card card bg-base-100/90 shadow-2xl shadow-base-content/10" id="working-text-run-panel">
             <div class="section-heading inti-panel-heading">
               <span class="ornament inti-panel-ornament" aria-hidden="true"></span>
-              <h2>Latest Text Result</h2>
+              <h2>Action</h2>
+              <span class="source-chip badge badge-outline" id="action-kind-chip">Summary ready</span>
+            </div>
+
+            <div class="run-mode-toggle" role="tablist" aria-label="Action tabs">
+              <button id="run-ocr-btn" class="run-mode-btn" type="button" role="tab" aria-selected="false" aria-controls="ocr-run-panel">OCR</button>
+              <button id="run-mode-summary-btn" class="run-mode-btn" type="button" role="tab" aria-selected="true" aria-controls="summary-run-panel">Summary</button>
+              <button id="run-mode-voice-btn" class="run-mode-btn" type="button" role="tab" aria-selected="false" aria-controls="voice-run-panel">Voice</button>
+            </div>
+
+            <div id="ocr-run-panel" class="field-block inti-surface" hidden>
+              <div class="field-head">
+                <span>OCR</span>
+                <span id="ocr-action-count">0 files</span>
+              </div>
+              <p>Extract text from the staged files and send the result to Output.</p>
+              <div class="run-action-row">
+                <button class="btn-primary btn btn-primary" disabled>
+                  <span aria-hidden="true">--</span>
+                  Extract Text
+                  <span class="icon icon-bolt" aria-hidden="true"></span>
+                </button>
+              </div>
+            </div>
+
+            <div id="summary-run-panel" class="run-mode-panel">
+              <div class="run-config-row">
+                <div class="select-wrap provider-wrap inti-select-wrap">
+                  <select class="select select-bordered" id="provider-select" data-inti-dropdown title="Summarizer provider">
+                    <option value="">Server default</option>
+                  </select>
+                </div>
+                <div class="select-wrap provider-wrap inti-select-wrap" id="sum-model-wrap" hidden>
+                  <select class="select select-bordered" id="sum-model-select" data-inti-dropdown title="Summarizer model"></select>
+                </div>
+              </div>
+
+              <div class="run-action-row">
+                <button id="summarize-btn" class="btn-primary btn btn-primary" title="Summarize source text">
+                  <span class="icon icon-bolt" aria-hidden="true"></span>
+                  <span>Summarize</span>
+                </button>
+              </div>
+            </div>
+
+            <div id="voice-run-panel" class="run-mode-panel" hidden>
+              <div class="field-block inti-surface">
+                <div class="field-head">
+                  <span>Working Text</span>
+                  <span id="speech-input-count">0 characters</span>
+                </div>
+                <div id="speech-input-preview" class="summary-markdown speech-preview"></div>
+              </div>
+
+              <div class="controls inti-control-band">
+                <div class="select-wrap inti-select-wrap">
+                  <select class="select select-bordered" id="speech-provider-select" data-inti-dropdown title="Select speech provider">
+                    <option value="gemini">Gemini</option>
+                    <option value="kokoro-heart">kokoro heart</option>
+                  </select>
+                </div>
+                <div class="select-wrap inti-select-wrap">
+                  <select class="select select-bordered" id="model-select" data-inti-dropdown title="Select TTS model"></select>
+                </div>
+                <div class="select-wrap inti-select-wrap">
+                  <select class="select select-bordered" id="voice-select" data-inti-dropdown title="Select voice"></select>
+                </div>
+                <div class="select-wrap inti-select-wrap">
+                  <select class="select select-bordered" id="gender-filter" data-inti-dropdown title="Filter by gender">
+                    <option value="All">All voices</option>
+                    <option value="Female">Female</option>
+                    <option value="Male">Male</option>
+                  </select>
+                </div>
+
+                <div class="action-checkboxes inti-checkboxes">
+                  <label class="action-check label cursor-pointer gap-2 rounded-full border border-base-300 bg-base-100/80 px-3 py-2"><input type="checkbox" id="action-speak" class="checkbox checkbox-sm" /> Auto-play</label>
+                  <label class="action-check label cursor-pointer gap-2 rounded-full border border-base-300 bg-base-100/80 px-3 py-2"><input type="checkbox" id="action-download" class="checkbox checkbox-sm" /> Download</label>
+                </div>
+                <button id="generate-working-audio-btn" class="btn-primary btn btn-primary generate-btn">
+                  <span class="icon icon-speaker" aria-hidden="true"></span>
+                  Generate from Working Text
+                </button>
+                <div class="playing-bar" id="playing-bar">
+                  <div class="bar"></div>
+                  <div class="bar"></div>
+                  <div class="bar"></div>
+                  <div class="bar"></div>
+                  <div class="bar"></div>
+                </div>
+
+                <span class="status-text" id="status-text"></span>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel panel-tts inti-workspace-card card bg-base-100/90 shadow-2xl shadow-base-content/10">
+            <div class="section-heading inti-panel-heading">
+              <span class="ornament inti-panel-ornament" aria-hidden="true"></span>
+              <h2>Output</h2>
               <span class="source-chip badge badge-outline" id="text-result-kind-chip">No result yet</span>
             </div>
 
-            <div id="text-result" class="field-block inti-surface">
+            <div class="run-mode-toggle" role="tablist" aria-label="Output tabs">
+              <button id="output-tab-ocr-btn" class="run-mode-btn" type="button" role="tab" aria-selected="false" aria-controls="text-result-panel">OCR</button>
+              <button id="output-tab-summary-btn" class="run-mode-btn" type="button" role="tab" aria-selected="true" aria-controls="text-result-panel">Summary</button>
+              <button id="output-tab-voice-btn" class="run-mode-btn" type="button" role="tab" aria-selected="false" aria-controls="audio-result-panel">Voice</button>
+            </div>
+
+            <div id="text-result-panel" class="field-block inti-surface">
               <div class="field-head">
                 <span id="text-result-title">Transform result</span>
                 <span id="text-result-count">0 characters</span>
@@ -159,64 +239,8 @@ export function renderMainWorkspaceFixture(navLinks: NavLink[] = []) {
                 </div>
               </div>
             </div>
-          </section>
 
-          <section class="panel panel-tts inti-workspace-card card bg-base-100/90 shadow-2xl shadow-base-content/10">
-            <div class="section-heading inti-panel-heading">
-              <span class="ornament inti-panel-ornament" aria-hidden="true"></span>
-              <h2>Speech</h2>
-              <span class="source-chip badge badge-outline">Audio stays available after edits</span>
-            </div>
-
-            <div class="field-block inti-surface">
-              <div class="field-head">
-                <span>Working Text</span>
-                <span id="speech-input-count">0 characters</span>
-              </div>
-              <div id="speech-input-preview" class="summary-markdown speech-preview"></div>
-            </div>
-
-            <div class="controls inti-control-band">
-              <div class="select-wrap inti-select-wrap">
-                <select class="select select-bordered" id="speech-provider-select" data-inti-dropdown title="Select speech provider">
-                  <option value="gemini">Gemini</option>
-                  <option value="kokoro-heart">kokoro heart</option>
-                </select>
-              </div>
-              <div class="select-wrap inti-select-wrap">
-                <select class="select select-bordered" id="model-select" data-inti-dropdown title="Select TTS model"></select>
-              </div>
-              <div class="select-wrap inti-select-wrap">
-                <select class="select select-bordered" id="voice-select" data-inti-dropdown title="Select voice"></select>
-              </div>
-              <div class="select-wrap inti-select-wrap">
-                <select class="select select-bordered" id="gender-filter" data-inti-dropdown title="Filter by gender">
-                  <option value="All">All voices</option>
-                  <option value="Female">Female</option>
-                  <option value="Male">Male</option>
-                </select>
-              </div>
-
-              <div class="action-checkboxes inti-checkboxes">
-                <label class="action-check label cursor-pointer gap-2 rounded-full border border-base-300 bg-base-100/80 px-3 py-2"><input type="checkbox" id="action-speak" class="checkbox checkbox-sm" /> Auto-play</label>
-                <label class="action-check label cursor-pointer gap-2 rounded-full border border-base-300 bg-base-100/80 px-3 py-2"><input type="checkbox" id="action-download" class="checkbox checkbox-sm" /> Download</label>
-              </div>
-              <button id="generate-working-audio-btn" class="btn-primary btn btn-primary generate-btn">
-                <span class="icon icon-speaker" aria-hidden="true"></span>
-                Generate from Working Text
-              </button>
-              <div class="playing-bar" id="playing-bar">
-                <div class="bar"></div>
-                <div class="bar"></div>
-                <div class="bar"></div>
-                <div class="bar"></div>
-                <div class="bar"></div>
-              </div>
-
-              <span class="status-text" id="status-text"></span>
-            </div>
-
-            <div class="field-block inti-surface">
+            <div id="audio-result-panel" class="field-block inti-surface" hidden>
               <div class="field-head">
                 <span>Latest audio result</span>
                 <span id="audio-result-meta">No audio yet</span>

@@ -1,5 +1,9 @@
 import {
+  actionTabOcrBtn,
   clearWorkspaceBtn,
+  outputTabOcrBtn,
+  outputTabSummaryBtn,
+  outputTabVoiceBtn,
   resultCopyBtn,
   resultCopyLabel,
   resultDownloadBtn,
@@ -12,9 +16,12 @@ import {
   runModeVoiceBtn,
   summaryRunPanel,
   summarizeBtn,
+  textResultPanel,
   textResultContent,
   textResultKindChip,
   textResultTitle,
+  audioResultPanel,
+  voiceRunPanel,
   workingText,
   workingTextRunPanel,
 } from './dom.js';
@@ -23,10 +30,12 @@ import { updateTextMetrics } from './metrics.js';
 import {
   applyAppearanceConfig,
   clearLatestTextResult,
+  getActiveTextResult,
   getSelectedSummarizerModel,
   getSelectedSummarizerProvider,
   getWorkspace,
   promoteLatestTextResult,
+  setActiveOutputTab,
   setInputMode,
   setGroqRateLimits,
   setLatestTextResult,
@@ -36,8 +45,8 @@ import {
   subscribeWorkspace,
 } from './workspace.js';
 import { truncate } from './text.js';
+import { buildMainWorkspaceViewModel } from '../../web-src/src/lib/main-workspace-flow.js';
 import {
-  buildResultSurfaceViewModel,
   copyLatestResultText,
   downloadLatestResult,
 } from '../../web-src/src/lib/result-surface.js';
@@ -47,41 +56,58 @@ let summaryDownloadFormat = 'md';
 const VALID_SUMMARY_DOWNLOAD_FORMATS = new Set(['txt', 'md']);
 
 function syncWorkspaceControls() {
+  const workspace = getWorkspace();
   const {
-    inputMode,
     processing,
     workingText: currentWorkingText,
-    workingTextRunMode,
-    latestTextResult,
-  } = getWorkspace();
-  const hasWorkingText = currentWorkingText.trim().length > 0;
-  const isWorkingTextMode = inputMode === 'working-text';
-  const isSummaryMode = isWorkingTextMode && workingTextRunMode === 'summary';
-  const viewModel = buildResultSurfaceViewModel(getWorkspace());
+  } = workspace;
+  const mainWorkspaceViewModel = buildMainWorkspaceViewModel(workspace);
+  const {
+    isSummaryMode,
+    isVoiceMode,
+    hasWorkingText,
+    actionTabs,
+    resultViewModel,
+  } = mainWorkspaceViewModel;
 
   if (workingText.value !== currentWorkingText) {
     workingText.value = currentWorkingText;
   }
 
   workingText.disabled = processing;
-  workingTextRunPanel.hidden = !isWorkingTextMode;
+  workingTextRunPanel.hidden = false;
   summaryRunPanel.hidden = !isSummaryMode;
-  clearWorkspaceBtn.disabled = processing || !hasWorkingText || !isSummaryMode;
+  voiceRunPanel.hidden = !isVoiceMode;
+  clearWorkspaceBtn.disabled = processing || !hasWorkingText;
   summarizeBtn.disabled = processing || !hasWorkingText || !isSummaryMode;
-  runModeSummaryBtn.setAttribute('aria-selected', String(isSummaryMode));
-  runModeVoiceBtn.setAttribute('aria-selected', String(isWorkingTextMode && workingTextRunMode === 'voice'));
-  runModeSummaryBtn.classList.toggle('is-active', isSummaryMode);
-  runModeVoiceBtn.classList.toggle('is-active', isWorkingTextMode && workingTextRunMode === 'voice');
+  actionTabOcrBtn.disabled = actionTabs.ocr.disabled;
+  runModeSummaryBtn.disabled = actionTabs.summary.disabled;
+  runModeVoiceBtn.disabled = actionTabs.voice.disabled;
+  actionTabOcrBtn.setAttribute('aria-selected', String(actionTabs.ocr.active));
+  runModeSummaryBtn.setAttribute('aria-selected', String(actionTabs.summary.active));
+  runModeVoiceBtn.setAttribute('aria-selected', String(actionTabs.voice.active));
+  actionTabOcrBtn.classList.toggle('is-active', actionTabs.ocr.active);
+  runModeSummaryBtn.classList.toggle('is-active', actionTabs.summary.active);
+  runModeVoiceBtn.classList.toggle('is-active', actionTabs.voice.active);
 
-  textResultContent.innerHTML = viewModel.contentHtml;
-  textResultKindChip.textContent = viewModel.kindChip;
-  textResultTitle.textContent = viewModel.title;
-  resultPromoteDefaultLabel.textContent = viewModel.defaultPromotionLabel;
+  outputTabOcrBtn.setAttribute('aria-selected', String(resultViewModel.activeTab === 'ocr'));
+  outputTabSummaryBtn.setAttribute('aria-selected', String(resultViewModel.activeTab === 'summary'));
+  outputTabVoiceBtn.setAttribute('aria-selected', String(resultViewModel.activeTab === 'voice'));
+  outputTabOcrBtn.classList.toggle('is-active', resultViewModel.activeTab === 'ocr');
+  outputTabSummaryBtn.classList.toggle('is-active', resultViewModel.activeTab === 'summary');
+  outputTabVoiceBtn.classList.toggle('is-active', resultViewModel.activeTab === 'voice');
 
-  resultPromoteDefaultBtn.disabled = processing || !viewModel.hasResult;
-  resultCopyBtn.disabled = processing || !viewModel.hasResult;
-  resultDownloadBtn.disabled = processing || !viewModel.hasResult;
-  resultDownloadToggle.disabled = processing || !viewModel.hasResult;
+  textResultPanel.hidden = resultViewModel.isVoiceTab;
+  audioResultPanel.hidden = !resultViewModel.isVoiceTab;
+  textResultContent.innerHTML = resultViewModel.contentHtml;
+  textResultKindChip.textContent = resultViewModel.kindChip;
+  textResultTitle.textContent = resultViewModel.title;
+  resultPromoteDefaultLabel.textContent = resultViewModel.defaultPromotionLabel;
+
+  resultPromoteDefaultBtn.disabled = processing || !resultViewModel.hasTextResult;
+  resultCopyBtn.disabled = processing || !resultViewModel.hasTextResult;
+  resultDownloadBtn.disabled = processing || !resultViewModel.hasTextResult;
+  resultDownloadToggle.disabled = processing || !resultViewModel.hasTextResult;
 
   if (resultDownloadBtn.disabled) {
     closeResultDownloadMenu();
@@ -117,7 +143,7 @@ function toggleResultDownloadMenu() {
 }
 
 function announcePromotion() {
-  const kind = getWorkspace().latestTextResult.kind || 'result';
+  const kind = getActiveTextResult().kind || 'result';
   setStatus(`${kind === 'summary' ? 'Summary' : 'OCR result'} replaced working text.`, 'success');
 }
 
@@ -186,12 +212,29 @@ export function initSummarizer() {
     setWorkingTextRunMode('voice');
   });
 
+  actionTabOcrBtn?.addEventListener('click', () => {
+    if (actionTabOcrBtn.disabled) return;
+    setInputMode('ocr');
+  });
+
   summarizeBtn.addEventListener('click', async () => {
     const { processing, inputMode, workingTextRunMode, workingText: currentWorkingText } = getWorkspace();
     if (inputMode !== 'working-text' || workingTextRunMode !== 'summary') return;
     const text = currentWorkingText.trim();
     if (!text || processing) return;
     await summarizeText(text);
+  });
+
+  outputTabOcrBtn?.addEventListener('click', () => {
+    setActiveOutputTab('ocr');
+  });
+
+  outputTabSummaryBtn?.addEventListener('click', () => {
+    setActiveOutputTab('summary');
+  });
+
+  outputTabVoiceBtn?.addEventListener('click', () => {
+    setActiveOutputTab('voice');
   });
 
   resultPromoteDefaultBtn.addEventListener('click', () => {
@@ -201,7 +244,7 @@ export function initSummarizer() {
   });
 
   resultCopyBtn.addEventListener('click', async () => {
-    const copied = await copyLatestResultText(getWorkspace().latestTextResult);
+    const copied = await copyLatestResultText(getActiveTextResult());
     if (!copied) return;
     resultCopyLabel.textContent = 'Copied!';
     setTimeout(() => {
@@ -211,7 +254,7 @@ export function initSummarizer() {
 
   resultDownloadBtn.addEventListener('click', () => {
     if (getWorkspace().processing) return;
-    downloadLatestResult(getWorkspace().latestTextResult, summaryDownloadFormat);
+    downloadLatestResult(getActiveTextResult(), summaryDownloadFormat);
   });
 
   resultDownloadToggle.addEventListener('click', (event) => {
@@ -229,7 +272,7 @@ export function initSummarizer() {
 
     summaryDownloadFormat = format;
     closeResultDownloadMenu();
-    downloadLatestResult(getWorkspace().latestTextResult, format);
+    downloadLatestResult(getActiveTextResult(), format);
   });
 
   resultDownloadGroup.addEventListener('keydown', (event) => {
