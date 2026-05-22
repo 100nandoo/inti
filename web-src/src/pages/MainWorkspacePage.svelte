@@ -44,9 +44,9 @@
   } from '../lib/main-workspace-speech-controls.js';
   import {
     buildOCRRejectedFilesMessage,
-    executeMainWorkspaceOCR,
     shouldHandleOCRGlobalPaste,
   } from '../lib/main-workspace-ocr.js';
+  import { executeMainWorkspaceOCR } from '../lib/ocr-service.js';
   import {
     appendStagedFiles,
     filterAllowedImageFiles,
@@ -265,7 +265,6 @@
       const { ocrResult, feedMeta } = await executeMainWorkspaceOCR({
         apiURL,
         files,
-        workingText: workspace.workingText,
       });
       setLatestTextResult(ocrResult);
       setStatus('OCR result ready for review.', 'success');
