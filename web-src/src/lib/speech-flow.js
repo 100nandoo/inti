@@ -1,5 +1,4 @@
-import { buildDownloadFilename } from '../../../web/js/filename.js';
-import { downloadBlob } from '../../../web/js/download.js';
+import { downloadAudioExport } from './export-service.js';
 import { escHtml, truncate } from '../../../web/js/text.js';
 
 /**
@@ -147,7 +146,5 @@ export async function decodeAndPlayAudio(blob, audioContextFactory = () => new A
 }
 
 export function downloadAudioSnapshot(blob, sourceText) {
-  if (!blob) return false;
-  downloadBlob(blob, buildDownloadFilename(sourceText, 'opus'));
-  return true;
+  return downloadAudioExport(blob, sourceText);
 }

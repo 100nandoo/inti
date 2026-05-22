@@ -1,5 +1,4 @@
-import { buildDownloadFilename } from '../../../web/js/filename.js';
-import { downloadBlob } from '../../../web/js/download.js';
+import { downloadTextExport } from './export-service.js';
 import { renderMarkdown } from '../../../web/js/markdown.js';
 import { escHtml } from '../../../web/js/text.js';
 
@@ -107,10 +106,7 @@ export function downloadLatestResult(latestTextResult, format) {
     : (latestTextResult.plainText || latestTextResult.rawText);
   if (!content.trim()) return false;
 
-  const mimeType = format === 'md' ? 'text/markdown' : 'text/plain';
-  const blob = new Blob([content], { type: `${mimeType};charset=utf-8` });
-  downloadBlob(blob, buildDownloadFilename(content, format));
-  return true;
+  return downloadTextExport(content, format);
 }
 
 /** @param {TextResult} latestTextResult */

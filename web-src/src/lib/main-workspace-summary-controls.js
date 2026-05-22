@@ -1,4 +1,5 @@
 import { getSummarizerModels } from './summarizer-models.js';
+import { loadRuntimeConfig, saveRuntimeConfig } from './runtime-settings-transport.js';
 
 /**
  * @typedef {import('./workspace-contracts').SummarizerConfig} SummarizerConfig
@@ -11,17 +12,6 @@ const PROVIDERS = [
   { value: 'openrouter', label: 'OpenRouter' },
   { value: 'mock', label: 'Mock' },
 ];
-
-/**
- * @param {Response} response
- * @returns {Promise<any>}
- */
-async function parseJSON(response) {
-  if (response.ok) return response.json();
-
-  const body = await response.json().catch(() => ({ error: response.statusText }));
-  throw new Error(body.error || response.statusText);
-}
 
 /**
  * @param {{ provider?: string, model?: string, keys?: Partial<SummarizerKeys>, groqLimits?: any }} data
@@ -62,8 +52,12 @@ export async function loadMainWorkspaceSummarizerConfig({
   apiURL,
   fetchImpl = fetch,
 }) {
-  const response = await fetchImpl(apiURL('/api/summarizer-config'));
-  return normalizeSummarizerConfig(await parseJSON(response));
+  return normalizeSummarizerConfig(await loadRuntimeConfig({
+    apiURL,
+    fetchImpl,
+    path: '/api/summarizer-config',
+    errorMessage: 'Could not load summarizer settings.',
+  }));
 }
 
 /**
@@ -82,17 +76,17 @@ export async function saveMainWorkspaceSummarizerConfig({
   keys,
   fetchImpl = fetch,
 }) {
-  const response = await fetchImpl(apiURL('/api/summarizer-config'), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
+  return normalizeSummarizerConfig(await saveRuntimeConfig({
+    apiURL,
+    fetchImpl,
+    path: '/api/summarizer-config',
+    payload: {
       provider,
       model,
       keys,
-    }),
-  });
-
-  return normalizeSummarizerConfig(await parseJSON(response));
+    },
+    errorMessage: 'Could not save summarizer settings.',
+  }));
 }
 
 /**

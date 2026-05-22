@@ -6,6 +6,7 @@ import {
   fetchSpeechVoices,
   getVoiceOptions,
 } from './speech-catalog.js';
+import { loadRuntimeConfig, saveRuntimeConfig } from './runtime-settings-transport.js';
 
 export const MAIN_WORKSPACE_SPEECH_PROVIDER_OPTIONS = [
   { value: 'gemini', label: 'Gemini' },
@@ -41,11 +42,12 @@ function buildVoiceOptions(provider, selectedVoice, filterValue) {
 }
 
 export async function loadMainWorkspaceSpeechConfig({ apiURL, fetchImpl = fetch }) {
-  const response = await fetchImpl(apiURL('/api/speech-config'));
-  if (!response.ok) {
-    throw new Error('Could not load speech settings.');
-  }
-  return response.json();
+  return loadRuntimeConfig({
+    apiURL,
+    fetchImpl,
+    path: '/api/speech-config',
+    errorMessage: 'Could not load speech settings.',
+  });
 }
 
 export async function saveMainWorkspaceSpeechConfig({
@@ -56,22 +58,17 @@ export async function saveMainWorkspaceSpeechConfig({
   fetchImpl = fetch,
 }) {
   const normalizedProvider = normalizeProvider(provider);
-  const response = await fetchImpl(apiURL('/api/speech-config'), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
+  return saveRuntimeConfig({
+    apiURL,
+    fetchImpl,
+    path: '/api/speech-config',
+    payload: {
       provider: normalizedProvider,
       voice,
       model: normalizedProvider === 'kokoro-heart' ? '' : model,
-    }),
+    },
+    errorMessage: 'Could not save speech settings.',
   });
-
-  if (!response.ok) {
-    const body = await response.json().catch(() => ({ error: response.statusText }));
-    throw new Error(body.error || response.statusText);
-  }
-
-  return response.json();
 }
 
 export async function loadMainWorkspaceSpeechControlState({
