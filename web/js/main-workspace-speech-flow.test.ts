@@ -138,7 +138,7 @@ test('executeMainWorkspaceSpeech owns auto-play and auto-download follow-up beha
         close: async () => {
           events.push('close');
         },
-      }) as AudioContext,
+      }) as unknown as AudioContext,
       fetchImpl: async () => Response.json({
         opus: Buffer.from('opus-audio').toString('base64'),
         provider: 'gemini',
