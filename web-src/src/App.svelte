@@ -1,7 +1,7 @@
 <script lang="ts">
   import { initializeAppRuntime } from './lib/app-runtime.js';
   import LegacyFeedBridge from './bridges/LegacyFeedBridge.svelte';
-  import LegacyOCRBridge from './bridges/LegacyOCRBridge.svelte';
+  import LegacySpeechBridge from './bridges/LegacySpeechBridge.svelte';
   import { createProtectedPage } from './lib/protected-page.js';
   import MainWorkspacePage from './pages/MainWorkspacePage.svelte';
 
@@ -16,4 +16,4 @@
 
 <MainWorkspacePage {navLinks} />
 <LegacyFeedBridge />
-<LegacyOCRBridge />
+<LegacySpeechBridge />

@@ -13,12 +13,16 @@
     getSelectedSummarizerProvider,
     promoteLatestTextResult,
     setLastAudioResult,
+    replaceWorkingText,
     setGroqRateLimits,
+    setDragSourceIndex,
     setInputMode,
     setLatestTextResult,
+    setPointerOverOcrCard,
     setProcessing,
     setSelectedSpeechSelection,
     setSelectedSummarizerSelection,
+    setStagedFiles,
     setWorkingText,
     setWorkingTextRunMode,
     workspaceStore,
@@ -37,6 +41,19 @@
     loadMainWorkspaceSpeechControlState,
     saveMainWorkspaceSpeechConfig,
   } from '../lib/main-workspace-speech-controls.js';
+  import {
+    buildOCRRejectedFilesMessage,
+    executeMainWorkspaceOCR,
+    shouldHandleOCRGlobalPaste,
+  } from '../lib/main-workspace-ocr.js';
+  import {
+    appendStagedFiles,
+    filterAllowedImageFiles,
+    formatStagedCount,
+    getImageFilesFromClipboard,
+    removeStagedFile,
+    reorderStagedFiles,
+  } from '../lib/ocr-file-staging.js';
   import {
     downloadMainWorkspaceAudioSnapshot,
     executeMainWorkspaceSpeech,
@@ -72,6 +89,13 @@
   let speechControlsRequestKey = 0;
   let autoPlayAudio = false;
   let autoDownloadAudio = false;
+  let ocrCardElement: HTMLElement | null = null;
+  let fileInputElement: HTMLInputElement | null = null;
+  let resultDropZoneActive = false;
+  let dragOverIndex: number | null = null;
+  let imagePreviewOpen = false;
+  let imagePreviewSrc = '';
+  const stagedPreviewUrls = new Map<File, string>();
 
   const unsubscribeWorkspace = workspaceStore.subscribe((value) => {
     workspace = value;
@@ -84,6 +108,177 @@
   function applyThemeConfig(config?: typeof window.IntiTheme): void {
     applyAppearanceConfig(config || {});
     summaryDownloadFormat = normalizeSummaryDownloadFormat(config?.summaryDownloadFormat);
+  }
+
+  function syncStagedPreviewUrls(files: File[]): void {
+    const activeFiles = new Set(files);
+    stagedPreviewUrls.forEach((url, file) => {
+      if (activeFiles.has(file)) return;
+      URL.revokeObjectURL(url);
+      stagedPreviewUrls.delete(file);
+    });
+  }
+
+  function getStagedPreviewUrl(file: File): string {
+    const existing = stagedPreviewUrls.get(file);
+    if (existing) return existing;
+    const next = URL.createObjectURL(file);
+    stagedPreviewUrls.set(file, next);
+    return next;
+  }
+
+  function announceRejectedFiles(rejectedCount: number): void {
+    const message = buildOCRRejectedFilesMessage(rejectedCount);
+    if (message) setStatus(message, 'error');
+  }
+
+  function addStagedFiles(files: File[]): void {
+    setStagedFiles(appendStagedFiles(workspace.stagedFiles, files));
+  }
+
+  function closeImagePreview(): void {
+    imagePreviewOpen = false;
+    imagePreviewSrc = '';
+  }
+
+  function openImagePreview(file: File): void {
+    imagePreviewSrc = getStagedPreviewUrl(file);
+    imagePreviewOpen = true;
+  }
+
+  function handleImagePreviewKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Escape') {
+      closeImagePreview();
+    }
+  }
+
+  function handleDropZoneClick(event: MouseEvent): void {
+    if (event.target instanceof HTMLLabelElement) return;
+    fileInputElement?.click();
+  }
+
+  function handleDropZoneKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      fileInputElement?.click();
+    }
+  }
+
+  function handleFileInputChange(event: Event): void {
+    const input = event.currentTarget as HTMLInputElement;
+    const { allowedFiles, rejectedCount } = filterAllowedImageFiles(Array.from(input.files || []));
+    announceRejectedFiles(rejectedCount);
+    if (allowedFiles.length > 0) addStagedFiles(allowedFiles);
+    input.value = '';
+  }
+
+  function handleDropZoneDragEnter(event: DragEvent): void {
+    event.preventDefault();
+    resultDropZoneActive = true;
+  }
+
+  function handleDropZoneDragOver(event: DragEvent): void {
+    event.preventDefault();
+    resultDropZoneActive = true;
+  }
+
+  function handleDropZoneDragLeave(event: DragEvent): void {
+    const relatedTarget = event.relatedTarget;
+    if (relatedTarget instanceof Node && ocrCardElement?.contains(relatedTarget)) return;
+    resultDropZoneActive = false;
+  }
+
+  function handleDropZoneDrop(event: DragEvent): void {
+    event.preventDefault();
+    resultDropZoneActive = false;
+    const { allowedFiles, rejectedCount } = filterAllowedImageFiles(Array.from(event.dataTransfer?.files || []));
+    announceRejectedFiles(rejectedCount);
+    if (allowedFiles.length > 0) addStagedFiles(allowedFiles);
+  }
+
+  function handleStageDragStart(index: number, event: DragEvent): void {
+    setDragSourceIndex(index);
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = 'move';
+    }
+  }
+
+  function handleStageDragEnd(): void {
+    dragOverIndex = null;
+    setDragSourceIndex(null);
+  }
+
+  function handleStageDragOver(index: number, event: DragEvent): void {
+    event.preventDefault();
+    dragOverIndex = index;
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = 'move';
+    }
+  }
+
+  function handleStageDrop(index: number, event: DragEvent): void {
+    event.preventDefault();
+    dragOverIndex = null;
+    setStagedFiles(reorderStagedFiles(workspace.stagedFiles, workspace.dragSrcIndex, index));
+    setDragSourceIndex(null);
+  }
+
+  function handleGlobalPaste(event: ClipboardEvent): void {
+    if (!shouldHandleOCRGlobalPaste({
+      inputMode: workspace.inputMode,
+      isPointerOverOcrCard: workspace.isPointerOverOcrCard,
+      activeElement: document.activeElement,
+      ocrCardElement,
+    })) {
+      return;
+    }
+
+    const { files, rejectedCount } = getImageFilesFromClipboard(event.clipboardData);
+    announceRejectedFiles(rejectedCount);
+    if (files.length === 0) return;
+
+    event.preventDefault();
+    addStagedFiles(files);
+    setStatus(`Staged ${files.length} pasted image${files.length === 1 ? '' : 's'}.`, 'success');
+  }
+
+  function clearStagedFiles(): void {
+    setStagedFiles([]);
+    setStatus('Cleared staged OCR files.', 'success');
+  }
+
+  async function runOCR(): Promise<void> {
+    const files = workspace.stagedFiles;
+    if (files.length === 0 || workspace.processing) return;
+
+    const apiURL = window.apiURL || ((path: string) => path);
+    const label = files.length === 1 ? files[0].name : `${files.length} images`;
+    const feedItem = addFeed('info', `OCR: ${label}`, 'extracting text…');
+    setProcessing(true);
+
+    try {
+      const { ocrResult, autoPromoted, feedMeta } = await executeMainWorkspaceOCR({
+        apiURL,
+        files,
+        workingText: workspace.workingText,
+      });
+      setLatestTextResult(ocrResult);
+      if (autoPromoted) {
+        replaceWorkingText(ocrResult.rawText);
+        setInputMode('working-text');
+        setStatus(buildPromotionStatusMessage('ocr'), 'success');
+      } else {
+        setStatus('OCR result ready for review.', 'success');
+      }
+      setStagedFiles([]);
+      updateFeedItem(feedItem, 'ok', `OCR: ${label}`, feedMeta);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      setStatus(message, 'error');
+      updateFeedItem(feedItem, 'fail', `OCR: ${label}`, message);
+    } finally {
+      setProcessing(false);
+    }
   }
 
   function closeResultDownloadMenu(): void {
@@ -413,6 +608,7 @@
     unsubscribeWorkspace();
     document.removeEventListener('inti:theme-config', handleThemeConfigEvent);
     document.removeEventListener('click', handleDocumentClick);
+    syncStagedPreviewUrls([]);
     if (resetCopyLabelTimer) {
       window.clearTimeout(resetCopyLabelTimer);
     }
@@ -427,14 +623,27 @@
   $: hasWorkingText = mainWorkspaceViewModel.hasWorkingText;
   $: textResultCharacterCount = mainWorkspaceViewModel.textResultCharacterCount;
   $: speechViewModel = buildSpeechPanelViewModel(workspace);
+  $: stagedCountLabel = formatStagedCount(workspace?.stagedFiles?.length || 0);
+  $: syncStagedPreviewUrls(workspace?.stagedFiles || []);
 </script>
+
+<svelte:window on:paste={handleGlobalPaste} on:keydown={handleImagePreviewKeydown} />
 
 <PageShell {navLinks}>
   <div class="main-grid">
-    <section class="panel panel-workspace inti-workspace-card card bg-base-100/90 shadow-2xl shadow-base-content/10" id="ocr-card">
+    <section
+      class="panel panel-workspace inti-workspace-card card bg-base-100/90 shadow-2xl shadow-base-content/10"
+      id="ocr-card"
+      aria-labelledby="workspace-heading"
+      bind:this={ocrCardElement}
+      on:mouseenter={() => setPointerOverOcrCard(true)}
+      on:mouseleave={() => setPointerOverOcrCard(false)}
+      on:focusin={() => setPointerOverOcrCard(true)}
+      on:focusout={() => setPointerOverOcrCard(false)}
+    >
       <div class="section-heading inti-panel-heading">
         <span class="ornament inti-panel-ornament" aria-hidden="true"></span>
-        <h2>Text Workspace</h2>
+        <h2 id="workspace-heading">Text Workspace</h2>
         <span class="source-chip badge badge-warning badge-outline">One working text</span>
       </div>
       <div class="input-mode-toggle inti-input-mode-toggle" role="tablist" aria-label="Input mode">
@@ -464,29 +673,93 @@
         </button>
       </div>
 
-      <div id="ocr-input-panel" class="input-mode-panel" hidden={!isOcrMode}>
-        <div class="drop-zone inti-surface" id="drop-zone" role="button" tabindex="0" aria-label="Import images for OCR">
-          <span class="icon icon-upload-cloud drop-zone-icon" aria-hidden="true"></span>
-          <p>Import images for OCR<br />or click to <label for="file-input" class="file-label">browse</label></p>
-          <span class="drop-hint" id="drop-hint">PNG, JPG, JPEG, WEBP, TIFF up to 25MB</span>
-          <input type="file" id="file-input" accept=".png,.jpg,.jpeg,.webp,.tif,.tiff,image/png,image/jpeg,image/webp,image/tiff" multiple hidden />
-        </div>
-
-        <div id="file-staging" class="inti-surface" hidden>
-          <div class="field-head">
-            <span>Staged files</span>
-            <span id="staged-count">0 files</span>
+        <div id="ocr-input-panel" class="input-mode-panel" hidden={!isOcrMode}>
+          <div
+            class="drop-zone inti-surface"
+            class:drag-active={resultDropZoneActive}
+            class:ocr-loading={workspace.processing && isOcrMode}
+            id="drop-zone"
+            role="button"
+            tabindex="0"
+            aria-label="Import images for OCR"
+            on:click={handleDropZoneClick}
+            on:keydown={handleDropZoneKeydown}
+            on:dragenter={handleDropZoneDragEnter}
+            on:dragover={handleDropZoneDragOver}
+            on:dragleave={handleDropZoneDragLeave}
+            on:drop={handleDropZoneDrop}
+          >
+            <span class="icon icon-upload-cloud drop-zone-icon" aria-hidden="true"></span>
+            <p>Import images for OCR<br />or click to <label for="file-input" class="file-label">browse</label></p>
+            <span class="drop-hint" id="drop-hint">PNG, JPG, JPEG, WEBP, TIFF up to 25MB</span>
+            <input
+              type="file"
+              id="file-input"
+              accept=".png,.jpg,.jpeg,.webp,.tif,.tiff,image/png,image/jpeg,image/webp,image/tiff"
+              multiple
+              hidden
+              bind:this={fileInputElement}
+              on:change={handleFileInputChange}
+            />
           </div>
-          <ul id="file-list"></ul>
-          <div class="staging-actions inti-action-row">
-            <button id="clear-files-btn" class="btn-secondary btn btn-ghost border border-base-300 icon-only" title="Clear staged files">
-              <span class="icon icon-trash" aria-hidden="true"></span>
-            </button>
-            <button id="run-ocr-btn" class="btn-primary btn btn-primary">
-              <span aria-hidden="true">--</span>
-              Extract Text
-              <span class="icon icon-bolt" aria-hidden="true"></span>
-            </button>
+
+          <div id="file-staging" class="inti-surface" hidden={workspace.stagedFiles.length === 0}>
+            <div class="field-head">
+              <span>Staged files</span>
+              <span id="staged-count">{stagedCountLabel}</span>
+            </div>
+            <ul id="file-list">
+              {#each workspace.stagedFiles as file, index (file)}
+                <li
+                  class="file-item"
+                  class:drag-over={dragOverIndex === index}
+                  class:dragging={workspace.dragSrcIndex === index}
+                  draggable="true"
+                  data-index={index}
+                  on:dragstart={(event) => handleStageDragStart(index, event)}
+                  on:dragend={handleStageDragEnd}
+                  on:dragover={(event) => handleStageDragOver(index, event)}
+                  on:drop={(event) => handleStageDrop(index, event)}
+                >
+                  <span class="drag-handle" title="Drag to reorder">::</span>
+                  <button class="file-thumb-button" type="button" title={`Preview ${file.name}`} on:click={() => openImagePreview(file)}>
+                    <img class="file-thumb" src={getStagedPreviewUrl(file)} alt="" />
+                  </button>
+                  <span class="file-info">
+                    <span class="file-name" title={file.name}>{file.name}</span>
+                    <span class="file-meta">{Math.ceil(file.size / 1024)} KB</span>
+                  </span>
+                  <span class="file-ok" title="Ready">
+                    <span class="icon icon-check" aria-hidden="true"></span>
+                  </span>
+                  <button class="file-remove" type="button" data-index={index} title="Remove" on:click={() => setStagedFiles(removeStagedFile(workspace.stagedFiles, index))}>
+                    <span class="icon icon-trash" aria-hidden="true"></span>
+                  </button>
+                </li>
+              {/each}
+            </ul>
+            <div class="staging-actions inti-action-row">
+              <button
+                id="clear-files-btn"
+                class="btn-secondary btn btn-ghost border border-base-300 icon-only"
+                title="Clear staged files"
+                disabled={workspace.processing || workspace.stagedFiles.length === 0}
+                on:click={clearStagedFiles}
+              >
+                <span class="icon icon-trash" aria-hidden="true"></span>
+              </button>
+              <button
+                id="run-ocr-btn"
+                class="btn-primary btn btn-primary"
+                disabled={workspace.processing || workspace.stagedFiles.length === 0}
+                on:click={() => {
+                  void runOCR();
+                }}
+              >
+                <span aria-hidden="true">--</span>
+                Extract Text
+                <span class="icon icon-bolt" aria-hidden="true"></span>
+              </button>
           </div>
         </div>
       </div>
@@ -845,10 +1118,10 @@
   </div>
 </PageShell>
 
-<div id="img-preview-modal" hidden>
-  <div id="img-preview-backdrop"></div>
+<div id="img-preview-modal" hidden={!imagePreviewOpen}>
+  <button id="img-preview-backdrop" type="button" aria-label="Close preview" on:click={closeImagePreview}></button>
   <div id="img-preview-box">
-    <img id="img-preview-img" src="" alt="Preview" />
-    <button id="img-preview-close" title="Close">×</button>
+    <img id="img-preview-img" src={imagePreviewSrc} alt="Preview" />
+    <button id="img-preview-close" title="Close" on:click={closeImagePreview}>×</button>
   </div>
 </div>
