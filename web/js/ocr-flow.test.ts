@@ -13,6 +13,10 @@ import {
   buildOCRCompletionMeta,
   createOCRTextResult,
 } from '../../web-src/src/lib/ocr-result.js';
+import {
+  buildOCRRejectedFilesMessage,
+  executeMainWorkspaceOCR,
+} from '../../web-src/src/lib/main-workspace-ocr.js';
 
 test('OCR staging helpers keep accepted files and count rejected image types', () => {
   const files = [
@@ -90,4 +94,41 @@ test('OCR result helpers publish a plain text result surface payload', () => {
   });
   assert.equal(buildOCRCompletionMeta('Line one\nLine two'), '4 words extracted');
   assert.equal(buildOCRCompletionMeta(''), '0 words extracted');
+});
+
+test('OCR workspace helpers keep rejection messaging explicit', () => {
+  assert.equal(buildOCRRejectedFilesMessage(0), null);
+  assert.equal(buildOCRRejectedFilesMessage(1), 'Rejected 1 unsupported image file. SVG uploads are not allowed.');
+  assert.equal(buildOCRRejectedFilesMessage(2), 'Rejected 2 unsupported image files. SVG uploads are not allowed.');
+});
+
+test('OCR request helper preserves result creation and empty-workspace auto-promotion', async () => {
+  const file = new File(['pixels'], 'scan.png', { type: 'image/png' });
+
+  const autoPromoted = await executeMainWorkspaceOCR({
+    apiURL: (path: string) => path,
+    files: [file],
+    workingText: '   ',
+    fetchImpl: async (url, options = {}) => {
+      assert.equal(String(url), '/api/ocr');
+      const body = options.body as FormData;
+      assert.deepEqual(body.getAll('files').map((entry) => (entry as File).name), ['scan.png']);
+      return Response.json({ text: 'Scanned text from OCR' });
+    },
+  });
+
+  assert.equal(autoPromoted.autoPromoted, true);
+  assert.equal(autoPromoted.ocrResult.kind, 'ocr');
+  assert.equal(autoPromoted.ocrResult.rawText, 'Scanned text from OCR');
+  assert.equal(autoPromoted.feedMeta, '4 words extracted');
+
+  const reviewOnly = await executeMainWorkspaceOCR({
+    apiURL: (path: string) => path,
+    files: [file],
+    workingText: 'Existing working text',
+    fetchImpl: async () => Response.json({ text: 'Scanned text from OCR' }),
+  });
+
+  assert.equal(reviewOnly.autoPromoted, false);
+  assert.equal(reviewOnly.ocrResult.plainText, 'Scanned text from OCR');
 });

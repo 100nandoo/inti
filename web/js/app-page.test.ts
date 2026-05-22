@@ -8,7 +8,7 @@ test('App owns the main page through Svelte components and named legacy bridges'
 
   assert.doesNotMatch(appSource, /renderAppShell|bootstrapLegacyWorkspace/);
   assert.match(appSource, /MainWorkspacePage\.svelte/);
-  assert.match(appSource, /LegacyOCRBridge\.svelte/);
+  assert.doesNotMatch(appSource, /LegacyOCRBridge\.svelte/);
   assert.match(appSource, /LegacySpeechBridge\.svelte/);
   assert.doesNotMatch(appSource, /LegacySummaryBridge\.svelte/);
   assert.doesNotMatch(appSource, /LegacyProvidersBridge\.svelte/);
@@ -19,8 +19,10 @@ test('App owns the main page through Svelte components and named legacy bridges'
   assert.match(pageSource, /buildMainWorkspaceViewModel/);
   assert.match(pageSource, /loadMainWorkspaceSummarizerConfig/);
   assert.match(pageSource, /saveMainWorkspaceSummarizerConfig/);
+  assert.match(pageSource, /executeMainWorkspaceOCR/);
+  assert.match(pageSource, /appendStagedFiles/);
   assert.match(pageSource, /promoteLatestTextResult/);
-  assert.match(pageSource, /<h2>Text Workspace<\/h2>/);
+  assert.match(pageSource, /<h2[^>]*>Text Workspace<\/h2>/);
   assert.match(pageSource, /<h2>Latest Text Result<\/h2>/);
   assert.match(pageSource, /<h2>Speech<\/h2>/);
   assert.match(pageSource, /<h2>Activity<\/h2>/);
