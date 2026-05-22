@@ -1,12 +1,3 @@
-import {
-  buildOCRCompletionMeta,
-  createOCRTextResult,
-} from './ocr-result.js';
-
-/**
- * @typedef {import('./workspace-contracts').TextResult} TextResult
- */
-
 /**
  * @param {number} rejectedCount
  * @returns {string | null}
@@ -43,44 +34,4 @@ export function shouldHandleOCRGlobalPaste({
     isPointerOverOcrCard
       || (ocrCardElement && activeElement ? ocrCardElement.contains(activeElement) : false),
   );
-}
-
-/**
- * @param {{
- *   apiURL: (path: string) => string;
- *   files: File[];
- *   workingText: string;
- *   fetchImpl?: typeof fetch;
- * }} input
- * @returns {Promise<{
- *   ocrResult: TextResult;
- *   feedMeta: string;
- * }>}
- */
-export async function executeMainWorkspaceOCR({
-  apiURL,
-  files,
-  workingText,
-  fetchImpl = fetch,
-}) {
-  const formData = new FormData();
-  files.forEach((file) => formData.append('files', file));
-
-  const response = await fetchImpl(apiURL('/api/ocr'), {
-    method: 'POST',
-    body: formData,
-  });
-
-  if (!response.ok) {
-    const body = await response.json().catch(() => ({ error: response.statusText }));
-    throw new Error(body.error || response.statusText);
-  }
-
-  const { text } = await response.json();
-  const rawText = text || '';
-
-  return {
-    ocrResult: createOCRTextResult(rawText),
-    feedMeta: buildOCRCompletionMeta(rawText),
-  };
 }

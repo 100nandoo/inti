@@ -38,10 +38,7 @@ import {
   removeStagedFile,
   reorderStagedFiles,
 } from '../../web-src/src/lib/ocr-file-staging.js';
-import {
-  buildOCRCompletionMeta,
-  createOCRTextResult,
-} from '../../web-src/src/lib/ocr-result.js';
+import { executeMainWorkspaceOCR } from '../../web-src/src/lib/ocr-service.js';
 
 function openImagePreview(src) {
   imgModalImg.src = src;
@@ -187,21 +184,14 @@ export async function uploadImagesForOCR(files) {
   const feedItem = addFeed('info', `OCR: ${label}`, 'extracting text…');
 
   try {
-    const formData = new FormData();
-    files.forEach((file) => formData.append('files', file));
-
-    const response = await fetch(window.apiURL('/api/ocr'), { method: 'POST', body: formData });
-    if (!response.ok) {
-      const body = await response.json().catch(() => ({ error: response.statusText }));
-      throw new Error(body.error || response.statusText);
-    }
-
-    const { text } = await response.json();
-    const rawText = text || '';
-    setLatestTextResult(createOCRTextResult(rawText));
+    const { ocrResult, feedMeta } = await executeMainWorkspaceOCR({
+      apiURL: window.apiURL,
+      files,
+    });
+    setLatestTextResult(ocrResult);
     setStatus('OCR result ready for review.', 'success');
     setStagedFiles([]);
-    updateFeedItem(feedItem, 'ok', `OCR: ${label}`, buildOCRCompletionMeta(rawText));
+    updateFeedItem(feedItem, 'ok', `OCR: ${label}`, feedMeta);
   } catch (error) {
     updateFeedItem(feedItem, 'fail', `OCR: ${label}`, error.message);
     setStatus(error.message, 'error');
