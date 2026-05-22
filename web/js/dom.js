@@ -14,6 +14,7 @@ export const fileStaging = document.getElementById('file-staging');
 export const fileList = document.getElementById('file-list');
 export const stagedCount = document.getElementById('staged-count');
 export const clearFilesBtn = document.getElementById('clear-files-btn');
+export const executeOcrBtn = document.getElementById('execute-ocr-btn');
 
 export const workingText = document.getElementById('working-text');
 export const workingTextCount = document.getElementById('working-text-count');
@@ -22,14 +23,13 @@ export const workingTextRunPanel = document.getElementById('working-text-run-pan
 export const actionTabOcrBtn = document.getElementById('run-ocr-btn');
 export const runModeSummaryBtn = document.getElementById('run-mode-summary-btn');
 export const runModeVoiceBtn = document.getElementById('run-mode-voice-btn');
-export const voiceRunPanel = document.getElementById('voice-run-panel');
 export const summaryRunPanel = document.getElementById('summary-run-panel');
+export const voiceRunPanel = document.getElementById('voice-run-panel');
 
 export const providerSelect = document.getElementById('provider-select');
 export const sumModelWrap = document.getElementById('sum-model-wrap');
 export const sumModelSelect = document.getElementById('sum-model-select');
 export const summarizeBtn = document.getElementById('summarize-btn');
-export const executeOcrBtn = document.getElementById('execute-ocr-btn');
 
 export const textResultKindChip = document.getElementById('text-result-kind-chip');
 export const outputTabOcrBtn = document.getElementById('output-tab-ocr-btn');

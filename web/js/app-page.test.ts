@@ -30,6 +30,7 @@ test('App owns the main page through Svelte components and named legacy bridges'
   assert.match(pageSource, /<h2>Action<\/h2>/);
   assert.match(pageSource, /<h2>Output<\/h2>/);
   assert.match(pageSource, /<h2>Activity<\/h2>/);
+  assert.doesNotMatch(pageSource, /<h2>Speech<\/h2>/);
   assert.match(pageSource, /id="working-text"/);
   assert.match(pageSource, /id="text-result-content"/);
   assert.match(pageSource, /id="audio-result-card"/);
