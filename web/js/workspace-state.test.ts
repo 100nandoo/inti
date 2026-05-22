@@ -2,14 +2,17 @@ import test, { beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  getActiveTextResult,
   appendToWorkingText,
   applyAppearanceConfig,
   clearLastAudioBlob,
   clearLatestTextResult,
   getDefaultPromotionBehavior,
+  getTextResultByKind,
   getWorkspaceSnapshot,
   promoteLatestTextResult,
   replaceWorkingText,
+  setActiveOutputTab,
   setInputMode,
   setLastAudioResult,
   setLatestTextResult,
@@ -77,6 +80,33 @@ test('promoting the latest text result replaces working text', () => {
 
   assert.equal(promoteLatestTextResult('replace'), true);
   assert.equal(getWorkspaceSnapshot().workingText, 'Condensed result');
+});
+
+test('text results stay retained by kind while the active output tab switches', () => {
+  setLatestTextResult({
+    kind: 'ocr',
+    title: 'OCR Result',
+    rawText: 'Scanned text',
+    plainText: 'Scanned text',
+  });
+  setLatestTextResult({
+    kind: 'summary',
+    title: 'Summary Result',
+    format: 'markdown',
+    rawText: '# Summary\n\nCondensed result',
+    plainText: 'Summary Condensed result',
+  });
+
+  assert.equal(getWorkspaceSnapshot().activeOutputTab, 'summary');
+  assert.equal(getTextResultByKind('ocr').rawText, 'Scanned text');
+  assert.equal(getTextResultByKind('summary').title, 'Summary Result');
+
+  setActiveOutputTab('ocr');
+
+  assert.equal(getWorkspaceSnapshot().activeOutputTab, 'ocr');
+  assert.equal(getActiveTextResult().rawText, 'Scanned text');
+  assert.equal(promoteLatestTextResult('replace'), true);
+  assert.equal(getWorkspaceSnapshot().workingText, 'Scanned text');
 });
 
 test('audio result metadata survives later working text edits', () => {

@@ -15,17 +15,23 @@ export function buildMainWorkspaceViewModel(workspace) {
   const isWorkingTextMode = workspace.inputMode === 'working-text';
   const isSummaryMode = isWorkingTextMode && workspace.workingTextRunMode === 'summary';
   const isVoiceMode = isWorkingTextMode && workspace.workingTextRunMode === 'voice';
+  const resultViewModel = buildResultSurfaceViewModel(workspace);
 
   return {
     isOcrMode,
     isWorkingTextMode,
     isSummaryMode,
     isVoiceMode,
+    actionTabs: {
+      ocr: { active: isOcrMode, disabled: !isOcrMode },
+      summary: { active: isSummaryMode, disabled: isOcrMode },
+      voice: { active: isVoiceMode, disabled: isOcrMode },
+    },
     hasWorkingText: workspace.workingText.trim().length > 0,
     workingTextCharacterCount: workspace.workingText.length,
     speechInputCharacterCount: workspace.workingText.length,
-    textResultCharacterCount: (workspace.latestTextResult.plainText || workspace.latestTextResult.rawText).trim().length,
-    resultViewModel: buildResultSurfaceViewModel(workspace),
+    textResultCharacterCount: resultViewModel.textCharacterCount,
+    resultViewModel,
   };
 }
 

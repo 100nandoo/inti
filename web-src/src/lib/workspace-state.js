@@ -27,6 +27,7 @@ function createEmptyTextResult() {
 
 /** @returns {WorkspaceState} */
 function createInitialState() {
+  const emptyTextResult = createEmptyTextResult();
   return {
     processing: false,
     lastAudioBlob: null,
@@ -40,8 +41,11 @@ function createInitialState() {
     isPointerOverOcrCard: false,
     inputMode: 'working-text',
     workingTextRunMode: 'summary',
+    activeOutputTab: 'summary',
     workingText: '',
-    latestTextResult: createEmptyTextResult(),
+    latestTextResult: emptyTextResult,
+    latestOCRTextResult: createEmptyTextResult(),
+    latestSummaryTextResult: createEmptyTextResult(),
     appearanceConfig: {
       summaryDownloadFormat: 'md',
       ocrPromotionBehavior: 'replace',
@@ -80,6 +84,14 @@ function normalizeWorkingTextRunMode(value) {
   return value === 'voice' ? 'voice' : 'summary';
 }
 
+/** @param {string} value
+ * @returns {'ocr' | 'summary' | 'voice'}
+ */
+function normalizeOutputTab(value) {
+  if (value === 'ocr' || value === 'voice') return value;
+  return 'summary';
+}
+
 /** @param {string} current
  * @param {string} incoming
  * @returns {string}
@@ -104,6 +116,27 @@ export function getWorkspaceSnapshot() {
  */
 function updateWorkspace(updater) {
   workspaceStore.update((state) => updater(state));
+}
+
+/**
+ * @param {WorkspaceState} state
+ * @param {TextResultKind} kind
+ * @returns {TextResult}
+ */
+function getTextResultByKindFromState(state, kind) {
+  if (kind === 'ocr') return state.latestOCRTextResult;
+  if (kind === 'summary') return state.latestSummaryTextResult;
+  return createEmptyTextResult();
+}
+
+/**
+ * @param {WorkspaceState} state
+ * @returns {TextResult}
+ */
+function getActiveTextResultFromState(state) {
+  if (state.activeOutputTab === 'ocr') return state.latestOCRTextResult;
+  if (state.activeOutputTab === 'summary') return state.latestSummaryTextResult;
+  return state.latestTextResult;
 }
 
 /** @param {boolean} value */
@@ -178,6 +211,20 @@ export function setWorkingTextRunMode(mode) {
   }));
 }
 
+/** @param {'ocr' | 'summary' | 'voice'} tab */
+export function setActiveOutputTab(tab) {
+  updateWorkspace((state) => {
+    const activeOutputTab = normalizeOutputTab(tab);
+    return {
+      ...state,
+      activeOutputTab,
+      latestTextResult: activeOutputTab === 'voice'
+        ? state.latestTextResult
+        : getTextResultByKindFromState(state, activeOutputTab),
+    };
+  });
+}
+
 /** @param {string} text */
 export function setWorkingText(text) {
   updateWorkspace((state) => ({ ...state, workingText: text }));
@@ -202,15 +249,19 @@ export function appendToWorkingText(text) {
 
 /** @param {TextResultUpdate} result */
 export function setLatestTextResult({ kind = '', title = '', format = 'plain', rawText = '', plainText = '' }) {
+  const nextResult = {
+    kind,
+    title,
+    format,
+    rawText,
+    plainText: plainText || rawText,
+  };
   updateWorkspace((state) => ({
     ...state,
-    latestTextResult: {
-      kind,
-      title,
-      format,
-      rawText,
-      plainText: plainText || rawText,
-    },
+    latestTextResult: nextResult,
+    latestOCRTextResult: kind === 'ocr' ? nextResult : state.latestOCRTextResult,
+    latestSummaryTextResult: kind === 'summary' ? nextResult : state.latestSummaryTextResult,
+    activeOutputTab: kind === 'ocr' || kind === 'summary' ? kind : state.activeOutputTab,
   }));
 }
 
@@ -218,13 +269,17 @@ export function clearLatestTextResult() {
   updateWorkspace((state) => ({
     ...state,
     latestTextResult: createEmptyTextResult(),
+    latestOCRTextResult: createEmptyTextResult(),
+    latestSummaryTextResult: createEmptyTextResult(),
+    activeOutputTab: 'summary',
   }));
 }
 
 /** @param {PromotionBehavior} mode */
 export function promoteLatestTextResult(mode) {
   const state = getWorkspaceSnapshot();
-  const rawText = state.latestTextResult.rawText || '';
+  const activeTextResult = getActiveTextResultFromState(state);
+  const rawText = activeTextResult.rawText || '';
   if (!rawText.trim()) return false;
 
   void mode;
@@ -251,6 +306,18 @@ export function applyAppearanceConfig(data) {
 export function getDefaultPromotionBehavior(kind) {
   void kind;
   return 'replace';
+}
+
+/** @param {TextResultKind} kind
+ * @returns {TextResult}
+ */
+export function getTextResultByKind(kind) {
+  return getTextResultByKindFromState(getWorkspaceSnapshot(), kind);
+}
+
+/** @returns {TextResult} */
+export function getActiveTextResult() {
+  return getActiveTextResultFromState(getWorkspaceSnapshot());
 }
 
 /** @param {SummarizerConfigInput} data */

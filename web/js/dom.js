@@ -14,15 +14,17 @@ export const fileStaging = document.getElementById('file-staging');
 export const fileList = document.getElementById('file-list');
 export const stagedCount = document.getElementById('staged-count');
 export const clearFilesBtn = document.getElementById('clear-files-btn');
-export const runOcrBtn = document.getElementById('run-ocr-btn');
+export const executeOcrBtn = document.getElementById('execute-ocr-btn');
 
 export const workingText = document.getElementById('working-text');
 export const workingTextCount = document.getElementById('working-text-count');
 export const clearWorkspaceBtn = document.getElementById('clear-workspace-btn');
 export const workingTextRunPanel = document.getElementById('working-text-run-panel');
+export const actionTabOcrBtn = document.getElementById('run-ocr-btn');
 export const runModeSummaryBtn = document.getElementById('run-mode-summary-btn');
 export const runModeVoiceBtn = document.getElementById('run-mode-voice-btn');
 export const summaryRunPanel = document.getElementById('summary-run-panel');
+export const voiceRunPanel = document.getElementById('voice-run-panel');
 
 export const providerSelect = document.getElementById('provider-select');
 export const sumModelWrap = document.getElementById('sum-model-wrap');
@@ -30,6 +32,10 @@ export const sumModelSelect = document.getElementById('sum-model-select');
 export const summarizeBtn = document.getElementById('summarize-btn');
 
 export const textResultKindChip = document.getElementById('text-result-kind-chip');
+export const outputTabOcrBtn = document.getElementById('output-tab-ocr-btn');
+export const outputTabSummaryBtn = document.getElementById('output-tab-summary-btn');
+export const outputTabVoiceBtn = document.getElementById('output-tab-voice-btn');
+export const textResultPanel = document.getElementById('text-result-panel');
 export const textResultTitle = document.getElementById('text-result-title');
 export const textResultCount = document.getElementById('text-result-count');
 export const textResultContent = document.getElementById('text-result-content');
@@ -53,6 +59,7 @@ export const actionDownload = document.getElementById('action-download');
 export const generateWorkingAudioBtn = document.getElementById('generate-working-audio-btn');
 export const playingBar = document.getElementById('playing-bar');
 export const statusText = document.getElementById('status-text');
+export const audioResultPanel = document.getElementById('audio-result-panel');
 export const audioResultMeta = document.getElementById('audio-result-meta');
 export const audioResultCard = document.getElementById('audio-result-card');
 export const playAudioBtn = document.getElementById('play-audio-btn');

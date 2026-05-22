@@ -55,6 +55,9 @@ body {
 
 .main-grid {
   grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.95fr) minmax(0, 0.9fr);
+  grid-template-areas:
+    "input action output"
+    "activity activity activity";
   gap: 1.1rem;
   align-items: start;
 }
@@ -79,6 +82,7 @@ body {
 }
 
 .panel-workspace {
+  grid-area: input;
   position: relative;
   overflow: clip;
 }
@@ -194,6 +198,7 @@ body {
 }
 
 .panel-result {
+  grid-area: action;
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--workspace-accent-soft) 80%, transparent), transparent 10rem),
     linear-gradient(180deg, color-mix(in srgb, var(--paper-2) 88%, transparent), color-mix(in srgb, var(--paper) 96%, transparent)),
@@ -201,6 +206,7 @@ body {
 }
 
 .panel-tts {
+  grid-area: output;
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--paper-3) 16%, transparent), transparent 10rem),
     linear-gradient(180deg, color-mix(in srgb, var(--paper-2) 88%, transparent), color-mix(in srgb, var(--paper) 96%, transparent)),
@@ -208,7 +214,10 @@ body {
 }
 
 .panel-activity {
-  grid-column: 2 / span 2;
+  grid-area: activity;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .inti-panel-heading {
@@ -343,9 +352,25 @@ textarea#working-text,
   justify-content: center;
 }
 
+@media (min-width: 1181px) {
+  .panel-activity {
+    max-height: clamp(20rem, 42vh, 26rem);
+  }
+
+  .panel-activity .feed {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+  }
+}
+
 @media (max-width: 1180px) {
   .main-grid {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas:
+      "input action"
+      "output output"
+      "activity activity";
   }
 
   .panel-tts,
@@ -366,6 +391,11 @@ textarea#working-text,
 
   .main-grid {
     grid-template-columns: 1fr;
+    grid-template-areas:
+      "input"
+      "action"
+      "output"
+      "activity";
   }
 
   .panel {
