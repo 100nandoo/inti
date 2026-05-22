@@ -19,6 +19,7 @@ import { updateTextMetrics } from './metrics.js';
 import {
   clearLastAudioBlob,
   getWorkspace,
+  setActiveOutputTab,
   setLastAudioResult,
   setProcessing,
   subscribeWorkspace,
@@ -94,6 +95,7 @@ export async function synthesizeText(text, { sourceLabel = 'Working Text' } = {}
       voice: resolvedVoice,
       model: resolvedModel,
     });
+    setActiveOutputTab('voice');
 
     const duration = ((performance.now() - startTime) / 1000).toFixed(1);
     setStatus('Audio result ready.', 'success');

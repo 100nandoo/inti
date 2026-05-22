@@ -209,6 +209,10 @@ body {
 
 .panel-activity {
   grid-column: 2 / span 2;
+  grid-row: 2;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .inti-panel-heading {
@@ -341,6 +345,18 @@ textarea#working-text,
 .view-all-btn {
   width: 100%;
   justify-content: center;
+}
+
+@media (min-width: 1181px) {
+  .panel-activity {
+    max-height: clamp(20rem, 42vh, 26rem);
+  }
+
+  .panel-activity .feed {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+  }
 }
 
 @media (max-width: 1180px) {

@@ -1,6 +1,7 @@
 import {
   clearFilesBtn,
   dropZone,
+  executeOcrBtn,
   fileInput,
   fileList,
   fileStaging,
@@ -12,7 +13,6 @@ import {
   inputModeWorkingTextBtn,
   ocrCard,
   ocrInputPanel,
-  runOcrBtn,
   stagedCount,
   workingTextPanel,
 } from './dom.js';
@@ -163,7 +163,7 @@ function renderFileList() {
 function syncOCRControls() {
   const { inputMode, processing, stagedFiles } = getWorkspace();
   const isOcrMode = inputMode === 'ocr';
-  runOcrBtn.disabled = !isOcrMode || processing || stagedFiles.length === 0;
+  executeOcrBtn.disabled = !isOcrMode || processing || stagedFiles.length === 0;
   clearFilesBtn.disabled = !isOcrMode || processing || stagedFiles.length === 0;
 }
 
@@ -183,7 +183,7 @@ export async function uploadImagesForOCR(files) {
   const label = files.length === 1 ? files[0].name : `${files.length} images`;
   dropZone.classList.add('ocr-loading');
   setProcessing(true);
-  runOcrBtn.disabled = true;
+  executeOcrBtn.disabled = true;
   const feedItem = addFeed('info', `OCR: ${label}`, 'extracting text…');
 
   try {
@@ -312,7 +312,7 @@ export function initOCR() {
     setStatus('Cleared staged OCR files.', 'success');
   });
 
-  runOcrBtn.addEventListener('click', async () => {
+  executeOcrBtn.addEventListener('click', async () => {
     const files = getWorkspace().stagedFiles;
     if (files.length === 0) return;
     await uploadImagesForOCR(files);
