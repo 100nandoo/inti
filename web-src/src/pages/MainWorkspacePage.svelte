@@ -34,6 +34,11 @@
     buildMainWorkspaceViewModel,
     buildPromotionStatusMessage,
   } from '../lib/main-workspace-flow.js';
+  import {
+    computeActivityHiddenStates,
+    createActivityEntry,
+    updateActivityEntry,
+  } from '../lib/main-workspace-activity.js';
   import { executeMainWorkspaceSummary } from '../lib/main-workspace-summary-service.js';
   import {
     MAIN_WORKSPACE_SPEECH_PROVIDER_OPTIONS,
@@ -71,11 +76,14 @@
     SummaryDownloadFormat,
     WorkspaceState,
   } from '../lib/workspace-contracts';
-  import { addFeed, setPlaying, setStatus, updateFeedItem } from '../../../web/js/feed.js';
 
   export let navLinks: PageShellNavLink[] = [];
 
   type SummaryOption = { value: string; label: string };
+  type ActivityEntry = ReturnType<typeof createActivityEntry>;
+  type ActivityStatusKind = '' | 'success' | 'error';
+
+  const DESKTOP_ACTIVITY_QUERY = '(min-width: 1181px)';
 
   let workspace: WorkspaceState;
   let summaryDownloadFormat: SummaryDownloadFormat = 'md';
@@ -100,6 +108,14 @@
   let dragOverIndex: number | null = null;
   let imagePreviewOpen = false;
   let imagePreviewSrc = '';
+  let activityEntries: ActivityEntry[] = [];
+  let nextActivityEntryId = 0;
+  let inlineStatusMessage = '';
+  let inlineStatusKind: ActivityStatusKind = '';
+  let playingActive = false;
+  let feedElement: HTMLElement | null = null;
+  let desktopActivityQuery: MediaQueryList | null = null;
+  let activitySyncQueued = false;
   const stagedPreviewUrls = new Map<File, string>();
 
   const unsubscribeWorkspace = workspaceStore.subscribe((value) => {
@@ -108,6 +124,80 @@
 
   function normalizeSummaryDownloadFormat(value?: string): SummaryDownloadFormat {
     return value === 'txt' ? 'txt' : 'md';
+  }
+
+  function setInlineStatus(message: string, kind: ActivityStatusKind = ''): void {
+    inlineStatusMessage = message;
+    inlineStatusKind = kind;
+  }
+
+  function setPlayingState(value: boolean): void {
+    playingActive = value;
+  }
+
+  function addActivity(kind: string, label: string, meta: string): number {
+    const id = nextActivityEntryId;
+    nextActivityEntryId += 1;
+    activityEntries = [createActivityEntry(id, kind, label, meta), ...activityEntries];
+    queueActivityVisibilitySync();
+    return id;
+  }
+
+  function updateActivity(id: number, kind: string, label: string, meta: string): void {
+    activityEntries = activityEntries.map((entry) =>
+      entry.id === id ? updateActivityEntry(entry, kind, label, meta) : entry);
+    queueActivityVisibilitySync();
+  }
+
+  function isDesktopActivityLayout(): boolean {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+      return false;
+    }
+
+    desktopActivityQuery ??= window.matchMedia(DESKTOP_ACTIVITY_QUERY);
+    return desktopActivityQuery.matches;
+  }
+
+  function syncActivityVisibility(): void {
+    if (!feedElement) {
+      return;
+    }
+
+    const nodes = Array.from(feedElement.querySelectorAll<HTMLElement>('.feed-item'));
+    const hiddenStates = computeActivityHiddenStates({
+      itemHeights: nodes.map((node) => node.offsetHeight),
+      visibleBudget: feedElement.clientHeight,
+      isDesktop: isDesktopActivityLayout(),
+    });
+    let changed = false;
+    const nextEntries = activityEntries.map((entry, index) => {
+      const hidden = hiddenStates[index] ?? false;
+      if (entry.hidden === hidden) {
+        return entry;
+      }
+
+      changed = true;
+      return {
+        ...entry,
+        hidden,
+      };
+    });
+
+    if (changed) {
+      activityEntries = nextEntries;
+    }
+  }
+
+  function queueActivityVisibilitySync(): void {
+    if (!feedElement || activitySyncQueued) {
+      return;
+    }
+
+    activitySyncQueued = true;
+    window.requestAnimationFrame(() => {
+      activitySyncQueued = false;
+      syncActivityVisibility();
+    });
   }
 
   function applyThemeConfig(config?: typeof window.IntiTheme): void {
@@ -134,7 +224,7 @@
 
   function announceRejectedFiles(rejectedCount: number): void {
     const message = buildOCRRejectedFilesMessage(rejectedCount);
-    if (message) setStatus(message, 'error');
+    if (message) setInlineStatus(message, 'error');
   }
 
   function addStagedFiles(files: File[]): void {
@@ -244,12 +334,12 @@
 
     event.preventDefault();
     addStagedFiles(files);
-    setStatus(`Staged ${files.length} pasted image${files.length === 1 ? '' : 's'}.`, 'success');
+    setInlineStatus(`Staged ${files.length} pasted image${files.length === 1 ? '' : 's'}.`, 'success');
   }
 
   function clearStagedFiles(): void {
     setStagedFiles([]);
-    setStatus('Cleared staged OCR files.', 'success');
+    setInlineStatus('Cleared staged OCR files.', 'success');
   }
 
   async function runOCR(): Promise<void> {
@@ -258,7 +348,7 @@
 
     const apiURL = window.apiURL || ((path: string) => path);
     const label = files.length === 1 ? files[0].name : `${files.length} images`;
-    const feedItem = addFeed('info', `OCR: ${label}`, 'extracting text…');
+    const feedItemId = addActivity('info', `OCR: ${label}`, 'extracting text…');
     setProcessing(true);
 
     try {
@@ -267,13 +357,13 @@
         files,
       });
       setLatestTextResult(ocrResult);
-      setStatus('OCR result ready for review.', 'success');
+      setInlineStatus('OCR result ready for review.', 'success');
       setStagedFiles([]);
-      updateFeedItem(feedItem, 'ok', `OCR: ${label}`, feedMeta);
+      updateActivity(feedItemId, 'ok', `OCR: ${label}`, feedMeta);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      setStatus(message, 'error');
-      updateFeedItem(feedItem, 'fail', `OCR: ${label}`, message);
+      setInlineStatus(message, 'error');
+      updateActivity(feedItemId, 'fail', `OCR: ${label}`, message);
     } finally {
       setProcessing(false);
     }
@@ -336,7 +426,7 @@
       applySummarizerConfig(summarizerConfig);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Could not load summarizer settings.';
-      setStatus(message, 'error');
+      setInlineStatus(message, 'error');
     }
 
     await syncSummarizerControls();
@@ -380,7 +470,7 @@
       );
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Could not load speech settings.';
-      setStatus(message, 'error');
+      setInlineStatus(message, 'error');
     }
   }
 
@@ -402,7 +492,7 @@
       applySpeechConfig(speechConfig);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Could not load speech settings.';
-      setStatus(message, 'error');
+      setInlineStatus(message, 'error');
     }
 
     await syncSpeechControls();
@@ -416,7 +506,7 @@
       await saveSummarizerSelection(provider, provider === 'openrouter' ? '' : getSelectedSummarizerModel());
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Could not save summarizer settings.';
-      setStatus(message, 'error');
+      setInlineStatus(message, 'error');
     }
   }
 
@@ -427,7 +517,7 @@
       await saveSummarizerSelection(workspace.selectedSummarizerProvider, model);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Could not save summarizer settings.';
-      setStatus(message, 'error');
+      setInlineStatus(message, 'error');
     }
   }
 
@@ -439,7 +529,7 @@
       await saveSpeechSelection(provider, getSelectedSpeechVoice(), getSelectedSpeechModel());
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Could not save speech settings.';
-      setStatus(message, 'error');
+      setInlineStatus(message, 'error');
     }
   }
 
@@ -450,7 +540,7 @@
       await saveSpeechSelection(getSelectedSpeechProvider(), voice, getSelectedSpeechModel());
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Could not save speech settings.';
-      setStatus(message, 'error');
+      setInlineStatus(message, 'error');
     }
   }
 
@@ -461,7 +551,7 @@
       await saveSpeechSelection(getSelectedSpeechProvider(), getSelectedSpeechVoice(), model);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Could not save speech settings.';
-      setStatus(message, 'error');
+      setInlineStatus(message, 'error');
     }
   }
 
@@ -481,8 +571,8 @@
     }
 
     setProcessing(true);
-    setStatus('Summarizing…');
-    const feedItem = addFeed('info', 'Working Text', 'summarizing…');
+    setInlineStatus('Summarizing…');
+    const feedItemId = addActivity('info', 'Working Text', 'summarizing…');
 
     try {
       const apiURL = window.apiURL || ((path: string) => path);
@@ -494,12 +584,12 @@
       });
       if (rateLimits) setGroqRateLimits(rateLimits);
       setLatestTextResult(summaryResult);
-      setStatus('Summary result ready for review.', 'success');
-      updateFeedItem(feedItem, 'ok', feedLabel, feedMeta);
+      setInlineStatus('Summary result ready for review.', 'success');
+      updateActivity(feedItemId, 'ok', feedLabel, feedMeta);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      setStatus(message, 'error');
-      updateFeedItem(feedItem, 'fail', 'Working Text', message);
+      setInlineStatus(message, 'error');
+      updateActivity(feedItemId, 'fail', 'Working Text', message);
     } finally {
       setProcessing(false);
     }
@@ -508,17 +598,17 @@
   async function playLatestAudio(): Promise<void> {
     if (!workspace.lastAudioBlob) return;
 
-    setStatus('Playing…');
-    setPlaying(true);
+    setInlineStatus('Playing…');
+    setPlayingState(true);
 
     try {
       await playMainWorkspaceAudio(workspace.lastAudioBlob);
-      setStatus('');
+      setInlineStatus('');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Could not play audio.';
-      setStatus(message, 'error');
+      setInlineStatus(message, 'error');
     } finally {
-      setPlaying(false);
+      setPlayingState(false);
     }
   }
 
@@ -526,7 +616,7 @@
     if (!downloadMainWorkspaceAudioSnapshot(workspace.lastAudioBlob, workspace.lastAudioSourceText || 'audio')) {
       return;
     }
-    addFeed('ok', 'Downloaded', 'Opus file saved to your downloads folder');
+    addActivity('ok', 'Downloaded', 'Opus file saved to your downloads folder');
   }
 
   async function synthesizeWorkingText(): Promise<void> {
@@ -534,8 +624,8 @@
     if (!text || workspace.processing) return;
 
     setProcessing(true);
-    setStatus('Synthesizing…');
-    const feedItem = addFeed('info', `"${text.slice(0, 60)}${text.length > 60 ? '…' : ''}"`, 'speech · synthesizing…');
+    setInlineStatus('Synthesizing…');
+    const feedItemId = addActivity('info', `"${text.slice(0, 60)}${text.length > 60 ? '…' : ''}"`, 'speech · synthesizing…');
 
     try {
       const result = await executeMainWorkspaceSpeech({
@@ -555,15 +645,15 @@
           setActiveOutputTab('voice');
         },
       });
-      setStatus('Audio result ready.', 'success');
-      updateFeedItem(feedItem, 'ok', result.feedLabel, result.feedMeta);
+      setInlineStatus('Audio result ready.', 'success');
+      updateActivity(feedItemId, 'ok', result.feedLabel, result.feedMeta);
       if (result.downloadedAudio) {
-        addFeed('ok', 'Downloaded', 'Opus file saved to your downloads folder');
+        addActivity('ok', 'Downloaded', 'Opus file saved to your downloads folder');
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      setStatus(message, 'error');
-      updateFeedItem(feedItem, 'fail', 'Working Text', message);
+      setInlineStatus(message, 'error');
+      updateActivity(feedItemId, 'fail', 'Working Text', message);
     } finally {
       setProcessing(false);
     }
@@ -572,7 +662,7 @@
   function handlePromoteLatestTextResult(): void {
     if (!promoteLatestTextResult('replace')) return;
     setInputMode('working-text');
-    setStatus(buildPromotionStatusMessage(getActiveTextResult().kind), 'success');
+    setInlineStatus(buildPromotionStatusMessage(getActiveTextResult().kind), 'success');
   }
 
   async function handleCopyLatestResult(): Promise<void> {
@@ -599,8 +689,21 @@
     applyThemeConfig(window.IntiTheme);
     document.addEventListener('inti:theme-config', handleThemeConfigEvent);
     document.addEventListener('click', handleDocumentClick);
+    desktopActivityQuery = typeof window.matchMedia === 'function'
+      ? window.matchMedia(DESKTOP_ACTIVITY_QUERY)
+      : null;
+    const syncActivity = () => queueActivityVisibilitySync();
+    window.addEventListener('resize', syncActivity);
+    desktopActivityQuery?.addEventListener?.('change', syncActivity);
+    desktopActivityQuery?.addListener?.(syncActivity);
     void initializeSummarizerControls();
     void initializeSpeechControls();
+
+    return () => {
+      window.removeEventListener('resize', syncActivity);
+      desktopActivityQuery?.removeEventListener?.('change', syncActivity);
+      desktopActivityQuery?.removeListener?.(syncActivity);
+    };
   });
 
   onDestroy(() => {
@@ -625,6 +728,10 @@
   $: stagedCountLabel = formatStagedCount(workspace?.stagedFiles?.length || 0);
   $: activeOutputTab = resultViewModel.activeTab;
   $: syncStagedPreviewUrls(workspace?.stagedFiles || []);
+  $: if (feedElement) {
+    activityEntries;
+    queueActivityVisibilitySync();
+  }
 </script>
 
 <svelte:window on:paste={handleGlobalPaste} on:keydown={handleImagePreviewKeydown} />
@@ -770,12 +877,12 @@
             id="clear-workspace-btn"
             class="btn-secondary btn btn-ghost border border-base-300"
             title="Clear working text"
-            disabled={workspace.processing || !hasWorkingText}
-            on:click={() => {
-              setWorkingText('');
-              setStatus('Working text cleared.', 'success');
-            }}
-          >
+              disabled={workspace.processing || !hasWorkingText}
+              on:click={() => {
+                setWorkingText('');
+                setInlineStatus('Working text cleared.', 'success');
+              }}
+            >
             <span class="icon icon-x" aria-hidden="true"></span>
             Clear
           </button>
@@ -1003,7 +1110,7 @@
             <span class="icon icon-speaker" aria-hidden="true"></span>
             Generate from Working Text
           </button>
-          <div class="playing-bar" id="playing-bar">
+          <div class="playing-bar" id="playing-bar" class:active={playingActive}>
             <div class="bar"></div>
             <div class="bar"></div>
             <div class="bar"></div>
@@ -1011,7 +1118,9 @@
             <div class="bar"></div>
           </div>
 
-          <span class="status-text" id="status-text"></span>
+          <span class="status-text" id="status-text" class:success={inlineStatusKind === 'success'} class:error={inlineStatusKind === 'error'}>
+            {inlineStatusMessage}
+          </span>
         </div>
       </div>
     </section>
@@ -1177,8 +1286,20 @@
         <span class="ornament inti-panel-ornament" aria-hidden="true"></span>
         <h2>Activity</h2>
       </div>
-      <div class="feed inti-surface" id="feed">
-        <p class="feed-empty" id="feed-empty">No activity yet.</p>
+      <div class="feed inti-surface" id="feed" bind:this={feedElement}>
+        {#if activityEntries.length === 0}
+          <p class="feed-empty" id="feed-empty">No activity yet.</p>
+        {:else}
+          {#each activityEntries as entry (entry.id)}
+            <div class={`feed-item ${entry.kind}`} hidden={entry.hidden}>
+              <div class="feed-dot"></div>
+              <div class="feed-content">
+                <div class="feed-label">{entry.label}</div>
+                <div class="feed-meta">{entry.meta}</div>
+              </div>
+            </div>
+          {/each}
+        {/if}
       </div>
       <button class="btn-secondary btn btn-ghost border border-base-300 view-all-btn" type="button">View all</button>
     </section>
