@@ -33,8 +33,8 @@
   import {
     buildMainWorkspaceViewModel,
     buildPromotionStatusMessage,
-    executeMainWorkspaceSummary,
   } from '../lib/main-workspace-flow.js';
+  import { executeMainWorkspaceSummary } from '../lib/main-workspace-summary-service.js';
   import {
     MAIN_WORKSPACE_SPEECH_PROVIDER_OPTIONS,
     currentDefaultSpeechVoice,
