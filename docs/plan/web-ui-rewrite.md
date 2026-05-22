@@ -314,11 +314,28 @@ Phase 2 exit criteria:
 
 The current mixed-runtime seam is already small enough to name directly. Phase 0 should keep this inventory explicit and shrink it over time rather than letting new bridges appear.
 
-- `web-src/src/App.svelte` bootstraps legacy runtime modules from `web/js/feed.js`, `web/js/metrics.js`, `web/js/ocr.js`, `web/js/providers.js`, `web/js/summarizer.js`, `web/js/tts.js`, and `web/js/voices.js`
-- `web-src/src/lib/summary-flow.js` imports `web/js/markdown.js`
-- `web-src/src/lib/speech-flow.js` imports `web/js/filename.js`, `web/js/download.js`, and `web/js/text.js`
-- `web-src/src/lib/result-surface.js` imports `web/js/filename.js`, `web/js/download.js`, `web/js/markdown.js`, and `web/js/text.js`
-- `web-src/src/lib/app-shell.js` still owns main-page markup as HTML strings and should be treated as transitional shell code, not a stable end-state component boundary
+- `web-src/src/App.svelte` mounts `LegacyFeedBridge.svelte` only.
+  Owner: `feed` activity UI.
+  Deletion target: remove `LegacyFeedBridge.svelte` and stop importing `web/js/feed.js` from Svelte-owned code once the activity feed is moved behind a Svelte-owned feature or reduced to a pure utility boundary.
+- `web-src/src/pages/MainWorkspacePage.svelte` imports `addFeed`, `setPlaying`, `setStatus`, and `updateFeedItem` from `web/js/feed.js`.
+  Owner: main workspace activity/status plumbing.
+  Deletion target: replace these calls with a Svelte-owned activity/status store or feature-local service, then delete the remaining `web/js/feed.js` dependency from the main workspace.
+- `web-src/src/lib/summary-flow.js` and `web-src/src/lib/result-surface.js` import `web/js/markdown.js`.
+  Owner: shared text-result rendering helpers used by summarize and result-surface features.
+  Deletion target: move markdown rendering into `web-src/src/lib/*` and delete the `web/js/markdown.js` dependency.
+- `web-src/src/lib/speech-flow.js` and `web-src/src/lib/result-surface.js` import `web/js/filename.js` and `web/js/download.js`.
+  Owner: shared download behavior for result and audio exports.
+  Deletion target: move filename and download helpers into `web-src/src/lib/*` or a feature-local service and delete the `web/js/filename.js` and `web/js/download.js` dependencies.
+- `web-src/src/lib/speech-flow.js`, `web-src/src/lib/main-workspace-flow.js`, `web-src/src/lib/main-workspace-speech-flow.js`, and `web-src/src/lib/result-surface.js` import `web/js/text.js`.
+  Owner: shared text formatting helpers used by workspace, speech, and result rendering.
+  Deletion target: move text helpers into `web-src/src/lib/*` and delete the `web/js/text.js` dependency.
+
+Bridges already removed from `App.svelte` and no longer counted as active Phase 0 seams:
+
+- `LegacyOCRBridge.svelte`
+- `LegacySummaryBridge.svelte`
+- `LegacyProvidersBridge.svelte`
+- `LegacyMetricsBridge.svelte`
 
 ## Risks and Guardrails
 
