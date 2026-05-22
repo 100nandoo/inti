@@ -33,6 +33,7 @@ function installDocumentStub() {
 
 test('buildMainWorkspaceViewModel exposes Svelte-owned workspace state and result surface data', () => {
   const viewModel = buildMainWorkspaceViewModel({
+    activeOutputTab: 'summary',
     inputMode: 'working-text',
     workingTextRunMode: 'voice',
     workingText: 'Draft owned by Svelte',
@@ -43,16 +44,34 @@ test('buildMainWorkspaceViewModel exposes Svelte-owned workspace state and resul
       rawText: '# Heading\n\nCondensed text',
       plainText: 'Heading Condensed text',
     },
+    latestOCRTextResult: {
+      kind: 'ocr',
+      title: 'OCR Result',
+      format: 'plain',
+      rawText: 'Scanned text',
+      plainText: 'Scanned text',
+    },
+    latestSummaryTextResult: {
+      kind: 'summary',
+      title: 'Summary Result',
+      format: 'markdown',
+      rawText: '# Heading\n\nCondensed text',
+      plainText: 'Heading Condensed text',
+    },
+    lastAudioBlob: null,
   });
 
   assert.equal(viewModel.isOcrMode, false);
   assert.equal(viewModel.isWorkingTextMode, true);
   assert.equal(viewModel.isSummaryMode, false);
   assert.equal(viewModel.isVoiceMode, true);
+  assert.equal(viewModel.actionTabs.ocr.disabled, true);
+  assert.equal(viewModel.actionTabs.voice.active, true);
   assert.equal(viewModel.hasWorkingText, true);
   assert.equal(viewModel.workingTextCharacterCount, 21);
   assert.equal(viewModel.speechInputCharacterCount, 21);
   assert.equal(viewModel.textResultCharacterCount, 22);
+  assert.equal(viewModel.resultViewModel.activeTab, 'summary');
   assert.equal(viewModel.resultViewModel.kindChip, 'Summary result');
   assert.equal(viewModel.resultViewModel.defaultPromotionLabel, 'Replace Working Text');
 });

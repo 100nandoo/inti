@@ -54,7 +54,6 @@ export function shouldHandleOCRGlobalPaste({
  * }} input
  * @returns {Promise<{
  *   ocrResult: TextResult;
- *   autoPromoted: boolean;
  *   feedMeta: string;
  * }>}
  */
@@ -82,7 +81,6 @@ export async function executeMainWorkspaceOCR({
 
   return {
     ocrResult: createOCRTextResult(rawText),
-    autoPromoted: !workingText.trim() && Boolean(rawText.trim()),
     feedMeta: buildOCRCompletionMeta(rawText),
   };
 }

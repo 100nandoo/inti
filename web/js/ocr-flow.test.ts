@@ -102,10 +102,10 @@ test('OCR workspace helpers keep rejection messaging explicit', () => {
   assert.equal(buildOCRRejectedFilesMessage(2), 'Rejected 2 unsupported image files. SVG uploads are not allowed.');
 });
 
-test('OCR request helper preserves result creation and empty-workspace auto-promotion', async () => {
+test('OCR request helper preserves result creation without auto-promoting into working text', async () => {
   const file = new File(['pixels'], 'scan.png', { type: 'image/png' });
 
-  const autoPromoted = await executeMainWorkspaceOCR({
+  const resultFromEmptyDraft = await executeMainWorkspaceOCR({
     apiURL: (path: string) => path,
     files: [file],
     workingText: '   ',
@@ -117,10 +117,9 @@ test('OCR request helper preserves result creation and empty-workspace auto-prom
     },
   });
 
-  assert.equal(autoPromoted.autoPromoted, true);
-  assert.equal(autoPromoted.ocrResult.kind, 'ocr');
-  assert.equal(autoPromoted.ocrResult.rawText, 'Scanned text from OCR');
-  assert.equal(autoPromoted.feedMeta, '4 words extracted');
+  assert.equal(resultFromEmptyDraft.ocrResult.kind, 'ocr');
+  assert.equal(resultFromEmptyDraft.ocrResult.rawText, 'Scanned text from OCR');
+  assert.equal(resultFromEmptyDraft.feedMeta, '4 words extracted');
 
   const reviewOnly = await executeMainWorkspaceOCR({
     apiURL: (path: string) => path,
@@ -129,6 +128,5 @@ test('OCR request helper preserves result creation and empty-workspace auto-prom
     fetchImpl: async () => Response.json({ text: 'Scanned text from OCR' }),
   });
 
-  assert.equal(reviewOnly.autoPromoted, false);
   assert.equal(reviewOnly.ocrResult.plainText, 'Scanned text from OCR');
 });

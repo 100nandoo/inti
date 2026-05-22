@@ -9,6 +9,7 @@ import {
 test('buildResultSurfaceViewModel exposes result presentation, speakable text, and promotion labels', () => {
   const summaryView = buildResultSurfaceViewModel(
     {
+      activeOutputTab: 'summary',
       latestTextResult: {
         kind: 'summary',
         title: 'Summary Result',
@@ -16,10 +17,27 @@ test('buildResultSurfaceViewModel exposes result presentation, speakable text, a
         rawText: '# Heading\n\nCondensed text',
         plainText: 'Heading Condensed text',
       },
+      latestOCRTextResult: {
+        kind: 'ocr',
+        title: 'OCR Result',
+        format: 'plain',
+        rawText: 'Scanned text',
+        plainText: 'Scanned text',
+      },
+      latestSummaryTextResult: {
+        kind: 'summary',
+        title: 'Summary Result',
+        format: 'markdown',
+        rawText: '# Heading\n\nCondensed text',
+        plainText: 'Heading Condensed text',
+      },
+      lastAudioBlob: null,
     },
   );
 
+  assert.equal(summaryView.activeTab, 'summary');
   assert.equal(summaryView.hasResult, true);
+  assert.equal(summaryView.hasTextResult, true);
   assert.equal(summaryView.hasSpeakableText, true);
   assert.equal(summaryView.kindChip, 'Summary result');
   assert.equal(summaryView.title, 'Summary Result');
@@ -28,13 +46,29 @@ test('buildResultSurfaceViewModel exposes result presentation, speakable text, a
 
   const ocrView = buildResultSurfaceViewModel(
     {
+      activeOutputTab: 'ocr',
       latestTextResult: {
+        kind: 'summary',
+        title: 'Summary Result',
+        format: 'markdown',
+        rawText: '# Heading\n\nCondensed text',
+        plainText: 'Heading Condensed text',
+      },
+      latestOCRTextResult: {
         kind: 'ocr',
         title: '',
         format: 'plain',
         rawText: 'Line one\nLine two',
         plainText: 'Line one\nLine two',
       },
+      latestSummaryTextResult: {
+        kind: 'summary',
+        title: 'Summary Result',
+        format: 'markdown',
+        rawText: '# Heading\n\nCondensed text',
+        plainText: 'Heading Condensed text',
+      },
+      lastAudioBlob: null,
     },
   );
 
@@ -42,6 +76,39 @@ test('buildResultSurfaceViewModel exposes result presentation, speakable text, a
   assert.equal(ocrView.title, 'Transform result');
   assert.match(ocrView.contentHtml, /<br>/);
   assert.equal(ocrView.defaultPromotionLabel, 'Replace Working Text');
+
+  const voiceView = buildResultSurfaceViewModel(
+    {
+      activeOutputTab: 'voice',
+      latestTextResult: {
+        kind: 'summary',
+        title: 'Summary Result',
+        format: 'markdown',
+        rawText: '# Heading\n\nCondensed text',
+        plainText: 'Heading Condensed text',
+      },
+      latestOCRTextResult: {
+        kind: 'ocr',
+        title: 'OCR Result',
+        format: 'plain',
+        rawText: 'Scanned text',
+        plainText: 'Scanned text',
+      },
+      latestSummaryTextResult: {
+        kind: 'summary',
+        title: 'Summary Result',
+        format: 'markdown',
+        rawText: '# Heading\n\nCondensed text',
+        plainText: 'Heading Condensed text',
+      },
+      lastAudioBlob: new Blob(['opus-audio'], { type: 'audio/opus' }),
+    },
+  );
+
+  assert.equal(voiceView.isVoiceTab, true);
+  assert.equal(voiceView.hasAudioResult, true);
+  assert.equal(voiceView.hasTextResult, false);
+  assert.equal(voiceView.kindChip, 'Voice result');
 });
 
 test('copyLatestResultText reflects clipboard availability and write failures', async () => {

@@ -6,14 +6,15 @@
     applyAppearanceConfig,
     applySpeechConfig,
     applySummarizerConfig,
+    getActiveTextResult,
     getSelectedSpeechModel,
     getSelectedSpeechProvider,
     getSelectedSpeechVoice,
     getSelectedSummarizerModel,
     getSelectedSummarizerProvider,
     promoteLatestTextResult,
+    setActiveOutputTab,
     setLastAudioResult,
-    replaceWorkingText,
     setGroqRateLimits,
     setDragSourceIndex,
     setInputMode,
@@ -257,19 +258,13 @@
     setProcessing(true);
 
     try {
-      const { ocrResult, autoPromoted, feedMeta } = await executeMainWorkspaceOCR({
+      const { ocrResult, feedMeta } = await executeMainWorkspaceOCR({
         apiURL,
         files,
         workingText: workspace.workingText,
       });
       setLatestTextResult(ocrResult);
-      if (autoPromoted) {
-        replaceWorkingText(ocrResult.rawText);
-        setInputMode('working-text');
-        setStatus(buildPromotionStatusMessage('ocr'), 'success');
-      } else {
-        setStatus('OCR result ready for review.', 'success');
-      }
+      setStatus('OCR result ready for review.', 'success');
       setStagedFiles([]);
       updateFeedItem(feedItem, 'ok', `OCR: ${label}`, feedMeta);
     } catch (error) {
@@ -552,6 +547,7 @@
         voice: result.voice,
         model: result.model,
       });
+      setActiveOutputTab('voice');
       setStatus('Audio result ready.', 'success');
       updateFeedItem(feedItem, 'ok', result.feedLabel, result.feedMeta);
 
@@ -573,11 +569,11 @@
   function handlePromoteLatestTextResult(): void {
     if (!promoteLatestTextResult('replace')) return;
     setInputMode('working-text');
-    setStatus(buildPromotionStatusMessage(workspace.latestTextResult.kind), 'success');
+    setStatus(buildPromotionStatusMessage(getActiveTextResult().kind), 'success');
   }
 
   async function handleCopyLatestResult(): Promise<void> {
-    const copied = await copyLatestResultText(workspace.latestTextResult);
+    const copied = await copyLatestResultText(getActiveTextResult());
     if (!copied) return;
 
     resultCopyLabel = 'Copied!';
@@ -592,7 +588,7 @@
 
   function handleDownloadLatestResult(format: SummaryDownloadFormat = summaryDownloadFormat): void {
     if (workspace.processing) return;
-    downloadLatestResult(workspace.latestTextResult, format);
+    downloadLatestResult(getActiveTextResult(), format);
     closeResultDownloadMenu();
   }
 
@@ -624,6 +620,7 @@
   $: textResultCharacterCount = mainWorkspaceViewModel.textResultCharacterCount;
   $: speechViewModel = buildSpeechPanelViewModel(workspace);
   $: stagedCountLabel = formatStagedCount(workspace?.stagedFiles?.length || 0);
+  $: activeOutputTab = resultViewModel.activeTab;
   $: syncStagedPreviewUrls(workspace?.stagedFiles || []);
 </script>
 
@@ -643,7 +640,7 @@
     >
       <div class="section-heading inti-panel-heading">
         <span class="ornament inti-panel-ornament" aria-hidden="true"></span>
-        <h2 id="workspace-heading">Text Workspace</h2>
+        <h2 id="workspace-heading">Input</h2>
         <span class="source-chip badge badge-warning badge-outline">One working text</span>
       </div>
       <div class="input-mode-toggle inti-input-mode-toggle" role="tablist" aria-label="Input mode">
@@ -748,19 +745,7 @@
               >
                 <span class="icon icon-trash" aria-hidden="true"></span>
               </button>
-              <button
-                id="run-ocr-btn"
-                class="btn-primary btn btn-primary"
-                disabled={workspace.processing || workspace.stagedFiles.length === 0}
-                on:click={() => {
-                  void runOCR();
-                }}
-              >
-                <span aria-hidden="true">--</span>
-                Extract Text
-                <span class="icon icon-bolt" aria-hidden="true"></span>
-              </button>
-          </div>
+            </div>
         </div>
       </div>
 
@@ -777,184 +762,252 @@
           disabled={workspace.processing}
           on:input={(event) => setWorkingText((event.currentTarget as HTMLTextAreaElement).value)}
         ></textarea>
-      </div>
-
-      <div id="working-text-run-panel" class="inti-control-band working-text-run-panel" hidden={!isWorkingTextMode}>
-        <div class="run-mode-toggle" role="tablist" aria-label="Working Text run mode">
+        <div class="run-action-row">
           <button
-            id="run-mode-summary-btn"
-            class="run-mode-btn"
-            class:is-active={isSummaryMode}
-            type="button"
-            role="tab"
-            aria-selected={isSummaryMode}
-            aria-controls="summary-run-panel"
-            on:click={() => setWorkingTextRunMode('summary')}
+            id="clear-workspace-btn"
+            class="btn-secondary btn btn-ghost border border-base-300"
+            title="Clear working text"
+            disabled={workspace.processing || !hasWorkingText}
+            on:click={() => {
+              setWorkingText('');
+              setStatus('Working text cleared.', 'success');
+            }}
           >
-            Summary
+            <span class="icon icon-x" aria-hidden="true"></span>
+            Clear
           </button>
-          <button
-            id="run-mode-voice-btn"
-            class="run-mode-btn"
-            class:is-active={isVoiceMode}
-            type="button"
-            role="tab"
-            aria-selected={isVoiceMode}
-            aria-controls="summary-run-panel"
-            on:click={() => setWorkingTextRunMode('voice')}
-          >
-            Voice
-          </button>
-        </div>
-
-        <div id="summary-run-panel" class="run-mode-panel" hidden={!isSummaryMode}>
-          <div class="run-config-row">
-            <div class="select-wrap provider-wrap inti-select-wrap">
-              <select
-                class="select select-bordered"
-                id="provider-select"
-                data-inti-dropdown
-                title="Summarizer provider"
-                value={workspace.selectedSummarizerProvider}
-                on:change={(event) => {
-                  void handleProviderChange((event.currentTarget as HTMLSelectElement).value);
-                }}
-              >
-                {#each providerOptions as option}
-                  <option value={option.value}>{option.label}</option>
-                {/each}
-              </select>
-            </div>
-            <div class="select-wrap provider-wrap inti-select-wrap" id="sum-model-wrap" hidden={summaryModelHidden}>
-              <select
-                class="select select-bordered"
-                id="sum-model-select"
-                data-inti-dropdown
-                title="Summarizer model"
-                value={workspace.selectedSummarizerModel}
-                on:change={(event) => {
-                  void handleModelChange((event.currentTarget as HTMLSelectElement).value);
-                }}
-              >
-                {#each modelOptions as option}
-                  <option value={option.value}>{option.label}</option>
-                {/each}
-              </select>
-            </div>
-          </div>
-
-          <div class="run-action-row">
-            <button
-              id="clear-workspace-btn"
-              class="btn-secondary btn btn-ghost border border-base-300"
-              title="Clear working text"
-              disabled={workspace.processing || !hasWorkingText || !isSummaryMode}
-              on:click={() => {
-                setWorkingText('');
-                setStatus('Working text cleared.', 'success');
-              }}
-            >
-              <span class="icon icon-x" aria-hidden="true"></span>
-              Clear
-            </button>
-            <button
-              id="summarize-btn"
-              class="btn-primary btn btn-primary"
-              title="Summarize source text"
-              disabled={workspace.processing || !hasWorkingText || !isSummaryMode}
-              on:click={() => {
-                void summarizeWorkingText();
-              }}
-            >
-              <span class="icon icon-bolt" aria-hidden="true"></span>
-              <span>Summarize</span>
-            </button>
-          </div>
         </div>
       </div>
     </section>
 
-    <section class="panel panel-result inti-workspace-card card bg-base-100/90 shadow-2xl shadow-base-content/10">
+    <section class="panel panel-result inti-workspace-card card bg-base-100/90 shadow-2xl shadow-base-content/10" id="working-text-run-panel">
       <div class="section-heading inti-panel-heading">
         <span class="ornament inti-panel-ornament" aria-hidden="true"></span>
-        <h2>Latest Text Result</h2>
-        <span class="source-chip badge badge-outline" id="text-result-kind-chip">{resultViewModel.kindChip}</span>
+        <h2>Action</h2>
+        <span class="source-chip badge badge-outline">{isOcrMode ? 'OCR ready' : isVoiceMode ? 'Voice ready' : 'Summary ready'}</span>
       </div>
 
-      <div id="text-result" class="field-block inti-surface">
+      <div class="run-mode-toggle" role="tablist" aria-label="Action tabs">
+        <button
+          id="run-ocr-btn"
+          class="run-mode-btn"
+          class:is-active={mainWorkspaceViewModel.actionTabs.ocr.active}
+          type="button"
+          role="tab"
+          aria-selected={mainWorkspaceViewModel.actionTabs.ocr.active}
+          aria-controls="ocr-run-panel"
+          disabled={mainWorkspaceViewModel.actionTabs.ocr.disabled}
+        >
+          OCR
+        </button>
+        <button
+          id="run-mode-summary-btn"
+          class="run-mode-btn"
+          class:is-active={mainWorkspaceViewModel.actionTabs.summary.active}
+          type="button"
+          role="tab"
+          aria-selected={mainWorkspaceViewModel.actionTabs.summary.active}
+          aria-controls="summary-run-panel"
+          disabled={mainWorkspaceViewModel.actionTabs.summary.disabled}
+          on:click={() => setWorkingTextRunMode('summary')}
+        >
+          Summary
+        </button>
+        <button
+          id="run-mode-voice-btn"
+          class="run-mode-btn"
+          class:is-active={mainWorkspaceViewModel.actionTabs.voice.active}
+          type="button"
+          role="tab"
+          aria-selected={mainWorkspaceViewModel.actionTabs.voice.active}
+          aria-controls="voice-run-panel"
+          disabled={mainWorkspaceViewModel.actionTabs.voice.disabled}
+          on:click={() => setWorkingTextRunMode('voice')}
+        >
+          Voice
+        </button>
+      </div>
+
+      <div id="ocr-run-panel" class="field-block inti-surface" hidden={!isOcrMode}>
         <div class="field-head">
-          <span id="text-result-title">{resultViewModel.title}</span>
-          <span id="text-result-count">{textResultCharacterCount} characters</span>
+          <span>OCR</span>
+          <span>{stagedCountLabel}</span>
         </div>
-        <div id="text-result-content" class="summary-markdown">{@html resultViewModel.contentHtml}</div>
-        <div class="summary-actions result-actions inti-action-row">
+        <p>Extract text from the staged files and send the result to Output.</p>
+        <div class="run-action-row">
           <button
-            id="result-promote-default-btn"
             class="btn-primary btn btn-primary"
-            disabled={workspace.processing || !resultViewModel.hasResult}
-            on:click={handlePromoteLatestTextResult}
-          >
-            <span class="icon icon-arrow-up" aria-hidden="true"></span>
-            <span id="result-promote-default-label">{resultViewModel.defaultPromotionLabel}</span>
-          </button>
-          <button
-            id="result-copy-btn"
-            class="btn-secondary btn btn-ghost border border-base-300"
-            disabled={workspace.processing || !resultViewModel.hasResult}
+            disabled={workspace.processing || workspace.stagedFiles.length === 0}
             on:click={() => {
-              void handleCopyLatestResult();
+              void runOCR();
             }}
           >
-            <span class="icon icon-copy" aria-hidden="true"></span>
-            <span id="result-copy-label">{resultCopyLabel}</span>
+            <span aria-hidden="true">--</span>
+            Extract Text
+            <span class="icon icon-bolt" aria-hidden="true"></span>
           </button>
-          <div
-            class="dropdown dropdown-top dropdown-end split-button inti-split-button"
-            class:dropdown-open={resultDownloadMenuOpen}
-            class:is-open={resultDownloadMenuOpen}
-            id="result-download-group"
-            bind:this={resultDownloadGroup}
-          >
-            <button
-              id="result-download-btn"
-              class="btn-secondary btn btn-ghost border border-base-300 split-button-main"
-              disabled={workspace.processing || !resultViewModel.hasResult}
-              on:click={() => handleDownloadLatestResult()}
-            >
-              <span class="icon icon-download" aria-hidden="true"></span>
-              Download
-            </button>
-            <button
-              id="result-download-toggle"
-              class="btn-secondary btn btn-ghost border border-base-300 split-button-toggle"
-              aria-haspopup="menu"
-              aria-expanded={resultDownloadMenuOpen}
-              aria-controls="result-download-menu"
-              title="Choose download format"
-              disabled={workspace.processing || !resultViewModel.hasResult}
-              on:click|stopPropagation={() => {
-                if (workspace.processing || !resultViewModel.hasResult) return;
-                resultDownloadMenuOpen = !resultDownloadMenuOpen;
+        </div>
+      </div>
+
+      <div id="summary-run-panel" class="run-mode-panel" hidden={!isSummaryMode}>
+        <div class="run-config-row">
+          <div class="select-wrap provider-wrap inti-select-wrap">
+            <select
+              class="select select-bordered"
+              id="provider-select"
+              data-inti-dropdown
+              title="Summarizer provider"
+              value={workspace.selectedSummarizerProvider}
+              on:change={(event) => {
+                void handleProviderChange((event.currentTarget as HTMLSelectElement).value);
               }}
             >
-              <span class="icon icon-chevron-down" aria-hidden="true"></span>
-            </button>
-            <ul
-              id="result-download-menu"
-              class="dropdown-content menu bg-base-100 rounded-box z-1 w-52 p-2 shadow-sm split-menu"
-              role="menu"
-              hidden={!resultDownloadMenuOpen}
-              on:keydown={(event) => {
-                if (event.key === 'Escape') {
-                  closeResultDownloadMenu();
-                  (document.getElementById('result-download-toggle') as HTMLButtonElement | null)?.focus();
-                }
-              }}
-            >
-              <li><button type="button" data-format="txt" role="menuitem" on:click={() => handleDownloadLatestResult('txt')}>Download .txt</button></li>
-              <li><button type="button" data-format="md" role="menuitem" on:click={() => handleDownloadLatestResult('md')}>Download .md</button></li>
-            </ul>
+              {#each providerOptions as option}
+                <option value={option.value}>{option.label}</option>
+              {/each}
+            </select>
           </div>
+          <div class="select-wrap provider-wrap inti-select-wrap" id="sum-model-wrap" hidden={summaryModelHidden}>
+            <select
+              class="select select-bordered"
+              id="sum-model-select"
+              data-inti-dropdown
+              title="Summarizer model"
+              value={workspace.selectedSummarizerModel}
+              on:change={(event) => {
+                void handleModelChange((event.currentTarget as HTMLSelectElement).value);
+              }}
+            >
+              {#each modelOptions as option}
+                <option value={option.value}>{option.label}</option>
+              {/each}
+            </select>
+          </div>
+        </div>
+
+        <div class="run-action-row">
+          <button
+            id="summarize-btn"
+            class="btn-primary btn btn-primary"
+            title="Summarize source text"
+            disabled={workspace.processing || !hasWorkingText || !isSummaryMode}
+            on:click={() => {
+              void summarizeWorkingText();
+            }}
+          >
+            <span class="icon icon-bolt" aria-hidden="true"></span>
+            <span>Summarize</span>
+          </button>
+        </div>
+      </div>
+
+      <div id="voice-run-panel" class="run-mode-panel" hidden={!isVoiceMode}>
+        <div class="field-block inti-surface">
+          <div class="field-head">
+            <span>Working Text</span>
+            <span id="speech-input-count">{mainWorkspaceViewModel.speechInputCharacterCount} characters</span>
+          </div>
+          <div id="speech-input-preview" class="summary-markdown speech-preview">{@html speechViewModel.speechPreviewHtml}</div>
+        </div>
+
+        <div class="controls inti-control-band">
+          <div class="select-wrap inti-select-wrap">
+            <select
+              class="select select-bordered"
+              id="speech-provider-select"
+              data-inti-dropdown
+              title="Select speech provider"
+              value={workspace.selectedSpeechProvider}
+              disabled={speechViewModel.controlsDisabled}
+              on:change={(event) => {
+                void handleSpeechProviderChange((event.currentTarget as HTMLSelectElement).value);
+              }}
+            >
+              {#each speechProviderOptions as option}
+                <option value={option.value}>{option.label}</option>
+              {/each}
+            </select>
+          </div>
+          <div class="select-wrap inti-select-wrap">
+            <select
+              class="select select-bordered"
+              id="model-select"
+              data-inti-dropdown
+              title="Select TTS model"
+              value={workspace.selectedSpeechModel}
+              disabled={speechViewModel.controlsDisabled || workspace.selectedSpeechProvider === 'kokoro-heart' || speechModelOptions.length === 0}
+              on:change={(event) => {
+                void handleSpeechModelChange((event.currentTarget as HTMLSelectElement).value);
+              }}
+            >
+              {#if speechModelOptions.length === 0}
+                <option value="">No model selection</option>
+              {:else}
+                {#each speechModelOptions as option}
+                  <option value={option.value}>{option.label}</option>
+                {/each}
+              {/if}
+            </select>
+          </div>
+          <div class="select-wrap inti-select-wrap">
+            <select
+              class="select select-bordered"
+              id="voice-select"
+              data-inti-dropdown
+              title="Select voice"
+              value={workspace.selectedSpeechVoice}
+              disabled={speechViewModel.controlsDisabled}
+              on:change={(event) => {
+                void handleSpeechVoiceChange((event.currentTarget as HTMLSelectElement).value);
+              }}
+            >
+              {#each speechVoiceOptions as option}
+                <option value={option.value}>{option.label}</option>
+              {/each}
+            </select>
+          </div>
+          <div class="select-wrap inti-select-wrap">
+            <select
+              class="select select-bordered"
+              id="gender-filter"
+              data-inti-dropdown
+              title="Filter by gender"
+              value={speechGenderFilter}
+              disabled={speechViewModel.controlsDisabled || workspace.selectedSpeechProvider !== 'gemini'}
+              on:change={(event) => {
+                handleSpeechGenderFilterChange((event.currentTarget as HTMLSelectElement).value);
+              }}
+            >
+              <option value="All">All voices</option>
+              <option value="Female">Female</option>
+              <option value="Male">Male</option>
+            </select>
+          </div>
+
+          <div class="action-checkboxes inti-checkboxes">
+            <label class="action-check label cursor-pointer gap-2 rounded-full border border-base-300 bg-base-100/80 px-3 py-2"><input type="checkbox" id="action-speak" class="checkbox checkbox-sm" bind:checked={autoPlayAudio} disabled={speechViewModel.controlsDisabled} /> Auto-play</label>
+            <label class="action-check label cursor-pointer gap-2 rounded-full border border-base-300 bg-base-100/80 px-3 py-2"><input type="checkbox" id="action-download" class="checkbox checkbox-sm" bind:checked={autoDownloadAudio} disabled={speechViewModel.controlsDisabled} /> Download</label>
+          </div>
+          <button
+            id="generate-working-audio-btn"
+            class="btn-primary btn btn-primary generate-btn"
+            disabled={workspace.processing || !speechViewModel.hasWorkingText}
+            on:click={() => {
+              void synthesizeWorkingText();
+            }}
+          >
+            <span class="icon icon-speaker" aria-hidden="true"></span>
+            Generate from Working Text
+          </button>
+          <div class="playing-bar" id="playing-bar">
+            <div class="bar"></div>
+            <div class="bar"></div>
+            <div class="bar"></div>
+            <div class="bar"></div>
+            <div class="bar"></div>
+          </div>
+
+          <span class="status-text" id="status-text"></span>
         </div>
       </div>
     </section>
@@ -962,147 +1015,157 @@
     <section class="panel panel-tts inti-workspace-card card bg-base-100/90 shadow-2xl shadow-base-content/10">
       <div class="section-heading inti-panel-heading">
         <span class="ornament inti-panel-ornament" aria-hidden="true"></span>
-        <h2>Speech</h2>
-        <span class="source-chip badge badge-outline">Audio stays available after edits</span>
+        <h2>Output</h2>
+        <span class="source-chip badge badge-outline" id="text-result-kind-chip">{resultViewModel.kindChip}</span>
       </div>
 
+      <div class="run-mode-toggle" role="tablist" aria-label="Output tabs">
+        <button
+          id="output-tab-ocr-btn"
+          class="run-mode-btn"
+          class:is-active={activeOutputTab === 'ocr'}
+          type="button"
+          role="tab"
+          aria-selected={activeOutputTab === 'ocr'}
+          aria-controls="text-result"
+          on:click={() => setActiveOutputTab('ocr')}
+        >
+          OCR
+        </button>
+        <button
+          id="output-tab-summary-btn"
+          class="run-mode-btn"
+          class:is-active={activeOutputTab === 'summary'}
+          type="button"
+          role="tab"
+          aria-selected={activeOutputTab === 'summary'}
+          aria-controls="text-result"
+          on:click={() => setActiveOutputTab('summary')}
+        >
+          Summary
+        </button>
+        <button
+          id="output-tab-voice-btn"
+          class="run-mode-btn"
+          class:is-active={activeOutputTab === 'voice'}
+          type="button"
+          role="tab"
+          aria-selected={activeOutputTab === 'voice'}
+          aria-controls="audio-result-card"
+          on:click={() => setActiveOutputTab('voice')}
+        >
+          Voice
+        </button>
+      </div>
+
+      {#if resultViewModel.isVoiceTab}
         <div class="field-block inti-surface">
           <div class="field-head">
-            <span>Working Text</span>
-            <span id="speech-input-count">{mainWorkspaceViewModel.speechInputCharacterCount} characters</span>
+            <span>Latest audio result</span>
+            <span id="audio-result-meta">{speechViewModel.audioMeta}</span>
           </div>
-        <div id="speech-input-preview" class="summary-markdown speech-preview">{@html speechViewModel.speechPreviewHtml}</div>
-      </div>
-
-      <div class="controls inti-control-band">
-        <div class="select-wrap inti-select-wrap">
-          <select
-            class="select select-bordered"
-            id="speech-provider-select"
-            data-inti-dropdown
-            title="Select speech provider"
-            value={workspace.selectedSpeechProvider}
-            disabled={speechViewModel.controlsDisabled}
-            on:change={(event) => {
-              void handleSpeechProviderChange((event.currentTarget as HTMLSelectElement).value);
-            }}
-          >
-            {#each speechProviderOptions as option}
-              <option value={option.value}>{option.label}</option>
-            {/each}
-          </select>
+          <div id="audio-result-card" class="summary-markdown speech-preview">{@html speechViewModel.audioCardHtml}</div>
+          <div class="summary-actions inti-action-row">
+            <button
+              id="play-audio-btn"
+              class="btn-secondary btn btn-ghost border border-base-300"
+              disabled={workspace.processing || !speechViewModel.hasAudio}
+              on:click={() => {
+                void playLatestAudio();
+              }}
+            >
+              <span class="icon icon-speaker-waves" aria-hidden="true"></span>
+              Play
+            </button>
+            <button
+              id="download-audio-btn"
+              class="btn-secondary btn btn-ghost border border-base-300"
+              disabled={workspace.processing || !speechViewModel.hasAudio}
+              on:click={handleDownloadAudioSnapshot}
+            >
+              <span class="icon icon-download" aria-hidden="true"></span>
+              Download
+            </button>
+          </div>
         </div>
-        <div class="select-wrap inti-select-wrap">
-          <select
-            class="select select-bordered"
-            id="model-select"
-            data-inti-dropdown
-            title="Select TTS model"
-            value={workspace.selectedSpeechModel}
-            disabled={speechViewModel.controlsDisabled || workspace.selectedSpeechProvider === 'kokoro-heart' || speechModelOptions.length === 0}
-            on:change={(event) => {
-              void handleSpeechModelChange((event.currentTarget as HTMLSelectElement).value);
-            }}
-          >
-            {#if speechModelOptions.length === 0}
-              <option value="">No model selection</option>
-            {:else}
-              {#each speechModelOptions as option}
-                <option value={option.value}>{option.label}</option>
-              {/each}
-            {/if}
-          </select>
-        </div>
-        <div class="select-wrap inti-select-wrap">
-          <select
-            class="select select-bordered"
-            id="voice-select"
-            data-inti-dropdown
-            title="Select voice"
-            value={workspace.selectedSpeechVoice}
-            disabled={speechViewModel.controlsDisabled}
-            on:change={(event) => {
-              void handleSpeechVoiceChange((event.currentTarget as HTMLSelectElement).value);
-            }}
-          >
-            {#each speechVoiceOptions as option}
-              <option value={option.value}>{option.label}</option>
-            {/each}
-          </select>
-        </div>
-        <div class="select-wrap inti-select-wrap">
-          <select
-            class="select select-bordered"
-            id="gender-filter"
-            data-inti-dropdown
-            title="Filter by gender"
-            value={speechGenderFilter}
-            disabled={speechViewModel.controlsDisabled || workspace.selectedSpeechProvider !== 'gemini'}
-            on:change={(event) => {
-              handleSpeechGenderFilterChange((event.currentTarget as HTMLSelectElement).value);
-            }}
-          >
-            <option value="All">All voices</option>
-            <option value="Female">Female</option>
-            <option value="Male">Male</option>
-          </select>
-              </div>
-
-              <div class="action-checkboxes inti-checkboxes">
-                <label class="action-check label cursor-pointer gap-2 rounded-full border border-base-300 bg-base-100/80 px-3 py-2"><input type="checkbox" id="action-speak" class="checkbox checkbox-sm" bind:checked={autoPlayAudio} disabled={speechViewModel.controlsDisabled} /> Auto-play</label>
-                <label class="action-check label cursor-pointer gap-2 rounded-full border border-base-300 bg-base-100/80 px-3 py-2"><input type="checkbox" id="action-download" class="checkbox checkbox-sm" bind:checked={autoDownloadAudio} disabled={speechViewModel.controlsDisabled} /> Download</label>
-              </div>
+      {:else}
+        <div id="text-result" class="field-block inti-surface">
+          <div class="field-head">
+            <span id="text-result-title">{resultViewModel.title}</span>
+            <span id="text-result-count">{textResultCharacterCount} characters</span>
+          </div>
+          <div id="text-result-content" class="summary-markdown">{@html resultViewModel.contentHtml}</div>
+          <div class="summary-actions result-actions inti-action-row">
+            <button
+              id="result-promote-default-btn"
+              class="btn-primary btn btn-primary"
+              disabled={workspace.processing || !resultViewModel.hasTextResult}
+              on:click={handlePromoteLatestTextResult}
+            >
+              <span class="icon icon-arrow-up" aria-hidden="true"></span>
+              <span id="result-promote-default-label">{resultViewModel.defaultPromotionLabel}</span>
+            </button>
+            <button
+              id="result-copy-btn"
+              class="btn-secondary btn btn-ghost border border-base-300"
+              disabled={workspace.processing || !resultViewModel.hasTextResult}
+              on:click={() => {
+                void handleCopyLatestResult();
+              }}
+            >
+              <span class="icon icon-copy" aria-hidden="true"></span>
+              <span id="result-copy-label">{resultCopyLabel}</span>
+            </button>
+            <div
+              class="dropdown dropdown-top dropdown-end split-button inti-split-button"
+              class:dropdown-open={resultDownloadMenuOpen}
+              class:is-open={resultDownloadMenuOpen}
+              id="result-download-group"
+              bind:this={resultDownloadGroup}
+            >
               <button
-                id="generate-working-audio-btn"
-                class="btn-primary btn btn-primary generate-btn"
-                disabled={workspace.processing || !speechViewModel.hasWorkingText}
-                on:click={() => {
-                  void synthesizeWorkingText();
+                id="result-download-btn"
+                class="btn-secondary btn btn-ghost border border-base-300 split-button-main"
+                disabled={workspace.processing || !resultViewModel.hasTextResult}
+                on:click={() => handleDownloadLatestResult()}
+              >
+                <span class="icon icon-download" aria-hidden="true"></span>
+                Download
+              </button>
+              <button
+                id="result-download-toggle"
+                class="btn-secondary btn btn-ghost border border-base-300 split-button-toggle"
+                aria-haspopup="menu"
+                aria-expanded={resultDownloadMenuOpen}
+                aria-controls="result-download-menu"
+                title="Choose download format"
+                disabled={workspace.processing || !resultViewModel.hasTextResult}
+                on:click|stopPropagation={() => {
+                  if (workspace.processing || !resultViewModel.hasTextResult) return;
+                  resultDownloadMenuOpen = !resultDownloadMenuOpen;
                 }}
               >
-                <span class="icon icon-speaker" aria-hidden="true"></span>
-                Generate from Working Text
+                <span class="icon icon-chevron-down" aria-hidden="true"></span>
               </button>
-        <div class="playing-bar" id="playing-bar">
-          <div class="bar"></div>
-          <div class="bar"></div>
-          <div class="bar"></div>
-          <div class="bar"></div>
-          <div class="bar"></div>
+              <ul
+                id="result-download-menu"
+                class="dropdown-content menu bg-base-100 rounded-box z-1 w-52 p-2 shadow-sm split-menu"
+                role="menu"
+                hidden={!resultDownloadMenuOpen}
+                on:keydown={(event) => {
+                  if (event.key === 'Escape') {
+                    closeResultDownloadMenu();
+                    (document.getElementById('result-download-toggle') as HTMLButtonElement | null)?.focus();
+                  }
+                }}
+              >
+                <li><button type="button" data-format="txt" role="menuitem" on:click={() => handleDownloadLatestResult('txt')}>Download .txt</button></li>
+                <li><button type="button" data-format="md" role="menuitem" on:click={() => handleDownloadLatestResult('md')}>Download .md</button></li>
+              </ul>
+            </div>
+          </div>
         </div>
-
-        <span class="status-text" id="status-text"></span>
-      </div>
-
-            <div class="field-block inti-surface">
-              <div class="field-head">
-                <span>Latest audio result</span>
-                <span id="audio-result-meta">{speechViewModel.audioMeta}</span>
-              </div>
-              <div id="audio-result-card" class="summary-markdown speech-preview">{@html speechViewModel.audioCardHtml}</div>
-              <div class="summary-actions inti-action-row">
-                <button
-                  id="play-audio-btn"
-                  class="btn-secondary btn btn-ghost border border-base-300"
-                  disabled={workspace.processing || !speechViewModel.hasAudio}
-                  on:click={() => {
-                    void playLatestAudio();
-                  }}
-                >
-                  <span class="icon icon-speaker-waves" aria-hidden="true"></span>
-                  Play
-                </button>
-                <button
-                  id="download-audio-btn"
-                  class="btn-secondary btn btn-ghost border border-base-300"
-                  disabled={workspace.processing || !speechViewModel.hasAudio}
-                  on:click={handleDownloadAudioSnapshot}
-                >
-                  <span class="icon icon-download" aria-hidden="true"></span>
-                  Download
-                </button>
-        </div>
-      </div>
+      {/if}
     </section>
 
     <section class="panel panel-activity inti-workspace-card card bg-base-100/90 shadow-2xl shadow-base-content/10">

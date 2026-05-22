@@ -3,6 +3,7 @@ export type TextResultFormat = 'plain' | 'markdown';
 export type PromotionBehavior = 'replace';
 export type InputMode = 'ocr' | 'working-text';
 export type WorkingTextRunMode = 'summary' | 'voice';
+export type OutputTab = 'ocr' | 'summary' | 'voice';
 export type SummaryDownloadFormat = 'md' | 'txt';
 export type AllowedImageMimeType = 'image/png' | 'image/jpeg' | 'image/webp' | 'image/tiff';
 
@@ -94,8 +95,11 @@ export interface WorkspaceState {
   isPointerOverOcrCard: boolean;
   inputMode: InputMode;
   workingTextRunMode: WorkingTextRunMode;
+  activeOutputTab: OutputTab;
   workingText: string;
   latestTextResult: TextResult;
+  latestOCRTextResult: TextResult;
+  latestSummaryTextResult: TextResult;
   appearanceConfig: AppearanceConfig;
   summarizerConfig: SummarizerConfig;
   speechConfig: SpeechConfig;
@@ -190,7 +194,11 @@ export interface SpeechPanelViewModel {
 }
 
 export interface ResultSurfaceWorkspace {
+  activeOutputTab: OutputTab;
   latestTextResult: TextResult;
+  latestOCRTextResult: TextResult;
+  latestSummaryTextResult: TextResult;
+  lastAudioBlob: Blob | null;
 }
 
 export interface ClipboardWriter {
@@ -198,10 +206,16 @@ export interface ClipboardWriter {
 }
 
 export interface ResultSurfaceViewModel {
+  activeTab: OutputTab;
+  activeTabLabel: string;
   hasResult: boolean;
+  hasTextResult: boolean;
+  hasAudioResult: boolean;
+  isVoiceTab: boolean;
   hasSpeakableText: boolean;
   kindChip: string;
   title: string;
   contentHtml: string;
   defaultPromotionLabel: string;
+  textCharacterCount: number;
 }
