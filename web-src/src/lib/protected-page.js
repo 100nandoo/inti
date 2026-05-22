@@ -4,25 +4,13 @@ import {
   currentAPIKey as readCurrentAPIKey,
   setCurrentAPIKey as updateCurrentAPIKey,
 } from './page-auth.js';
+import {
+  buildAppShellNavLinks,
+  defaultAppShellNavItems,
+} from './app-shell-nav.js';
 
 /** @typedef {import('./page-shell-contracts').PageShellNavItem} PageShellNavItem */
 /** @typedef {import('./page-shell-contracts').PageShellNavLink} PageShellNavLink */
-
-/** @type {PageShellNavItem[]} */
-const defaultNavItems = [
-  {
-    path: '/api-keys.html',
-    label: 'API Keys',
-    title: 'Manage API keys',
-    iconClass: 'icon-key',
-  },
-  {
-    path: '/settings.html',
-    label: 'Settings',
-    title: 'Summarizer settings',
-    iconClass: 'icon-settings',
-  },
-];
 
 /**
  * @param {{
@@ -36,7 +24,7 @@ export function createProtectedPage({
   win = window,
   fetchImpl = fetch,
 } = {}) {
-  const mergedNavItems = [...defaultNavItems];
+  const mergedNavItems = [...defaultAppShellNavItems];
 
   for (const navItem of navItems) {
     if (mergedNavItems.some((item) => item.path === navItem.path)) continue;
@@ -55,10 +43,10 @@ export function createProtectedPage({
 
   /** @returns {PageShellNavLink[]} */
   function navLinks() {
-    return mergedNavItems.map(({ path, ...link }) => ({
-      ...link,
-      href: buildPageLink(path),
-    }));
+    return buildAppShellNavLinks({
+      navItems: mergedNavItems,
+      buildPageLink,
+    });
   }
 
   /**

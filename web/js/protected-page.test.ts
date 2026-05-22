@@ -2,9 +2,20 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { createProtectedPage } from '../../web-src/src/lib/protected-page.js';
+import { renderMainWorkspaceFixture } from './main-workspace-fixture.ts';
+import { installDomWithHTML, teardownPage } from './svelte-page-test-helpers.ts';
 
-test('protected page utilities preserve key-aware links and requests', async () => {
+test('protected page utilities preserve key-aware links and requests', async (t) => {
   const requests: Array<{ url: string; init: RequestInit }> = [];
+  const dom = installDomWithHTML(
+    'http://localhost:8282/settings.html?key=secret',
+    renderMainWorkspaceFixture([
+      { href: '/api-keys.html?key=secret', label: 'API Keys', title: 'Manage API keys', iconClass: 'icon-key' },
+      { href: '/settings.html?key=secret', label: 'Settings', title: 'Summarizer settings', iconClass: 'icon-settings' },
+      { href: '/?key=secret', label: 'Back', title: 'Back to app', iconClass: 'icon-chevron-left' },
+    ]),
+  );
+  t.after(() => teardownPage(dom));
   const win = {
     location: {
       origin: 'http://localhost:8282',
@@ -56,4 +67,11 @@ test('protected page utilities preserve key-aware links and requests', async () 
   );
   assert.equal(win.location.href, 'http://localhost:8282/settings.html?key=next-secret');
   assert.equal(protectedPage.currentAPIKey(), 'next-secret');
+  document.querySelectorAll('.header-settings-link').forEach((link, index) => {
+    link.setAttribute('href', protectedPage.navLinks()[index]?.href || '');
+  });
+  assert.deepEqual(
+    [...document.querySelectorAll('.header-settings-link')].map((link) => link.getAttribute('href')),
+    ['/api-keys.html?key=next-secret', '/settings.html?key=next-secret', '/?key=next-secret'],
+  );
 });

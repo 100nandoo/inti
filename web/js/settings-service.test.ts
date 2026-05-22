@@ -37,6 +37,8 @@ test('loadSettings fetches summarizer and appearance settings together', async (
   ]);
   assert.equal(result.summarizerConfig.provider, 'groq');
   assert.equal(result.appearanceConfig.theme, 'dark');
+  assert.equal(result.appearanceConfig.ocrPromotionBehavior, 'replace');
+  assert.equal(result.appearanceConfig.summaryPromotionBehavior, 'replace');
 });
 
 test('saveSettings preserves the current backend contracts', async () => {

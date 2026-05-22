@@ -16,18 +16,22 @@ OCR, summarization, and speech synthesis are actions that operate on the current
 - This is the canonical text value for the session
 - If the user wants different speech input, they edit **Working Text**
 
-### Latest Text Result
+### Transform Result
 
-- OCR and summarization both write to a shared result surface
+- OCR and summarization both write to a shared **Transform Result** surface
 - The result surface is non-destructive by default
 - The result surface exposes one promotion action: `Replace working text`
 - Promotion is replace-only across the product
 
-### Latest Audio Result
+`Latest Text Result` may still appear as user-facing copy, but the canonical product concept is **Transform Result**.
 
-- Speech generation creates a separate audio result surface
-- The audio result remains available for playback and download after **Working Text** changes
+### Audio Result
+
+- Speech generation creates a separate **Audio Result** surface
+- The **Audio Result** remains available for playback and download after **Working Text** changes
 - Audio generation works from **Working Text**
+
+`Latest Audio Result` may still appear as user-facing copy, but the canonical product concept is **Audio Result**.
 
 ### Activity History
 
@@ -40,8 +44,8 @@ OCR, summarization, and speech synthesis are actions that operate on the current
 The page should be reorganized around the following visual hierarchy:
 
 1. Import affordance and **Working Text**
-2. **Latest Text Result**
-3. Speech controls and **Latest Audio Result**
+2. **Transform Result**
+3. Speech controls and **Audio Result**
 4. Secondary history and utilities
 
 The import affordance should remain easy to discover, but it should not dominate the page more than **Working Text**.
@@ -49,7 +53,7 @@ The import affordance should remain easy to discover, but it should not dominate
 ## OCR flow
 
 1. User stages or pastes images
-2. OCR runs and produces a **Latest Text Result**
+2. OCR runs and produces a **Transform Result**
 3. If **Working Text** is empty, OCR may auto-promote by replacing it
 4. If **Working Text** already has content, the OCR result stays separate until promoted
 5. Promotion replaces **Working Text**
@@ -58,7 +62,7 @@ The import affordance should remain easy to discover, but it should not dominate
 
 1. Summarization runs against **Working Text**
 2. The app produces one canonical summary result
-3. The summary appears in **Latest Text Result**
+3. The summary appears in **Transform Result**
 4. Promotion replaces **Working Text**
 
 `Summarize + TTS` is not a primary action in this model. If it remains at all, it should be a secondary shortcut.
@@ -66,7 +70,7 @@ The import affordance should remain easy to discover, but it should not dominate
 ## Speech flow
 
 1. The user generates speech from **Working Text**
-2. The app creates a **Latest Audio Result**
+2. The app creates an **Audio Result**
 3. The user can play or download the result without losing it when the workspace text changes
 
 The separate editable `Text to speak` field should be removed because it duplicates **Working Text** and recreates multiple sources of truth.
@@ -79,7 +83,7 @@ The separate editable `Text to speak` field should be removed because it duplica
 
 ## Settings
 
-Settings should include:
+**Runtime Settings** should include:
 
 - Visual Theme: `light` or `dark`, with `dark` as the first-paint default
 

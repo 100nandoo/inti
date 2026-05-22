@@ -83,7 +83,7 @@ async function loadSummarizerConfig() {
 }
 
 export async function initProviders() {
-  window.preserveKeyLinks();
+  window.preserveKeyLinks?.();
   await loadSummarizerConfig();
 
   providerSelect.addEventListener('change', async () => {

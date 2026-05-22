@@ -14,7 +14,7 @@ _Avoid_: source text, OCR text, TTS text
 
 **Transform Result**:
 The latest text output produced by OCR or summarization, kept separate from **Working Text** until the user promotes it.
-_Avoid_: temporary copy, output box, second editor
+_Avoid_: latest text result, temporary copy, output box, second editor
 
 **Result Surface**:
 The part of the **Text Workspace** that presents the latest **Transform Result** and the action that replaces **Working Text** with it.
@@ -22,7 +22,7 @@ _Avoid_: output panel, result box
 
 **Audio Result**:
 Generated speech for a specific text snapshot that can be played or downloaded independently of later text edits.
-_Avoid_: TTS state, player buffer
+_Avoid_: latest audio result, TTS state, player buffer
 
 **Promotion**:
 The explicit action that replaces **Working Text** with the latest **Transform Result**.
@@ -70,3 +70,4 @@ _Avoid_: TTS backend switch, voice routing, provider hack
 - The numbered four-panel frontend implied a fixed process. Resolved: the product is a **Text Workspace** with optional transforms
 - "theme" was overloaded between implementation details and the user-facing appearance choice. Resolved: use **Visual Theme** for the persisted product setting
 - "append" and "replace" were both treated as valid ways to move a **Transform Result** into **Working Text**. Resolved: promotion is replace-only
+- "latest text result" and "latest audio result" were being used as if they were canonical product concepts. Resolved: the canonical concepts are **Transform Result** and **Audio Result**; "latest" is optional UI copy only

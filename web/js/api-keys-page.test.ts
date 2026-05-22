@@ -48,12 +48,38 @@ test('API keys page preserves authenticated admin flows', async (t) => {
     const urlText = String(url);
     requests.push({ url: urlText, method, body: options.body ? JSON.parse(options.body as string) : null });
 
+    if (method === 'GET' && urlText === 'http://localhost:8282/api/theme-config?key=main-secret') {
+      return Response.json({
+        theme: 'dark',
+        summaryDownloadFormat: 'md',
+        ocrPromotionBehavior: 'replace',
+        summaryPromotionBehavior: 'replace',
+      });
+    }
+
+    if (method === 'GET' && urlText === 'http://localhost:8282/api/theme-config?key=inti_secret_1') {
+      return Response.json({
+        theme: 'dark',
+        summaryDownloadFormat: 'md',
+        ocrPromotionBehavior: 'replace',
+        summaryPromotionBehavior: 'replace',
+      });
+    }
+
     if (method === 'GET' && urlText === 'http://localhost:8282/api/admin/keys?key=main-secret') {
       return Response.json({ keys });
     }
 
     if (method === 'GET' && urlText === 'http://localhost:8282/api/admin/keys?key=inti_secret_1') {
       return Response.json({ keys });
+    }
+
+    if (method === 'POST' && urlText === 'http://localhost:8282/api/theme-config?key=main-secret') {
+      return Response.json(body);
+    }
+
+    if (method === 'POST' && urlText === 'http://localhost:8282/api/theme-config?key=inti_secret_1') {
+      return Response.json(body);
     }
 
     if (method === 'POST' && urlText === 'http://localhost:8282/api/admin/keys?key=main-secret') {
@@ -88,11 +114,28 @@ test('API keys page preserves authenticated admin flows', async (t) => {
     ['/?key=main-secret', '/api-keys.html?key=main-secret', '/settings.html?key=main-secret'],
   );
 
+  requiredElement<HTMLButtonElement>('theme-toggle').click();
+  await flushAsyncWork();
+
+  assert.deepEqual(requests.at(-1), {
+    url: 'http://localhost:8282/api/theme-config?key=main-secret',
+    method: 'POST',
+    body: {
+      theme: 'light',
+      summaryDownloadFormat: 'md',
+      ocrPromotionBehavior: 'replace',
+      summaryPromotionBehavior: 'replace',
+    },
+  });
+
   setInputValue(requiredElement<HTMLInputElement>('new-key-name'), 'Desktop');
   requiredElement<HTMLButtonElement>('create-key-btn').click();
   await flushAsyncWork();
 
-  assert.equal((requests[1]?.body as { name?: string } | undefined)?.name, 'Desktop');
+  assert.equal(
+    requests.find((request) => request.method === 'POST' && request.url === 'http://localhost:8282/api/admin/keys?key=main-secret')?.body?.name,
+    'Desktop',
+  );
   assert.match(document.body.textContent ?? '', /API Key Created/);
   assert.equal(requiredElement<HTMLElement>('key-modal-value').textContent, 'inti_secret_1');
 
@@ -109,6 +152,20 @@ test('API keys page preserves authenticated admin flows', async (t) => {
     ['/?key=inti_secret_1', '/api-keys.html?key=inti_secret_1', '/settings.html?key=inti_secret_1'],
   );
   assert.match(document.body.textContent ?? '', /Desktop/);
+
+  requiredElement<HTMLButtonElement>('theme-toggle').click();
+  await flushAsyncWork();
+
+  assert.deepEqual(requests.at(-1), {
+    url: 'http://localhost:8282/api/theme-config?key=inti_secret_1',
+    method: 'POST',
+    body: {
+      theme: 'dark',
+      summaryDownloadFormat: 'md',
+      ocrPromotionBehavior: 'replace',
+      summaryPromotionBehavior: 'replace',
+    },
+  });
 
   const desktopDeleteButton = [...document.querySelectorAll('tbody tr')]
     .find((row) => row.textContent?.includes('Desktop'))

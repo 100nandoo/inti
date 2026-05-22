@@ -5,7 +5,6 @@ import { escHtml } from '../../../web/js/text.js';
 
 /**
  * @typedef {import('./workspace-contracts').ClipboardWriter} ClipboardWriter
- * @typedef {import('./workspace-contracts').PromotionBehavior} PromotionBehavior
  * @typedef {import('./workspace-contracts').ResultSurfaceViewModel} ResultSurfaceViewModel
  * @typedef {import('./workspace-contracts').ResultSurfaceWorkspace} ResultSurfaceWorkspace
  * @typedef {import('./workspace-contracts').TextResult} TextResult
@@ -28,21 +27,10 @@ function getSpeakableResultText(latestTextResult) {
 }
 
 /**
- * @param {PromotionBehavior} defaultPromotionBehavior
- * @returns {string}
- */
-function getDefaultPromotionLabel(defaultPromotionBehavior) {
-  return defaultPromotionBehavior === 'append'
-    ? 'Append to Working Text'
-    : 'Replace Working Text';
-}
-
-/**
  * @param {ResultSurfaceWorkspace} workspace
- * @param {PromotionBehavior} defaultPromotionBehavior
  * @returns {ResultSurfaceViewModel}
  */
-export function buildResultSurfaceViewModel(workspace, defaultPromotionBehavior) {
+export function buildResultSurfaceViewModel(workspace) {
   const latestTextResult = workspace.latestTextResult;
   const hasResult = latestTextResult.rawText.trim().length > 0;
   const speakableText = getSpeakableResultText(latestTextResult);
@@ -57,7 +45,7 @@ export function buildResultSurfaceViewModel(workspace, defaultPromotionBehavior)
     contentHtml: latestTextResult.kind === 'summary'
       ? renderMarkdown(latestTextResult.rawText)
       : renderPlainText(latestTextResult.rawText),
-    defaultPromotionLabel: getDefaultPromotionLabel(defaultPromotionBehavior),
+    defaultPromotionLabel: 'Replace Working Text',
   };
 }
 

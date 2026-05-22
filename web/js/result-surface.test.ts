@@ -17,7 +17,6 @@ test('buildResultSurfaceViewModel exposes result presentation, speakable text, a
         plainText: 'Heading Condensed text',
       },
     },
-    'replace',
   );
 
   assert.equal(summaryView.hasResult, true);
@@ -37,7 +36,6 @@ test('buildResultSurfaceViewModel exposes result presentation, speakable text, a
         plainText: 'Line one\nLine two',
       },
     },
-    'replace',
   );
 
   assert.equal(ocrView.kindChip, 'OCR result');

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte';
   import PageShell from '../components/PageShell.svelte';
+  import { initializeAppRuntime } from '../lib/app-runtime.js';
   import { createProtectedPage } from '../lib/protected-page.js';
   import { getSummarizerModels } from '../lib/summarizer-models.js';
   import {
@@ -63,7 +64,7 @@
     ],
   });
 
-  let navLinks: PageShellNavLink[] = [];
+  let navLinks: PageShellNavLink[] = protectedPage.navLinks();
 
   let provider: SummarizerProvider = '';
   let model = '';
@@ -178,6 +179,7 @@
       const result = await loadSettings({ apiURL: protectedPage.apiURL });
       applySummarizerConfig(result.summarizerConfig);
       applyAppearanceConfig(result.appearanceConfig);
+      window.IntiTheme?.syncAppearanceConfig?.(result.appearanceConfig);
       await refreshModelOptions(provider, model);
     } catch (error) {
       setStatus(readErrorMessage(error), true);
@@ -195,6 +197,7 @@
       });
       applySummarizerConfig(result.summarizerConfig);
       applyAppearanceConfig(result.appearanceConfig);
+      window.IntiTheme?.syncAppearanceConfig?.(result.appearanceConfig);
       await refreshModelOptions(provider, model);
       setStatus('Saved');
     } catch (error) {
@@ -222,6 +225,10 @@
 
   function handleThemePreview(): void {
     if (theme) {
+      if (window.IntiTheme?.preview) {
+        window.IntiTheme.preview(theme);
+        return;
+      }
       window.IntiTheme?.apply?.(theme);
       window.IntiTheme?.persist?.(theme);
     }
@@ -276,6 +283,10 @@
 
   onMount(() => {
     navLinks = protectedPage.navLinks();
+    initializeAppRuntime({
+      apiURL: protectedPage.apiURL,
+      loadServerThemeOnInit: false,
+    });
     document.addEventListener('inti:theme-config', handleThemeConfig);
     void handleLoad();
   });
