@@ -23,6 +23,7 @@ export const workingTextRunPanel = document.getElementById('working-text-run-pan
 export const runModeSummaryBtn = document.getElementById('run-mode-summary-btn');
 export const runModeVoiceBtn = document.getElementById('run-mode-voice-btn');
 export const summaryRunPanel = document.getElementById('summary-run-panel');
+export const voiceRunPanel = document.getElementById('voice-run-panel');
 
 export const providerSelect = document.getElementById('provider-select');
 export const sumModelWrap = document.getElementById('sum-model-wrap');
@@ -41,6 +42,10 @@ export const resultDownloadGroup = document.getElementById('result-download-grou
 export const resultDownloadBtn = document.getElementById('result-download-btn');
 export const resultDownloadToggle = document.getElementById('result-download-toggle');
 export const resultDownloadMenu = document.getElementById('result-download-menu');
+export const outputTabOcrBtn = document.getElementById('output-tab-ocr-btn');
+export const outputTabSummaryBtn = document.getElementById('output-tab-summary-btn');
+export const outputTabVoiceBtn = document.getElementById('output-tab-voice-btn');
+export const textResultPanel = document.getElementById('text-result');
 
 export const speechInputPreview = document.getElementById('speech-input-preview');
 export const speechInputCount = document.getElementById('speech-input-count');
@@ -55,6 +60,7 @@ export const playingBar = document.getElementById('playing-bar');
 export const statusText = document.getElementById('status-text');
 export const audioResultMeta = document.getElementById('audio-result-meta');
 export const audioResultCard = document.getElementById('audio-result-card');
+export const voiceResultPanel = document.getElementById('voice-result-panel');
 export const playAudioBtn = document.getElementById('play-audio-btn');
 export const downloadAudioBtn = document.getElementById('download-audio-btn');
 

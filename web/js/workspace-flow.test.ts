@@ -13,6 +13,7 @@ import {
 type WorkspaceModule = typeof import('./workspace.js');
 type OCRModule = typeof import('./ocr.js');
 type SummarizerModule = typeof import('./summarizer.js');
+type TTSModule = typeof import('./tts.js');
 type WorkspaceElements = {
   inputModeOcrBtn: HTMLButtonElement;
   inputModeWorkingTextBtn: HTMLButtonElement;
@@ -22,10 +23,13 @@ type WorkspaceElements = {
   runModeSummaryBtn: HTMLButtonElement;
   runModeVoiceBtn: HTMLButtonElement;
   summaryRunPanel: HTMLElement;
+  voiceRunPanel: HTMLElement;
   workingText: HTMLTextAreaElement;
   summarizeBtn: HTMLButtonElement;
   runOcrBtn: HTMLButtonElement;
   generateWorkingAudioBtn: HTMLButtonElement;
+  outputTabSummaryBtn: HTMLButtonElement;
+  outputTabVoiceBtn: HTMLButtonElement;
   resultPromoteDefaultBtn: HTMLButtonElement;
   resultPromoteDefaultLabel: HTMLElement;
   audioResultCard: HTMLElement;
@@ -43,6 +47,7 @@ type FetchCall = {
 let workspace: WorkspaceModule;
 let ocr: OCRModule;
 let summarizer: SummarizerModule;
+let tts: TTSModule;
 let elements: WorkspaceElements;
 let fetchCalls: FetchCall[];
 let dom: ReturnType<typeof installDomWithHTML> | null = null;
@@ -57,10 +62,13 @@ function cacheElements() {
     runModeSummaryBtn: requiredElement<HTMLButtonElement>('run-mode-summary-btn'),
     runModeVoiceBtn: requiredElement<HTMLButtonElement>('run-mode-voice-btn'),
     summaryRunPanel: requiredElement<HTMLElement>('summary-run-panel'),
+    voiceRunPanel: requiredElement<HTMLElement>('voice-run-panel'),
     workingText: requiredElement<HTMLTextAreaElement>('working-text'),
     summarizeBtn: requiredElement<HTMLButtonElement>('summarize-btn'),
     runOcrBtn: requiredElement<HTMLButtonElement>('run-ocr-btn'),
     generateWorkingAudioBtn: requiredElement<HTMLButtonElement>('generate-working-audio-btn'),
+    outputTabSummaryBtn: requiredElement<HTMLButtonElement>('output-tab-summary-btn'),
+    outputTabVoiceBtn: requiredElement<HTMLButtonElement>('output-tab-voice-btn'),
     resultPromoteDefaultBtn: requiredElement<HTMLButtonElement>('result-promote-default-btn'),
     resultPromoteDefaultLabel: requiredElement<HTMLElement>('result-promote-default-label'),
     audioResultCard: requiredElement<HTMLElement>('audio-result-card'),
@@ -205,8 +213,10 @@ before(async () => {
   workspace = await import('./workspace.js');
   ocr = await import('./ocr.js');
   summarizer = await import('./summarizer.js');
+  tts = await import('./tts.js');
   ocr.initOCR();
   summarizer.initSummarizer();
+  tts.initTTS();
 });
 
 after(() => {
@@ -310,12 +320,14 @@ test('working text run mode defaults to summary after OCR and preserves explicit
 
   assert.equal(workspace.getWorkspace().workingTextRunMode, 'voice');
   assert.equal(elements.summaryRunPanel.hidden, true);
+  assert.equal(elements.voiceRunPanel.hidden, false);
 
   elements.runModeSummaryBtn.click();
   await flushAsyncWork();
 
   assert.equal(workspace.getWorkspace().workingTextRunMode, 'summary');
   assert.equal(elements.summaryRunPanel.hidden, false);
+  assert.equal(elements.voiceRunPanel.hidden, true);
 
   elements.inputModeOcrBtn.click();
   await flushAsyncWork();
@@ -326,6 +338,34 @@ test('working text run mode defaults to summary after OCR and preserves explicit
 
   assert.equal(workspace.getWorkspace().workingTextRunMode, 'summary');
   assert.equal(elements.summaryRunPanel.hidden, false);
+});
+
+test('voice synthesis keeps audio output on the voice surface without exposing text promotion actions', async () => {
+  typeWorkingText('Audio snapshot should stay stable');
+  elements.runModeVoiceBtn.click();
+  await flushAsyncWork();
+
+  assert.equal(elements.voiceRunPanel.hidden, false);
+  assert.match(elements.speechInputPreview.textContent ?? '', /Audio snapshot should stay stable/);
+
+  workspace.setLastAudioResult(
+    new Blob(['opus-audio'], { type: 'audio/opus' }),
+    'Audio snapshot should stay stable',
+    'Working Text',
+    { provider: 'gemini', voice: 'Kore', model: 'gemini-2.5-flash-preview-tts' },
+  );
+  workspace.setActiveOutputTab('voice');
+  await flushAsyncWork();
+
+  assert.equal(workspace.getWorkspace().activeOutputTab, 'voice');
+  assert.equal(elements.resultPromoteDefaultBtn.disabled, true);
+  assert.equal(elements.outputTabVoiceBtn.getAttribute('aria-selected'), 'true');
+  assert.match(elements.audioResultCard.textContent ?? '', /Audio snapshot should stay stable/);
+
+  workspace.setActiveOutputTab('summary');
+  await flushAsyncWork();
+
+  assert.equal(elements.outputTabSummaryBtn.getAttribute('aria-selected'), 'true');
 });
 
 test('promoting an OCR result switches the workspace into working text mode', async () => {
