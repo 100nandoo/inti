@@ -9,7 +9,7 @@ test('App owns the main page through Svelte components and named legacy bridges'
   assert.doesNotMatch(appSource, /renderAppShell|bootstrapLegacyWorkspace/);
   assert.match(appSource, /MainWorkspacePage\.svelte/);
   assert.doesNotMatch(appSource, /LegacyOCRBridge\.svelte/);
-  assert.match(appSource, /LegacySpeechBridge\.svelte/);
+  assert.doesNotMatch(appSource, /LegacySpeechBridge\.svelte/);
   assert.doesNotMatch(appSource, /LegacySummaryBridge\.svelte/);
   assert.doesNotMatch(appSource, /LegacyProvidersBridge\.svelte/);
   assert.doesNotMatch(appSource, /LegacyMetricsBridge\.svelte/);
@@ -38,6 +38,7 @@ test('App owns the main page through Svelte components and named legacy bridges'
 test('embedded main-page output keeps the generated Svelte entrypoint and removes the legacy bootstrap file', () => {
   const sourceHtml = readFileSync(new URL('../../web-src/index.html', import.meta.url), 'utf8');
   const builtHtml = readFileSync(new URL('../../web/index.html', import.meta.url), 'utf8');
+  const builtEntrypoint = readFileSync(new URL('../../web/assets/index.js', import.meta.url), 'utf8');
 
   assert.match(sourceHtml, /<script type="module" src="\.\/src\/entries\/app\.js"><\/script>/);
   assert.doesNotMatch(sourceHtml, /main\.js/);
@@ -45,5 +46,7 @@ test('embedded main-page output keeps the generated Svelte entrypoint and remove
   assert.match(builtHtml, /\/assets\/PageShell\.js/);
   assert.match(builtHtml, /\/assets\/PageShell\.css/);
   assert.doesNotMatch(builtHtml, /main\.js/);
+  assert.doesNotMatch(builtEntrypoint, /voices\.js/);
+  assert.doesNotMatch(builtEntrypoint, /tts\.js/);
   assert.equal(existsSync(new URL('../../web/main.js', import.meta.url)), false);
 });
