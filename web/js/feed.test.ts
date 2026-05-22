@@ -145,3 +145,35 @@ test('narrow layouts keep older activity entries visible even when the feed woul
   assert.equal(middle.hidden, false);
   assert.equal(oldest.hidden, false);
 });
+
+test('feed helpers still work when the DOM nodes appear after the module is imported', async () => {
+  const lateDom = installDomWithHTML('http://localhost:8282/', '<!doctype html><html><body><div id="app"></div></body></html>');
+  try {
+    feedModule.setStatus('booting', 'info');
+    assert.equal(feedModule.addFeed('info', 'Late mount', 'pending'), null);
+
+    document.body.insertAdjacentHTML(
+      'beforeend',
+      `
+        <div id="playing-bar"></div>
+        <span id="status-text"></span>
+        <div id="feed"><p class="feed-empty" id="feed-empty">No activity yet.</p></div>
+      `,
+    );
+
+    const item = feedModule.addFeed('ok', 'Mounted', 'ready');
+    assert.ok(item instanceof HTMLElement);
+    feedModule.updateFeedItem(item, 'ok', 'Mounted', 'done');
+    feedModule.setStatus('ready', 'success');
+    feedModule.setPlaying(true);
+
+    assert.equal(requiredElement<HTMLElement>('status-text').textContent, 'ready');
+    assert.equal(requiredElement<HTMLElement>('feed').firstElementChild, item);
+    assert.equal(requiredElement<HTMLElement>('playing-bar').classList.contains('active'), true);
+  } finally {
+    teardownPage(lateDom);
+    dom = installDomWithHTML('http://localhost:8282/', renderMainWorkspaceFixture());
+    desktopQuery = installDesktopMatchMedia();
+    feedModule.initFeed();
+  }
+});

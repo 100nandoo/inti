@@ -1,4 +1,3 @@
-import { feed, feedEmpty, playingBar, statusText } from './dom.js';
 import { formatFeedTime } from './date.js';
 import { escHtml } from './text.js';
 
@@ -7,6 +6,22 @@ const DESKTOP_ACTIVITY_QUERY = '(min-width: 1181px)';
 let desktopFeedQuery = null;
 let feedListenersBound = false;
 let feedSyncQueued = false;
+
+function getFeed() {
+  return document.getElementById('feed');
+}
+
+function getFeedEmpty() {
+  return document.getElementById('feed-empty');
+}
+
+function getPlayingBar() {
+  return document.getElementById('playing-bar');
+}
+
+function getStatusText() {
+  return document.getElementById('status-text');
+}
 
 function isDesktopActivityLayout() {
   if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
@@ -18,11 +33,11 @@ function isDesktopActivityLayout() {
 }
 
 function getFeedItems() {
-  return Array.from(feed?.querySelectorAll('.feed-item') ?? []);
+  return Array.from(getFeed()?.querySelectorAll('.feed-item') ?? []);
 }
 
 function queueFeedVisibilitySync() {
-  if (!feed || feedSyncQueued) {
+  if (!getFeed() || feedSyncQueued) {
     return;
   }
 
@@ -34,6 +49,7 @@ function queueFeedVisibilitySync() {
 }
 
 function syncFeedVisibility() {
+  const feed = getFeed();
   if (!feed) {
     return;
   }
@@ -67,7 +83,7 @@ function syncFeedVisibility() {
 }
 
 function ensureFeedListeners() {
-  if (feedListenersBound || !feed || typeof window === 'undefined') {
+  if (feedListenersBound || !getFeed() || typeof window === 'undefined') {
     return;
   }
 
@@ -88,8 +104,13 @@ export function initFeed() {
 }
 
 export function addFeed(kind, label, meta) {
+  const feed = getFeed();
+  if (!feed) {
+    return null;
+  }
+
   ensureFeedListeners();
-  feedEmpty?.remove();
+  getFeedEmpty()?.remove();
 
   const item = document.createElement('div');
   item.className = `feed-item ${kind}`;
@@ -107,6 +128,10 @@ export function addFeed(kind, label, meta) {
 }
 
 export function updateFeedItem(item, kind, label, meta) {
+  if (!item) {
+    return;
+  }
+
   item.className = `feed-item ${kind}`;
   item.querySelector('.feed-label').textContent = label;
   item.querySelector('.feed-meta').textContent = meta;
@@ -114,10 +139,20 @@ export function updateFeedItem(item, kind, label, meta) {
 }
 
 export function setStatus(message, kind = '') {
+  const statusText = getStatusText();
+  if (!statusText) {
+    return;
+  }
+
   statusText.textContent = message;
   statusText.className = `status-text${kind ? ` ${kind}` : ''}`;
 }
 
 export function setPlaying(value) {
+  const playingBar = getPlayingBar();
+  if (!playingBar) {
+    return;
+  }
+
   playingBar.classList.toggle('active', value);
 }
