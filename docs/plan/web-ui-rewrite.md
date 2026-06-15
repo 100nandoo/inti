@@ -208,6 +208,70 @@ Every side effect should have a narrow service boundary:
 
 Components should not parse fetch responses, build download filenames, or manipulate audio elements directly unless that behavior is truly local UI state.
 
+For this phase, use two implementation terms precisely:
+
+- `HTTP client` means a thin module that talks to `/api/*`, parses transport responses, and raises normalized errors
+- `feature service` means browser-side orchestration for one feature, such as request shaping, result normalization, playback, export, or activity metadata
+
+Do not use `service` as a catch-all for unrelated helpers. Keep feature ownership explicit.
+
+#### Step 4 decisions
+
+1. Extract by feature first, not by generic utility bucket.
+   Each primary feature keeps its own orchestration boundary even when multiple features share lower-level helpers.
+
+2. Split thin API transport from feature orchestration.
+   The intended shape is:
+   - shared HTTP helpers in `lib/api/*`
+   - per-feature API clients such as `lib/api/summarize.*`, `lib/api/speech.*`, and `lib/api/ocr.*`
+   - per-feature browser orchestration such as summarize, speech, and OCR feature services
+
+3. Move summarizer and speech config persistence under `lib/api/*`.
+   UI control modules may shape options and selected values, but they should not own `fetch` calls or response parsing.
+
+4. Keep promotion policy out of feature services.
+   OCR, summarize, and speech services may return normalized feature results, but workspace decisions such as when **Promotion** occurs remain in workspace-owned state and actions.
+
+5. Put summary result normalization in the summarize feature service.
+   The summarize boundary owns provider/model normalization, rate-limit normalization, and conversion from markdown response payloads into the canonical **Transform Result** shape.
+
+6. Prefer DOM-free normalization helpers where practical.
+   If a temporary browser-only markdown-to-plain-text step remains necessary, keep it inside the summarize feature service rather than in components.
+
+7. Treat the speech service as the owner of the full audio blob lifecycle.
+   That includes:
+   - speech request execution
+   - base64 Opus decode to bytes and `Blob`
+   - audio snapshot metadata assembly
+   - playback start and decode behavior
+   - audio export behavior
+
+8. Move shared export helpers into handwritten `web-src/src/lib/*`.
+   Filename generation and download helpers are shared implementation utilities, not legacy runtime dependencies or feature-specific product rules.
+
+9. Keep inline status and activity history as separate concepts.
+   They may be updated together, but transient status messaging in the **Text Workspace** should not be collapsed into the retained activity history model.
+
+10. Keep strictly local UI resource lifecycle in components when it is not cross-feature behavior.
+    For example, image preview object URLs for OCR staging may remain component-owned local UI state.
+
+11. Enforce the boundary before performing a large directory reshuffle.
+    First make the side-effect ownership real in the current tree. Move files into `features/*` only after the new boundaries are stable.
+
+12. Include feed-side effects in Step 4 only to the extent needed to unblock bridge deletion.
+    `feed` remains secondary in the product model, but any remaining `web/js/feed.js` dependency that blocks Step 5 should be absorbed behind a Svelte-owned boundary during or immediately after Step 4.
+
+#### Step 4 completion checks
+
+Step 4 is complete only when all of the following are true:
+
+- no Svelte page or component performs `fetch`, parses `response.json`, builds download filenames, or directly owns cross-feature audio playback behavior
+- `/api/*` calls originate from thin handwritten modules in `web-src/src/lib/api/*`
+- summarize, speech, and OCR each have one explicit feature-owned orchestration entrypoint
+- shared export helpers no longer come from legacy `web/js/*`
+- any remaining `web/js/*` dependency is either gone or explicitly documented as a temporary utility seam with a named deletion target
+- feed/status side effects no longer force `App.svelte` or the main workspace to keep a legacy runtime bridge alive unintentionally
+
 ### 5. Remove Legacy Runtime and Bridge Code
 
 Once a feature has a native Svelte implementation:
@@ -287,6 +351,14 @@ Phase 2 exit criteria:
 - migrate OCR, summarize, and speech orchestration out of legacy modules
 - tighten service boundaries
 - simplify tests around feature contracts instead of DOM plumbing
+
+Phase 3 exit criteria:
+
+- summarize, speech, and OCR transport logic lives behind thin `lib/api/*` clients
+- summarize, speech, and OCR browser-side orchestration lives behind feature-owned service boundaries
+- UI control modules no longer mix option shaping with transport concerns
+- shared download and filename helpers are handwritten under `web-src/src/*`, not imported from legacy `web/js/*`
+- remaining activity/status side effects no longer depend on legacy bridge ownership for the primary workspace flow
 
 ### Phase 4: Deletion
 
