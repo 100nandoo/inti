@@ -15,8 +15,8 @@ import {
 } from '../../web-src/src/lib/ocr-result.js';
 import {
   buildOCRRejectedFilesMessage,
-  executeMainWorkspaceOCR,
 } from '../../web-src/src/lib/main-workspace-ocr.js';
+import { executeMainWorkspaceOCR } from '../../web-src/src/lib/ocr-service.js';
 
 test('OCR staging helpers keep accepted files and count rejected image types', () => {
   const files = [
@@ -108,7 +108,6 @@ test('OCR request helper preserves result creation without auto-promoting into w
   const resultFromEmptyDraft = await executeMainWorkspaceOCR({
     apiURL: (path: string) => path,
     files: [file],
-    workingText: '   ',
     fetchImpl: async (url, options = {}) => {
       assert.equal(String(url), '/api/ocr');
       const body = options.body as FormData;
@@ -124,7 +123,6 @@ test('OCR request helper preserves result creation without auto-promoting into w
   const reviewOnly = await executeMainWorkspaceOCR({
     apiURL: (path: string) => path,
     files: [file],
-    workingText: 'Existing working text',
     fetchImpl: async () => Response.json({ text: 'Scanned text from OCR' }),
   });
 

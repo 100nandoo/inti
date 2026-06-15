@@ -171,6 +171,22 @@ export interface SpeechSynthesisResult {
   model: string;
 }
 
+export interface SpeechAudioSnapshot {
+  blob: Blob;
+  sourceLabel: string;
+  sourceText: string;
+  provider: string;
+  voice: string;
+  model: string;
+}
+
+export interface MainWorkspaceSpeechExecutionResult {
+  audioSnapshot: SpeechAudioSnapshot;
+  feedLabel: string;
+  feedMeta: string;
+  downloadedAudio: boolean;
+}
+
 export interface SpeechPanelWorkspace {
   processing: boolean;
   workingText: string;
