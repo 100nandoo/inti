@@ -50,7 +50,7 @@ Single Go binary with web assets embedded via `go:embed` (see `embed.go`).
 
 **Audio pipeline (CLI/server):** Gemini API returns raw PCM → `internal/audio/opus.go` wraps it in Ogg Opus container → written to temp file or exported path → player invoked via `exec.Command`.
 
-**Web frontend** (`web/`): vanilla HTML/CSS/JS, embedded into the binary. Communicates with the HTTP API only.
+**Web frontend:** `web-src/` is the handwritten Svelte/Vite source tree. `web/` is the embedded output directory and should be treated as generated output, except for a small temporary allowlist of legacy compatibility files that are being deleted as the rewrite finishes. Do not add new product logic under `web/`, `web/assets/`, or `web/js/`.
 
 ## Web Frontend Compatibility
 

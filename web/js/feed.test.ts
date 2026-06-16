@@ -118,10 +118,13 @@ test('desktop activity feed hides the oldest items once the visible budget is ex
   desktopQuery.setMatches(true);
 
   const oldest = feedModule.addFeed('ok', 'Oldest', '1');
+  assert.ok(oldest);
   setItemHeight(oldest, 32);
   const middle = feedModule.addFeed('ok', 'Middle', '2');
+  assert.ok(middle);
   setItemHeight(middle, 32);
   const newest = feedModule.addFeed('ok', 'Newest', '3');
+  assert.ok(newest);
   setItemHeight(newest, 32);
 
   await flushAsyncWork();
@@ -133,10 +136,13 @@ test('desktop activity feed hides the oldest items once the visible budget is ex
 
 test('narrow layouts keep older activity entries visible even when the feed would overflow', async () => {
   const oldest = feedModule.addFeed('ok', 'Oldest', '1');
+  assert.ok(oldest);
   setItemHeight(oldest, 32);
   const middle = feedModule.addFeed('ok', 'Middle', '2');
+  assert.ok(middle);
   setItemHeight(middle, 32);
   const newest = feedModule.addFeed('ok', 'Newest', '3');
+  assert.ok(newest);
   setItemHeight(newest, 32);
 
   await flushAsyncWork();

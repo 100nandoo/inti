@@ -324,7 +324,7 @@ Phase 0 exit criteria:
 - the authoritative docs agree on `Working Text`, `Transform Result`, `Audio Result`, and replace-only `Promotion`
 - every remaining legacy bridge has an owner and a deletion target
 
-Current status: mostly complete, except the bridge inventory in this document needed to be updated to reflect the bridges that are already gone from the runtime.
+Current status: complete. The repo now documents the source/output boundary explicitly, the remaining legacy seams are named below, and tests enforce that `App.svelte` stays free of legacy runtime imports and that the Phase 0 seam inventory does not expand accidentally.
 
 ### Phase 1: Shell and Shared State
 
