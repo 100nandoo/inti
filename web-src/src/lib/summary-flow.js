@@ -1,4 +1,4 @@
-import { renderMarkdown } from '../../../web/js/markdown.js';
+import { renderMarkdown } from './markdown.js';
 
 /**
  * @typedef {import('./workspace-contracts').GroqRateLimitPayload} GroqRateLimitPayload

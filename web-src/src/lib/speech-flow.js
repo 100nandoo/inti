@@ -1,5 +1,5 @@
 import { downloadAudioExport } from './export-service.js';
-import { escHtml, truncate } from '../../../web/js/text.js';
+import { escHtml, truncate } from './text.js';
 
 /**
  * @typedef {import('./workspace-contracts').SpeechPanelViewModel} SpeechPanelViewModel

@@ -1,4 +1,4 @@
-import { truncate } from '../../../web/js/text.js';
+import { truncate } from './text.js';
 import { executeSummaryRequest } from './summary-flow.js';
 
 /**

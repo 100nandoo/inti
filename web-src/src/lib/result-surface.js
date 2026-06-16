@@ -1,6 +1,6 @@
 import { downloadTextExport } from './export-service.js';
-import { renderMarkdown } from '../../../web/js/markdown.js';
-import { escHtml } from '../../../web/js/text.js';
+import { renderMarkdown } from './markdown.js';
+import { escHtml } from './text.js';
 
 /**
  * @typedef {import('./workspace-contracts').ClipboardWriter} ClipboardWriter

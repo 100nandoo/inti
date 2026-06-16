@@ -24,7 +24,7 @@ test('App.svelte does not bootstrap legacy web/js runtime modules', () => {
   assert.doesNotMatch(app, /web\/js\//);
 });
 
-test('legacy web/js imports from web-src stay limited to the documented Phase 0 seams', () => {
+test('web-src no longer imports legacy web/js modules', () => {
   const files = walk(srcRoot.pathname).filter((file) => file.endsWith('.js') || file.endsWith('.svelte'));
   const legacyImporters = files
     .map((file) => {
@@ -39,28 +39,7 @@ test('legacy web/js imports from web-src stay limited to the documented Phase 0 
     .filter((value): value is { file: string; imports: string[] } => value !== null)
     .sort((a, b) => a.file.localeCompare(b.file));
 
-  assert.deepEqual(legacyImporters, [
-    {
-      file: 'lib/main-workspace-speech-flow.js',
-      imports: ['../../../web/js/text.js'],
-    },
-    {
-      file: 'lib/main-workspace-summary-service.js',
-      imports: ['../../../web/js/text.js'],
-    },
-    {
-      file: 'lib/result-surface.js',
-      imports: ['../../../web/js/markdown.js', '../../../web/js/text.js'],
-    },
-    {
-      file: 'lib/speech-flow.js',
-      imports: ['../../../web/js/text.js'],
-    },
-    {
-      file: 'lib/summary-flow.js',
-      imports: ['../../../web/js/markdown.js'],
-    },
-  ]);
+  assert.deepEqual(legacyImporters, []);
 });
 
 test('legacy bridge files are removed from the live app tree', () => {

@@ -36,14 +36,14 @@ The repo is no longer in the worst middle state of two active workspace runtimes
 1. `web/` is still not treated as build output only.
    Generated assets and handwritten runtime code still live side by side, which keeps source ownership ambiguous.
 
-2. Some `web-src/src/lib/*` modules still import legacy helpers from `web/js/*`.
-   The workspace runtime is Svelte-owned now, but markdown/text helper ownership is still split.
+2. `web/` still contains legacy runtime and compatibility artifacts that have already been absorbed by `web-src/`.
+   The workspace runtime is Svelte-owned now, but the repo still carries duplicated helpers and generated-output exceptions that belong to later cleanup.
 
 3. Legacy compatibility code still remains after the workspace runtime migration.
    The bridge files are gone, but absorbed `web/js/*` modules and compatibility CSS still need deletion in later phases.
 
-4. Build and test guardrails have not fully caught up with the architecture.
-   The repo still lacks an explicit regression guard that fails if the Svelte app starts importing `web/js/*` again.
+4. Build and test guardrails still need to expand beyond the current import boundary checks.
+   The repo now protects against `web-src/src/*` drifting back to `web/js/*`, but later phases still need stronger enforcement around generated output and deletion of absorbed runtime artifacts.
 
 5. Styling is hybrid and sticky.
    Tailwind/daisyUI is the chosen direction, but compatibility CSS continues to act like a second styling system instead of a shrinking bridge.
@@ -260,7 +260,7 @@ Do not use `service` as a catch-all for unrelated helpers. Keep feature ownershi
 11. Enforce the boundary before performing a large directory reshuffle.
     First make the side-effect ownership real in the current tree. Move files into `features/*` only after the new boundaries are stable.
 
-Current status: partially complete. OCR, summarize, speech, and settings transport/orchestration now live behind handwritten `web-src/src/lib/*` modules, but some legacy helper imports still remain.
+Current status: complete. OCR, summarize, speech, and settings transport/orchestration now live behind handwritten `web-src/src/lib/*` modules, and `web-src/src/*` no longer imports shared markdown/text helpers from `web/js/*`.
 
 12. Include feed-side effects in Step 4 only to the extent needed to unblock bridge deletion.
     `feed` remains secondary in the product model, but any remaining `web/js/feed.js` dependency that blocks Step 5 should be absorbed behind a Svelte-owned boundary during or immediately after Step 4.
@@ -374,7 +374,7 @@ Phase 3 exit criteria:
 - shared download and filename helpers are handwritten under `web-src/src/*`, not imported from legacy `web/js/*`
 - remaining activity/status side effects no longer depend on legacy bridge ownership for the primary workspace flow
 
-Current status: partially complete. Shared export/download logic has moved into `web-src/src/lib/export-service.js`, and activity/status ownership is Svelte-side, but markdown/text helper imports from `web/js/*` still remain.
+Current status: complete. Shared export/download logic lives in `web-src/src/lib/export-service.js`, activity/status ownership is Svelte-side, and the remaining `web-src -> web/js` helper seams have been removed.
 
 ### Phase 4: Deletion
 
@@ -382,7 +382,7 @@ Current status: partially complete. Shared export/download logic has moved into 
 - delete unused compatibility CSS
 - remove `App.svelte` legacy bootstrap path entirely
 
-Current status: partially complete. The legacy bootstrap path is gone from `App.svelte`, but absorbed bridge files and legacy helper modules have not all been deleted yet.
+Current status: partially complete. The legacy bootstrap path is gone from `App.svelte`, but absorbed runtime modules under `web/js/*` and compatibility CSS under `web/` have not all been deleted yet.
 
 ## Critical Files
 
@@ -403,14 +403,7 @@ Current status: partially complete. The legacy bootstrap path is gone from `App.
 
 ## Current Bridge Inventory
 
-The active mixed-runtime seam is now much smaller than when this plan was first drafted. The primary workspace no longer depends on legacy runtime bridge components, and the remaining cleanup work is concentrated in helper imports.
-
-- `web-src/src/lib/summary-flow.js` and `web-src/src/lib/result-surface.js` import `web/js/markdown.js`.
-  Owner: shared text-result rendering helpers used by summarize and result-surface features.
-  Deletion target: move markdown rendering into `web-src/src/lib/*` and delete the `web/js/markdown.js` dependency.
-- `web-src/src/lib/speech-flow.js`, `web-src/src/lib/main-workspace-speech-flow.js`, `web-src/src/lib/main-workspace-summary-service.js`, and `web-src/src/lib/result-surface.js` import `web/js/text.js`.
-  Owner: shared text formatting helpers used by workspace, speech, and result rendering.
-  Deletion target: move text helpers into `web-src/src/lib/*` and delete the `web/js/text.js` dependency.
+The active mixed-runtime seam is now much smaller than when this plan was first drafted. The primary workspace no longer depends on legacy runtime bridge components, and `web-src/src/*` no longer imports feature helpers from `web/js/*`.
 
 Bridge files already removed from the live app runtime and no longer counted as active seams:
 
