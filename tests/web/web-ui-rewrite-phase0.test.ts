@@ -75,3 +75,29 @@ test('handwritten files at the web root stay on the current temporary allowlist'
     'theme.js',
   ]);
 });
+
+test('compatibility CSS does not carry known dead legacy selectors or assets', () => {
+  const publicCss = read('web-src/public/style.css');
+  const appCss = read('web-src/src/app.css');
+  const removedPublicSelectors = [
+    '.logo-badge',
+    '.icon-brackets-horizontal',
+    '.panel-ocr',
+    '.workspace-actions',
+    '.tucked-action',
+    '.action-hidden',
+    '.btn-spinner',
+    '.feed-header',
+    '.settings-value',
+    '.rate-usage-empty',
+    '.provider-sections',
+    '.provider-section-link',
+  ];
+
+  for (const selector of removedPublicSelectors) {
+    assert.equal(publicCss.includes(selector), false, `expected ${selector} to stay removed from web-src/public/style.css`);
+  }
+
+  assert.equal(appCss.includes('.workspace-actions'), false, 'expected .workspace-actions to stay removed from web-src/src/app.css');
+  assert.equal(existsSync(new URL('../../web-src/public/icons/brackets-horizontal.svg', import.meta.url)), false);
+});

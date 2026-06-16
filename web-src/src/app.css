@@ -313,13 +313,11 @@ textarea#working-text,
   border-radius: 1rem;
 }
 
-.workspace-actions,
 .summary-actions,
 .controls {
   gap: 0.7rem;
 }
 
-.workspace-actions > *,
 .summary-actions > *,
 .controls > * {
   flex-shrink: 0;
@@ -410,7 +408,6 @@ textarea#working-text,
     padding: 0.85rem;
   }
 
-  .workspace-actions > *,
   .summary-actions > *,
   .controls > * {
     width: 100%;
@@ -429,7 +426,6 @@ textarea#working-text,
     justify-content: flex-start;
   }
 
-  .workspace-actions,
   .summary-actions,
   .controls {
     gap: 0.6rem;

@@ -379,7 +379,7 @@ Current status: complete. Shared export/download logic lives in `web-src/src/lib
 - delete unused compatibility CSS
 - remove `App.svelte` legacy bootstrap path entirely
 
-Current status: mostly complete. The legacy bootstrap path is gone from `App.svelte`, absorbed runtime modules under `web/js/*` have been removed, tests no longer live under `web/`, and static root assets now source from `web-src/public/`. The remaining deletion work is concentrated in compatibility CSS cleanup.
+Current status: complete. The legacy bootstrap path is gone from `App.svelte`, absorbed runtime modules under `web/js/*` have been removed, tests no longer live under `web/`, static root assets source from `web-src/public/`, and the remaining dead compatibility selectors/assets have been deleted with regression coverage.
 
 ## Critical Files
 
@@ -392,7 +392,7 @@ Current status: mostly complete. The legacy bootstrap path is gone from `App.sve
 | `web-src/src/lib/summary-flow.js` | Likely summarize orchestration boundary |
 | `web-src/src/lib/speech-flow.js` | Likely speech orchestration boundary |
 | `web-src/src/lib/app-runtime.js` | Cross-cutting runtime wiring for theme/auth/config bootstrap that still needs guardrails |
-| `web-src/public/style.css` | Compatibility layer to shrink aggressively |
+| `web-src/public/style.css` | Minimal shared theme/icon/static-page layer that should not regrow legacy app-specific selectors |
 | `tests/web/*.test.ts` | Regression coverage for the rewritten app and build/output contract |
 | `vite.config.js` | Source-to-output contract from `web-src/` to `web/` |
 | `docs/web-frontend-ux-spec.md` | Product behavior contract to preserve during migration |
