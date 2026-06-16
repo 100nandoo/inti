@@ -39,8 +39,8 @@ The repo is no longer in the worst middle state of two active workspace runtimes
 2. Some `web-src/src/lib/*` modules still import legacy helpers from `web/js/*`.
    The workspace runtime is Svelte-owned now, but markdown/text helper ownership is still split.
 
-3. Legacy bridge and compatibility files still exist after their owning runtime path was removed.
-   Dead bridge files under `web-src/src/bridges/*` and absorbed `web/js/*` modules still need deletion.
+3. Legacy compatibility code still remains after the workspace runtime migration.
+   The bridge files are gone, but absorbed `web/js/*` modules and compatibility CSS still need deletion in later phases.
 
 4. Build and test guardrails have not fully caught up with the architecture.
    The repo still lacks an explicit regression guard that fails if the Svelte app starts importing `web/js/*` again.
@@ -358,7 +358,7 @@ Phase 2 exit criteria:
 - any remaining DOM ids on the main page are compatibility seams with explicit deletion targets, not the ownership model
 - tests cover rewritten feature behavior through Svelte-owned seams rather than only through legacy DOM-plumbing tests
 
-Current status: largely complete. The primary workspace flow is Svelte-owned, but a few tests and helper imports still point at the legacy surface.
+Current status: complete. `Working Text`, `Transform Result`, and `Audio Result` are rendered and interaction-wired from `web-src/src/*`, the live app no longer carries legacy workspace bridge files, and the remaining cleanup is confined to shared helper imports and generated-output hygiene covered by later phases.
 
 ### Phase 3: Side-Effect Cleanup
 
@@ -403,7 +403,7 @@ Current status: partially complete. The legacy bootstrap path is gone from `App.
 
 ## Current Bridge Inventory
 
-The active mixed-runtime seam is now much smaller than when this plan was first drafted. The primary workspace no longer depends on legacy runtime bridge components, and the remaining cleanup work is concentrated in helper imports and dead files.
+The active mixed-runtime seam is now much smaller than when this plan was first drafted. The primary workspace no longer depends on legacy runtime bridge components, and the remaining cleanup work is concentrated in helper imports.
 
 - `web-src/src/lib/summary-flow.js` and `web-src/src/lib/result-surface.js` import `web/js/markdown.js`.
   Owner: shared text-result rendering helpers used by summarize and result-surface features.
@@ -412,14 +412,7 @@ The active mixed-runtime seam is now much smaller than when this plan was first 
   Owner: shared text formatting helpers used by workspace, speech, and result rendering.
   Deletion target: move text helpers into `web-src/src/lib/*` and delete the `web/js/text.js` dependency.
 
-Inactive leftovers that should be deleted rather than treated as live bridges:
-
-- `web-src/src/bridges/LegacyOCRBridge.svelte`
-- `web-src/src/bridges/LegacySummaryBridge.svelte`
-- `web-src/src/bridges/LegacyProvidersBridge.svelte`
-- `web-src/src/bridges/LegacyMetricsBridge.svelte`
-
-Bridges already removed from the live app runtime and no longer counted as active Phase 0 seams:
+Bridge files already removed from the live app runtime and no longer counted as active seams:
 
 - `LegacyOCRBridge.svelte`
 - `LegacySummaryBridge.svelte`

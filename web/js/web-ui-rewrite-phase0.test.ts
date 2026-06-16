@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const repoRoot = new URL('../../', import.meta.url);
@@ -63,20 +63,15 @@ test('legacy web/js imports from web-src stay limited to the documented Phase 0 
   ]);
 });
 
-test('legacy bridge files are present only as explicit inactive leftovers', () => {
-  const bridges = readdirSync(new URL('../../web-src/src/bridges/', import.meta.url))
-    .filter((name) => name.endsWith('.svelte'))
-    .sort();
-
-  assert.deepEqual(bridges, [
-    'LegacyMetricsBridge.svelte',
-    'LegacyOCRBridge.svelte',
-    'LegacyProvidersBridge.svelte',
-    'LegacySummaryBridge.svelte',
-  ]);
+test('legacy bridge files are removed from the live app tree', () => {
+  const bridgesDir = new URL('../../web-src/src/bridges/', import.meta.url);
+  if (existsSync(bridgesDir)) {
+    const bridgeFiles = readdirSync(bridgesDir).filter((name) => name.endsWith('.svelte'));
+    assert.deepEqual(bridgeFiles, []);
+  }
 
   const appSources = walk(srcRoot.pathname)
-    .filter((file) => (file.endsWith('.js') || file.endsWith('.svelte')) && !file.includes('/bridges/'))
+    .filter((file) => file.endsWith('.js') || file.endsWith('.svelte'))
     .map((file) => readFileSync(file, 'utf8'))
     .join('\n');
 

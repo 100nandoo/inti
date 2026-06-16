@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 
-test('App owns the main page through Svelte components and named legacy bridges', () => {
+test('App owns the main page through Svelte components without legacy workspace bridges', () => {
   const appSource = readFileSync(new URL('../../web-src/src/App.svelte', import.meta.url), 'utf8');
   const pageSource = readFileSync(new URL('../../web-src/src/pages/MainWorkspacePage.svelte', import.meta.url), 'utf8');
 
