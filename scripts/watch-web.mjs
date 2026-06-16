@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import { watch } from 'node:fs';
 import { mkdir, rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -8,6 +9,7 @@ import {
   createUnauthorizedPageWriter,
   repoRoot,
 } from './lib/embedded-web-build.mjs';
+import { syncWebPublicAssets } from './sync-web-public.mjs';
 
 export function formatWatchEvent(label, event) {
   switch (event.code) {
@@ -85,7 +87,28 @@ async function main() {
   await mkdir(tempRoot, { recursive: true });
   const unauthorizedOutDir = resolve(tempRoot, 'inti-unauthorized-watch');
   await rm(unauthorizedOutDir, { recursive: true, force: true });
+  await syncWebPublicAssets();
   const tailwindWatcher = startTailwindWatcher();
+  const publicDir = resolve(repoRoot, 'web-src/public');
+  let publicSyncQueued = false;
+  let publicWatcher = null;
+
+  try {
+    publicWatcher = watch(publicDir, { recursive: true }, () => {
+      if (publicSyncQueued) return;
+      publicSyncQueued = true;
+      queueMicrotask(async () => {
+        publicSyncQueued = false;
+        try {
+          await syncWebPublicAssets();
+          log('public assets synced');
+        } catch (error) {
+          console.error('[watch:web] public asset sync failed');
+          console.error(error);
+        }
+      });
+    });
+  } catch {}
 
   const watchers = await Promise.all([
     startWatcher('embedded web', {
@@ -120,6 +143,7 @@ async function main() {
     closed = true;
 
     tailwindWatcher.kill('SIGTERM');
+    publicWatcher?.close();
     await Promise.allSettled(watchers.map((watcher) => watcher.close()));
     await rm(unauthorizedOutDir, { recursive: true, force: true });
     process.exit(exitCode);

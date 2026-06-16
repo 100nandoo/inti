@@ -33,20 +33,17 @@ The repo is no longer in the worst middle state of two active workspace runtimes
 
 ## Current Problems
 
-1. `web/` is still not treated as build output only.
-   Generated assets and handwritten runtime code still live side by side, which keeps source ownership ambiguous.
+1. Compatibility styling cleanup is still incomplete.
+   The main runtime is Svelte-owned and `web/` is generated again, but the repo still carries a large compatibility stylesheet that should keep shrinking.
 
-2. `web/` still contains legacy runtime and compatibility artifacts that have already been absorbed by `web-src/`.
-   The workspace runtime is Svelte-owned now, but the repo still carries duplicated helpers and generated-output exceptions that belong to later cleanup.
+2. Some copied static assets still live in a compatibility shape rather than a fully normalized app-asset structure.
+   They now source from `web-src/public/`, but the remaining surface should keep getting simpler.
 
-3. Legacy compatibility code still remains after the workspace runtime migration.
-   The bridge files are gone, but absorbed `web/js/*` modules and compatibility CSS still need deletion in later phases.
+3. Styling is still hybrid and sticky.
+   Tailwind/daisyUI is the chosen direction, but compatibility CSS continues to act like a second styling system instead of a shrinking bridge.
 
 4. Build and test guardrails still need to expand beyond the current import boundary checks.
-   The repo now protects against `web-src/src/*` drifting back to `web/js/*`, but later phases still need stronger enforcement around generated output and deletion of absorbed runtime artifacts.
-
-5. Styling is hybrid and sticky.
-   Tailwind/daisyUI is the chosen direction, but compatibility CSS continues to act like a second styling system instead of a shrinking bridge.
+   The repo now protects against `web-src/src/*` drifting back to `web/js/*`, but later phases still need stronger enforcement around styling cleanup and public-asset hygiene.
 
 ## Target Architecture
 
@@ -382,7 +379,7 @@ Current status: complete. Shared export/download logic lives in `web-src/src/lib
 - delete unused compatibility CSS
 - remove `App.svelte` legacy bootstrap path entirely
 
-Current status: partially complete. The legacy bootstrap path is gone from `App.svelte`, but absorbed runtime modules under `web/js/*` and compatibility CSS under `web/` have not all been deleted yet.
+Current status: mostly complete. The legacy bootstrap path is gone from `App.svelte`, absorbed runtime modules under `web/js/*` have been removed, tests no longer live under `web/`, and static root assets now source from `web-src/public/`. The remaining deletion work is concentrated in compatibility CSS cleanup.
 
 ## Critical Files
 
@@ -395,15 +392,15 @@ Current status: partially complete. The legacy bootstrap path is gone from `App.
 | `web-src/src/lib/summary-flow.js` | Likely summarize orchestration boundary |
 | `web-src/src/lib/speech-flow.js` | Likely speech orchestration boundary |
 | `web-src/src/lib/app-runtime.js` | Cross-cutting runtime wiring for theme/auth/config bootstrap that still needs guardrails |
-| `web/js/*.js` | Legacy runtime surface to absorb feature by feature |
-| `web/style.css` | Compatibility layer to shrink aggressively |
+| `web-src/public/style.css` | Compatibility layer to shrink aggressively |
+| `tests/web/*.test.ts` | Regression coverage for the rewritten app and build/output contract |
 | `vite.config.js` | Source-to-output contract from `web-src/` to `web/` |
 | `docs/web-frontend-ux-spec.md` | Product behavior contract to preserve during migration |
 | `docs/adr/0002-tailwind-daisyui-web-styling.md` | Styling system decision to enforce during rewrite |
 
 ## Current Bridge Inventory
 
-The active mixed-runtime seam is now much smaller than when this plan was first drafted. The primary workspace no longer depends on legacy runtime bridge components, and `web-src/src/*` no longer imports feature helpers from `web/js/*`.
+The active mixed-runtime seam is now minimal. The primary workspace no longer depends on legacy runtime bridge components, `web-src/src/*` no longer imports feature helpers from `web/js/*`, and the remaining cleanup is mostly styling and output-shape hygiene.
 
 Bridge files already removed from the live app runtime and no longer counted as active seams:
 

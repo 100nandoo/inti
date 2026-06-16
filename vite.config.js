@@ -11,7 +11,6 @@ export default defineConfig({
   root: webSrcDir,
   plugins: [svelte()],
   build: {
-    copyPublicDir: false,
     emptyOutDir: false,
     outDir: webOutDir,
     rollupOptions: {

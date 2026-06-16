@@ -12,7 +12,7 @@
     "types": ["node"]
   },
   "include": [
-    "web/js/**/*.ts"
+    "tests/web/**/*.ts"
   ],
   "exclude": [
     "node_modules"

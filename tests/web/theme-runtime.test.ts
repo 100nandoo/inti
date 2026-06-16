@@ -5,7 +5,7 @@ import { JSDOM } from 'jsdom';
 
 import { initializeAppRuntime } from '../../web-src/src/lib/app-runtime.js';
 
-const themeSource = readFileSync(new URL('../../web/theme.js', import.meta.url), 'utf8');
+const themeSource = readFileSync(new URL('../../web-src/public/theme.js', import.meta.url), 'utf8');
 
 function installThemeDom({
   url = 'http://localhost:8282/settings.html?key=secret',
@@ -113,7 +113,7 @@ test('app runtime owns interactive theme behavior and authenticated persistence'
 });
 
 test('shipped theme assets do not retain removed minimal theme variants', () => {
-  const styleSource = readFileSync(new URL('../../web/style.css', import.meta.url), 'utf8');
+  const styleSource = readFileSync(new URL('../../web-src/public/style.css', import.meta.url), 'utf8');
   assert.doesNotMatch(styleSource, /minimal-dark|minimal"/);
   assert.equal(existsSync(new URL('../../web/assets/page-auth.js', import.meta.url)), false);
 });
