@@ -22,30 +22,28 @@
 
 ## Context
 
-The current web UI is not primarily suffering from a styling problem. It is suffering from a split architecture:
+The current web UI is not primarily suffering from a styling problem. Most of the architectural rewrite has already landed, but the repo is still carrying cleanup debt from the migration:
 
 - `web-src/` is the intended modern source tree built with Svelte and Vite
-- `web/` is both build output and a place where runtime logic still exists
-- the main app mounts Svelte and then bootstraps legacy imperative modules from `web/js/*`
-- some state already lives in `web-src/src/lib/*`, while behavior and DOM ownership remain split across old and new code
+- `web/` is still both build output and a place where handwritten runtime files exist
+- the main app now mounts the real Svelte workspace directly
+- some shared helpers in `web-src/src/lib/*` still import legacy modules from `web/js/*`
 
-This produces the worst possible middle state: two active runtimes, two ownership models, and no single clear source of truth for the main page.
-
-The rewrite should finish the migration already underway instead of introducing a third architecture.
+The repo is no longer in the worst middle state of two active workspace runtimes, but it has not reached the intended end state either. The remaining work is to finish deleting compatibility seams and make `web/` generated output only.
 
 ## Current Problems
 
-1. The main page has two live architectures at once.
-   `web-src/src/App.svelte` mounts the app shell, then defers the real workspace behavior to legacy modules in `web/js/*`.
+1. `web/` is still not treated as build output only.
+   Generated assets and handwritten runtime code still live side by side, which keeps source ownership ambiguous.
 
-2. `web/` is not treated as build output only.
-   Generated assets and handwritten runtime code live side by side, which makes ownership and cleanup ambiguous.
+2. Some `web-src/src/lib/*` modules still import legacy helpers from `web/js/*`.
+   The workspace runtime is Svelte-owned now, but markdown/text helper ownership is still split.
 
-3. Markup ownership is split.
-   Svelte components exist for page shells and secondary pages, but large parts of the main page still render via HTML string helpers and DOM mutation.
+3. Legacy bridge and compatibility files still exist after their owning runtime path was removed.
+   Dead bridge files under `web-src/src/bridges/*` and absorbed `web/js/*` modules still need deletion.
 
-4. State and side effects are not separated cleanly.
-   The repo already has a good store boundary in `workspace-state.js`, but user flows still rely on imperative DOM wiring.
+4. Build and test guardrails have not fully caught up with the architecture.
+   The repo still lacks an explicit regression guard that fails if the Svelte app starts importing `web/js/*` again.
 
 5. Styling is hybrid and sticky.
    Tailwind/daisyUI is the chosen direction, but compatibility CSS continues to act like a second styling system instead of a shrinking bridge.
@@ -159,6 +157,8 @@ Create a clean baseline in `web-src/src/`:
 
 At the end of this phase, the app shell and workspace skeleton should be fully Svelte even if feature behavior is still partially legacy.
 
+Current status: complete. The app shell and workspace skeleton are Svelte-owned.
+
 ### 3. Rewrite the Main Workspace as Native Svelte Features
 
 Rewrite the main page in vertical slices, not by utility file:
@@ -185,6 +185,8 @@ Phase 2 is complete only when the three primary product surfaces are both render
 - `Audio Result`
 
 That means this phase is not satisfied by moving markup alone. If the user can still interact with one of those primary surfaces only through a legacy runtime bridge, that feature has not finished Phase 2.
+
+Current status: complete. The primary workspace flow is now rendered and interaction-wired from `web-src/src/*`.
 
 Each feature should render its own Svelte components and talk to shared stores through explicit imports, not DOM ids. Temporary DOM-id compatibility is acceptable only as a migration seam while a feature is still backed by a named legacy bridge. Control ownership belongs to the feature slice even when request orchestration still sits behind a transitional service boundary until Phase 3.
 
@@ -258,6 +260,8 @@ Do not use `service` as a catch-all for unrelated helpers. Keep feature ownershi
 11. Enforce the boundary before performing a large directory reshuffle.
     First make the side-effect ownership real in the current tree. Move files into `features/*` only after the new boundaries are stable.
 
+Current status: partially complete. OCR, summarize, speech, and settings transport/orchestration now live behind handwritten `web-src/src/lib/*` modules, but some legacy helper imports still remain.
+
 12. Include feed-side effects in Step 4 only to the extent needed to unblock bridge deletion.
     `feed` remains secondary in the product model, but any remaining `web/js/feed.js` dependency that blocks Step 5 should be absorbed behind a Svelte-owned boundary during or immediately after Step 4.
 
@@ -287,6 +291,8 @@ The intended end state is simple:
 - there is no runtime bootstrap of legacy workspace code
 - `web/` contains only compiled assets and static pages
 
+Current status: partially complete. `App.svelte` mounts the real app and no longer bootstraps legacy workspace behavior, but the repo still contains leftover bridge files, legacy helper dependencies, and handwritten files under `web/`.
+
 ### 6. Harden the Build and Embedded Output Contract
 
 After the migration:
@@ -297,6 +303,8 @@ After the migration:
 - document `web/` as generated output only in repo docs if not already explicit
 
 This prevents architectural regression after the rewrite lands.
+
+Current status: not complete. The build still succeeds with the new architecture, but guardrails have not yet been tightened enough to enforce the intended end state.
 
 ## Phase Breakdown
 
@@ -316,6 +324,8 @@ Phase 0 exit criteria:
 - the authoritative docs agree on `Working Text`, `Transform Result`, `Audio Result`, and replace-only `Promotion`
 - every remaining legacy bridge has an owner and a deletion target
 
+Current status: mostly complete, except the bridge inventory in this document needed to be updated to reflect the bridges that are already gone from the runtime.
+
 ### Phase 1: Shell and Shared State
 
 - convert remaining shell HTML-string rendering into Svelte components
@@ -324,6 +334,8 @@ Phase 0 exit criteria:
 - keep `web/theme.js` only as a minimal first-paint helper while runtime theme behavior moves behind Svelte-owned app services
 - move shared state modules into a durable `lib/state/` home if needed
 - remove dead product-shape contracts such as append-capable promotion from public shared contract types
+
+Current status: complete in the main app. The main page shell, workspace skeleton, theme/auth runtime, and shared workspace store now live on the Svelte side.
 
 ### Phase 2: Workspace Rewrite
 
@@ -346,6 +358,8 @@ Phase 2 exit criteria:
 - any remaining DOM ids on the main page are compatibility seams with explicit deletion targets, not the ownership model
 - tests cover rewritten feature behavior through Svelte-owned seams rather than only through legacy DOM-plumbing tests
 
+Current status: largely complete. The primary workspace flow is Svelte-owned, but a few tests and helper imports still point at the legacy surface.
+
 ### Phase 3: Side-Effect Cleanup
 
 - migrate OCR, summarize, and speech orchestration out of legacy modules
@@ -360,22 +374,27 @@ Phase 3 exit criteria:
 - shared download and filename helpers are handwritten under `web-src/src/*`, not imported from legacy `web/js/*`
 - remaining activity/status side effects no longer depend on legacy bridge ownership for the primary workspace flow
 
+Current status: partially complete. Shared export/download logic has moved into `web-src/src/lib/export-service.js`, and activity/status ownership is Svelte-side, but markdown/text helper imports from `web/js/*` still remain.
+
 ### Phase 4: Deletion
 
 - delete `web/js/*` modules that have been absorbed
 - delete unused compatibility CSS
 - remove `App.svelte` legacy bootstrap path entirely
 
+Current status: partially complete. The legacy bootstrap path is gone from `App.svelte`, but absorbed bridge files and legacy helper modules have not all been deleted yet.
+
 ## Critical Files
 
 | File | Why it matters |
 |------|----------------|
-| `web-src/src/App.svelte` | Current mixed-runtime entrypoint; primary place to remove legacy bootstrap |
+| `web-src/src/App.svelte` | Current main app entrypoint; should remain free of legacy runtime imports |
+| `web-src/src/pages/MainWorkspacePage.svelte` | Svelte-owned main workspace surface and current integration point for primary flows |
 | `web-src/src/components/PageShell.svelte` | Existing shell direction worth keeping |
 | `web-src/src/lib/workspace-state.js` | Current best candidate for canonical workspace state |
 | `web-src/src/lib/summary-flow.js` | Likely summarize orchestration boundary |
 | `web-src/src/lib/speech-flow.js` | Likely speech orchestration boundary |
-| `web-src/src/lib/app-shell.js` | HTML-string shell helper to replace with component ownership |
+| `web-src/src/lib/app-runtime.js` | Cross-cutting runtime wiring for theme/auth/config bootstrap that still needs guardrails |
 | `web/js/*.js` | Legacy runtime surface to absorb feature by feature |
 | `web/style.css` | Compatibility layer to shrink aggressively |
 | `vite.config.js` | Source-to-output contract from `web-src/` to `web/` |
@@ -384,25 +403,23 @@ Phase 3 exit criteria:
 
 ## Current Bridge Inventory
 
-The current mixed-runtime seam is already small enough to name directly. Phase 0 should keep this inventory explicit and shrink it over time rather than letting new bridges appear.
+The active mixed-runtime seam is now much smaller than when this plan was first drafted. The primary workspace no longer depends on legacy runtime bridge components, and the remaining cleanup work is concentrated in helper imports and dead files.
 
-- `web-src/src/App.svelte` mounts `LegacyFeedBridge.svelte` only.
-  Owner: `feed` activity UI.
-  Deletion target: remove `LegacyFeedBridge.svelte` and stop importing `web/js/feed.js` from Svelte-owned code once the activity feed is moved behind a Svelte-owned feature or reduced to a pure utility boundary.
-- `web-src/src/pages/MainWorkspacePage.svelte` imports `addFeed`, `setPlaying`, `setStatus`, and `updateFeedItem` from `web/js/feed.js`.
-  Owner: main workspace activity/status plumbing.
-  Deletion target: replace these calls with a Svelte-owned activity/status store or feature-local service, then delete the remaining `web/js/feed.js` dependency from the main workspace.
 - `web-src/src/lib/summary-flow.js` and `web-src/src/lib/result-surface.js` import `web/js/markdown.js`.
   Owner: shared text-result rendering helpers used by summarize and result-surface features.
   Deletion target: move markdown rendering into `web-src/src/lib/*` and delete the `web/js/markdown.js` dependency.
-- `web-src/src/lib/speech-flow.js` and `web-src/src/lib/result-surface.js` import `web/js/filename.js` and `web/js/download.js`.
-  Owner: shared download behavior for result and audio exports.
-  Deletion target: move filename and download helpers into `web-src/src/lib/*` or a feature-local service and delete the `web/js/filename.js` and `web/js/download.js` dependencies.
-- `web-src/src/lib/speech-flow.js`, `web-src/src/lib/main-workspace-flow.js`, `web-src/src/lib/main-workspace-speech-flow.js`, and `web-src/src/lib/result-surface.js` import `web/js/text.js`.
+- `web-src/src/lib/speech-flow.js`, `web-src/src/lib/main-workspace-speech-flow.js`, `web-src/src/lib/main-workspace-summary-service.js`, and `web-src/src/lib/result-surface.js` import `web/js/text.js`.
   Owner: shared text formatting helpers used by workspace, speech, and result rendering.
   Deletion target: move text helpers into `web-src/src/lib/*` and delete the `web/js/text.js` dependency.
 
-Bridges already removed from `App.svelte` and no longer counted as active Phase 0 seams:
+Inactive leftovers that should be deleted rather than treated as live bridges:
+
+- `web-src/src/bridges/LegacyOCRBridge.svelte`
+- `web-src/src/bridges/LegacySummaryBridge.svelte`
+- `web-src/src/bridges/LegacyProvidersBridge.svelte`
+- `web-src/src/bridges/LegacyMetricsBridge.svelte`
+
+Bridges already removed from the live app runtime and no longer counted as active Phase 0 seams:
 
 - `LegacyOCRBridge.svelte`
 - `LegacySummaryBridge.svelte`
@@ -448,7 +465,7 @@ go test ./...
 
 Manual checks:
 
-1. Main page loads with no legacy bootstrap dependency from `App.svelte`
+1. Main page loads with no legacy workspace bootstrap dependency from `App.svelte`
 2. Working Text remains the single canonical text source
 3. OCR writes to `Transform Result` and supports promotion
 4. Summarization runs from `Working Text` and updates `Transform Result`
